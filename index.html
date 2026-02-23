@@ -2,1148 +2,842 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Chi Chi AI Companion</title>
-  <meta name="description" content="Chi Chi AI Companion - Robot AI bạn đồng hành & Giải pháp AI cho kiểm toán, đối chiếu sổ sách và tự động hóa hồ sơ."/>
-  <meta name="theme-color" content="#0b1020"/>
+  <meta name="description" content="Chi Chi AI Companion — AI companion robots & enterprise AI for auditing and reconciliation." />
 
   <style>
     :root{
-      --bg0:#070a12;
-      --bg1:#0b1020;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.08);
-      --stroke: rgba(255,255,255,.14);
-      --text:#e8eefc;
-      --muted:#a9b6d3;
-      --muted2:#7f8bb0;
-
-      --brand:#7c3aed;      /* violet */
-      --brand2:#22d3ee;     /* cyan */
-      --good:#22c55e;
-
-      --radius: 18px;
-      --shadow: 0 18px 60px rgba(0,0,0,.45);
-      --shadow2: 0 10px 30px rgba(0,0,0,.35);
-      --max: 1180px;
-
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      --bg0:#050812;
+      --bg1:#070b1a;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.72);
+      --muted2:rgba(234,240,255,.55);
+      --brand:#7c3aed;
+      --brand2:#22c55e;
+      --cyan:#22d3ee;
+      --gold:#fbbf24;
+      --shadow:0 18px 60px rgba(0,0,0,.45);
+      --radius:18px;
+      --radius2:26px;
+      --max:1180px;
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font-family: var(--sans);
-      color: var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      color:var(--text);
       background:
-        radial-gradient(1100px 700px at 20% 10%, rgba(124,58,237,.25), transparent 55%),
-        radial-gradient(900px 600px at 85% 25%, rgba(34,211,238,.18), transparent 55%),
-        radial-gradient(900px 600px at 60% 90%, rgba(34,197,94,.10), transparent 60%),
-        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 55%, #070a12 100%);
+        radial-gradient(1200px 700px at 15% 10%, rgba(124,58,237,.35), transparent 60%),
+        radial-gradient(900px 600px at 75% 20%, rgba(34,211,238,.22), transparent 60%),
+        radial-gradient(900px 700px at 50% 90%, rgba(34,197,94,.18), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
       overflow-x:hidden;
     }
 
-    /* AI tech grid + noise */
     .bg-grid{
-      position:fixed; inset:0;
-      pointer-events:none;
+      position:fixed; inset:0; pointer-events:none; z-index:-2;
       background:
-        linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,.05) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(800px 500px at 50% 20%, rgba(0,0,0,1), transparent 75%);
-      opacity:.18;
-      z-index:-2;
+        linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(700px 420px at 50% 20%, rgba(0,0,0,1), transparent 70%);
+      opacity:.25;
     }
     .bg-noise{
-      position:fixed; inset:0;
-      pointer-events:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
-      opacity:.12;
-      mix-blend-mode:overlay;
-      z-index:-1;
+      position:fixed; inset:0; pointer-events:none; z-index:-1;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+      opacity:.14; mix-blend-mode:overlay;
+    }
+    .orbs{
+      position:fixed; inset:0; pointer-events:none; z-index:-1;
+      filter: blur(30px);
+      opacity:.75;
+    }
+    .orb{
+      position:absolute; width:520px; height:520px; border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.45), transparent 60%);
+      animation: floaty 12s ease-in-out infinite;
+    }
+    .orb.o2{
+      width:560px; height:560px;
+      background: radial-gradient(circle at 30% 30%, rgba(124,58,237,.45), transparent 60%);
+      animation-duration: 16s;
+    }
+    .orb.o3{
+      width:520px; height:520px;
+      background: radial-gradient(circle at 30% 30%, rgba(34,197,94,.35), transparent 60%);
+      animation-duration: 18s;
+    }
+    @keyframes floaty{
+      0%,100%{transform:translate3d(0,0,0) scale(1)}
+      50%{transform:translate3d(40px,-24px,0) scale(1.06)}
     }
 
-    .container{
-      max-width: var(--max);
-      margin:0 auto;
-      padding: 26px 18px 70px;
+    .wrap{max-width:var(--max); margin:0 auto; padding:32px 20px 80px}
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px;
+      padding:14px 14px;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      border-radius: 999px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      position:sticky; top:14px; z-index:10;
     }
-
-    /* top nav */
-    .nav{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:14px;
-      position:sticky;
-      top:0;
-      padding:12px 0;
-      backdrop-filter: blur(14px);
-      z-index:20;
-    }
-    .nav::before{
-      content:"";
-      position:absolute; left:-40px; right:-40px; top:0; bottom:0;
-      background: rgba(7,10,18,.55);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      z-index:-1;
-    }
-
     .brand{
-      display:flex; align-items:center; gap:12px;
-      font-weight:700;
-      letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px;
+      padding-left:6px;
+      min-width: 230px;
     }
-    .brand-badge{
-      width:34px; height:34px; border-radius:12px;
+    .mark{
+      width:34px;height:34px;border-radius:12px;
       background:
-        radial-gradient(14px 14px at 30% 30%, rgba(34,211,238,.95), transparent 60%),
-        radial-gradient(18px 18px at 75% 70%, rgba(124,58,237,.95), transparent 65%),
-        linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        radial-gradient(circle at 30% 30%, rgba(34,211,238,.9), rgba(124,58,237,.7) 55%, rgba(0,0,0,.2));
+      box-shadow: 0 10px 30px rgba(124,58,237,.25);
       position:relative;
       overflow:hidden;
     }
-    .brand-badge::after{
+    .mark:after{
       content:"";
-      position:absolute; inset:-40%;
-      background: radial-gradient(circle, rgba(255,255,255,.18), transparent 55%);
-      transform: rotate(18deg);
-      opacity:.9;
+      position:absolute; inset:-2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+      transform: translateX(-60%);
+      animation: sheen 2.6s ease-in-out infinite;
     }
-
-    .nav-links{
-      display:flex; gap:14px; flex-wrap:wrap;
+    @keyframes sheen{
+      0%,40%{transform:translateX(-70%)}
+      70%,100%{transform:translateX(70%)}
+    }
+    .brand .name{font-weight:750; letter-spacing:.3px}
+    .brand .tagline{font-size:12px; color:var(--muted2)}
+    .nav{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       justify-content:center;
     }
-    .nav-links a{
-      color: var(--muted);
-      text-decoration:none;
-      font-size:13px;
-      padding:8px 10px;
-      border-radius:12px;
+    .nav a{
+      text-decoration:none; color:var(--muted);
+      font-size:13px; padding:8px 10px; border-radius:999px;
       border:1px solid transparent;
-      transition: .2s ease;
     }
-    .nav-links a:hover{
-      color: var(--text);
-      border-color: rgba(255,255,255,.12);
+    .nav a:hover{
+      color:var(--text);
+      border-color: rgba(255,255,255,.14);
       background: rgba(255,255,255,.05);
     }
-
-    .nav-right{
-      display:flex; align-items:center; gap:10px;
-    }
-    .lang{
-      display:flex; gap:6px; align-items:center;
-      padding:6px;
-      border-radius:14px;
-      background: rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.12);
-    }
+    .controls{display:flex; align-items:center; gap:8px;}
     .lang button{
-      border:1px solid transparent;
-      background: transparent;
-      color: var(--muted);
       cursor:pointer;
-      padding:7px 10px;
-      border-radius:10px;
-      font-size:12px;
-      transition:.2s ease;
-      font-family: var(--mono);
-      letter-spacing:.4px;
-    }
-    .lang button:hover{
-      color: var(--text);
-      background: rgba(255,255,255,.06);
-    }
-    .lang button.active{
-      color: var(--text);
-      border-color: rgba(255,255,255,.16);
-      background: linear-gradient(135deg, rgba(124,58,237,.25), rgba(34,211,238,.18));
-    }
-
-    .cta{
-      display:inline-flex; align-items:center; gap:10px;
-      padding:10px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.16);
-      background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(34,211,238,.14));
-      color: var(--text);
-      text-decoration:none;
-      font-size:13px;
-      box-shadow: var(--shadow2);
-      transition:.2s ease;
-      white-space:nowrap;
-    }
-    .cta:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
-
-    /* hero */
-    .hero{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:22px;
-      align-items:stretch;
-      margin-top:18px;
-    }
-    @media(max-width: 980px){
-      .hero{ grid-template-columns: 1fr; }
-      .nav-links{ display:none; }
-    }
-
-    .panel{
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
       border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius: 12px;
+      font-size:12px;
+      transition: transform .12s ease, background .12s ease;
+    }
+    .lang button:hover{transform: translateY(-1px); background: rgba(255,255,255,.09)}
+    .lang button.active{
+      border-color: rgba(34,211,238,.35);
+      box-shadow: 0 0 0 3px rgba(34,211,238,.12);
+    }
+
+    .hero{
+      margin-top:26px;
+      display:grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    @media (max-width: 980px){
+      .hero{grid-template-columns:1fr}
+      header{border-radius: 22px; padding:14px}
+      .brand{min-width:auto}
+      .nav{display:none}
+    }
+    .panel{
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border-radius: var(--radius2);
       box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
       overflow:hidden;
       position:relative;
     }
-    .panel::before{
+    .panel:before{
       content:"";
       position:absolute; inset:-2px;
       background:
-        radial-gradient(600px 260px at 20% 15%, rgba(34,211,238,.22), transparent 60%),
-        radial-gradient(500px 240px at 80% 25%, rgba(124,58,237,.24), transparent 60%),
-        radial-gradient(420px 260px at 55% 90%, rgba(34,197,94,.14), transparent 65%);
-      opacity:1;
+        radial-gradient(800px 340px at 30% 10%, rgba(34,211,238,.14), transparent 60%),
+        radial-gradient(800px 420px at 70% 30%, rgba(124,58,237,.18), transparent 60%),
+        radial-gradient(900px 600px at 50% 90%, rgba(34,197,94,.12), transparent 60%);
       pointer-events:none;
     }
 
-    .hero-left{ padding:28px 26px; }
-    .kicker{
-      display:inline-flex; align-items:center; gap:10px;
-      padding:7px 10px;
+    .hero-main{padding:34px 30px}
+    .pill{
+      display:inline-flex; gap:10px; align-items:center;
+      padding:8px 12px;
       border-radius:999px;
       border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.05);
-      color: var(--muted);
+      background: rgba(0,0,0,.18);
+      color:var(--muted);
       font-size:12px;
-      letter-spacing:.3px;
+      position:relative;
+      z-index:1;
     }
-    .dot{ width:8px; height:8px; border-radius:50%;
-      background: linear-gradient(135deg, var(--brand2), var(--brand));
-      box-shadow: 0 0 18px rgba(34,211,238,.45);
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--cyan);
+      box-shadow: 0 0 0 6px rgba(34,211,238,.12);
     }
 
-    h1{
+    .hero h1{
       margin:14px 0 10px;
-      font-size: 44px;
-      line-height: 1.08;
-      letter-spacing: -0.6px;
+      font-size:46px;
+      line-height:1.08;
+      letter-spacing:-.6px;
       position:relative;
       z-index:1;
     }
-    .sub{
+    .grad{
+      background: linear-gradient(90deg, #eaf0ff 0%, #a5b4fc 35%, #22d3ee 70%, #86efac 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .hero p{
       margin:0;
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 15.5px;
-      max-width: 60ch;
+      color:var(--muted);
+      line-height:1.75;
+      font-size:15px;
+      max-width: 62ch;
       position:relative;
       z-index:1;
     }
-    .hero-actions{
+    .cta{
       display:flex; gap:10px; flex-wrap:wrap;
       margin-top:18px;
-      position:relative;
-      z-index:1;
+      position:relative; z-index:1;
     }
     .btn{
-      display:inline-flex; align-items:center; gap:10px;
-      padding:11px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.16);
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      text-decoration:none;
+      cursor:pointer;
+      padding:10px 14px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      font-weight:650;
       font-size:13px;
-      transition:.2s ease;
+      text-decoration:none;
+      display:inline-flex; align-items:center; gap:8px;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
     }
-    .btn:hover{ background: rgba(255,255,255,.08); transform: translateY(-1px); }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09)}
     .btn.primary{
-      background: linear-gradient(135deg, rgba(124,58,237,.35), rgba(34,211,238,.18));
-      border-color: rgba(255,255,255,.18);
-      box-shadow: var(--shadow2);
+      border-color: rgba(34,211,238,.28);
+      background: linear-gradient(180deg, rgba(34,211,238,.20), rgba(124,58,237,.14));
+      box-shadow: 0 10px 30px rgba(34,211,238,.12);
     }
 
-    .hero-right{ padding:22px; display:flex; flex-direction:column; gap:12px; }
+    .hero-side{padding:18px}
+    .statgrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      position:relative; z-index:1;
+    }
     .stat{
-      padding:14px 14px;
-      border-radius: 16px;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.18);
-      display:flex; gap:12px; align-items:flex-start;
+      border-radius: 16px;
+      padding:14px;
     }
-    .icon{
-      width:38px;height:38px;border-radius:14px;
-      display:grid;place-items:center;
-      background: rgba(255,255,255,.06);
+    .stat .k{font-size:12px; color:var(--muted2)}
+    .stat .v{margin-top:6px; font-size:18px; font-weight:750}
+    .stat .v small{font-size:12px; color:var(--muted2); font-weight:600}
+    .badge{
+      display:flex; align-items:center; gap:10px;
+      margin-top:12px;
       border:1px solid rgba(255,255,255,.12);
-      flex: 0 0 auto;
+      background: rgba(0,0,0,.18);
+      border-radius: 16px;
+      padding:14px;
+      position:relative; z-index:1;
     }
-    .stat b{display:block; font-size:13px; margin-bottom:3px}
-    .stat span{display:block; color: var(--muted); font-size:12.5px; line-height:1.5}
+    .avatar{
+      width:40px;height:40px;border-radius:14px;
+      background: radial-gradient(circle at 30% 30%, rgba(251,191,36,.85), rgba(34,211,238,.5) 55%, rgba(0,0,0,.2));
+      box-shadow: 0 12px 30px rgba(251,191,36,.12);
+    }
+    .badge .t{font-size:12px;color:var(--muted2)}
+    .badge .n{font-weight:800; font-size:15px}
+    .badge .n span{color:var(--muted)}
 
-    /* sections */
-    .section{
-      margin-top: 26px;
-      padding: 18px 0 0;
-    }
-    .section-head{
-      display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap;
-      margin: 34px 0 14px;
-    }
-    .section-head h2{
-      margin:0;
-      font-size: 22px;
-      letter-spacing:-.2px;
-    }
-    .section-head p{
-      margin:0;
-      color: var(--muted);
-      max-width: 70ch;
-      line-height:1.6;
-      font-size: 13.5px;
-    }
-
+    section{margin-top:28px}
     .grid{
       display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 14px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:14px;
     }
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
     .card{
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
       border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      box-shadow: var(--shadow2);
-      padding: 16px 16px;
+      padding:18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
       position:relative;
       overflow:hidden;
     }
-    .card::after{
+    .card:before{
       content:"";
-      position:absolute;
-      inset:-2px;
-      background:
-        radial-gradient(420px 220px at 20% 15%, rgba(34,211,238,.10), transparent 60%),
-        radial-gradient(380px 200px at 80% 25%, rgba(124,58,237,.12), transparent 60%);
+      position:absolute; inset:-2px;
+      background: radial-gradient(600px 220px at 20% 0%, rgba(34,211,238,.10), transparent 60%);
       opacity:.7;
       pointer-events:none;
     }
-    .card > *{ position:relative; z-index:1; }
+    .card h3{margin:2px 0 8px; position:relative; z-index:1}
+    .card p{margin:0; color:var(--muted); line-height:1.7; font-size:14px; position:relative; z-index:1}
+    .icon{
+      width:38px;height:38px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      display:flex; align-items:center; justify-content:center;
+      margin-bottom:10px;
+      position:relative; z-index:1;
+    }
+    .icon svg{width:18px;height:18px; opacity:.92}
 
-    .col-4{ grid-column: span 4; }
-    .col-6{ grid-column: span 6; }
-    .col-8{ grid-column: span 8; }
-    .col-12{ grid-column: span 12; }
-    @media(max-width: 980px){
-      .col-4,.col-6,.col-8{ grid-column: span 12; }
-    }
+    .split{display:grid; grid-template-columns: 1fr 1fr; gap:14px;}
+    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
 
-    .card h3{
-      margin:0 0 8px;
-      font-size: 15px;
-    }
-    .card p{
-      margin:0;
-      color: var(--muted);
-      font-size: 13.5px;
-      line-height: 1.65;
-    }
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
     .list{
       margin:10px 0 0;
       padding:0 0 0 18px;
-      color: var(--muted);
-      font-size: 13.5px;
-      line-height: 1.65;
+      color:var(--muted);
+      line-height:1.75;
+      font-size:14px;
+      position:relative; z-index:1;
     }
-    .list li{ margin:6px 0; }
-
-    .divider{
-      height:1px;
-      background: rgba(255,255,255,.10);
-      margin: 18px 0;
+    .list li{margin:6px 0}
+    .quote{
+      font-size:13px;color:var(--muted2); margin-top:12px;
+      border-left:2px solid rgba(34,211,238,.35);
+      padding-left:12px;
+      position:relative; z-index:1;
     }
 
-    /* contact */
-    .contact-grid{
+    .contact{
       display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
     }
-    @media(max-width: 980px){
-      .contact-grid{ grid-template-columns: 1fr; }
-    }
+    @media (max-width: 980px){ .contact{grid-template-columns:1fr} }
 
     .kv{
       display:grid;
       grid-template-columns: 140px 1fr;
-      gap: 10px;
-      align-items:start;
-      font-size: 13.5px;
-      color: var(--muted);
-      line-height:1.6;
+      gap:10px 14px;
+      margin-top:10px;
+      color:var(--muted);
+      font-size:14px;
+      position:relative; z-index:1;
     }
-    .kv b{ color: var(--text); font-weight:600; }
-
-    .mono{
-      font-family: var(--mono);
-      letter-spacing:.1px;
+    .kv .k{color:var(--muted2)}
+    .kv .v{color:var(--text)}
+    .foot{
+      margin-top:26px;
+      text-align:center;
+      color:var(--muted2);
+      font-size:13px;
+      padding:18px 0 0;
     }
-
-    /* footer */
-    footer{
-      margin-top: 34px;
-      padding: 18px 0 0;
-      color: var(--muted2);
-      font-size: 12.5px;
-      display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
-      border-top: 1px solid rgba(255,255,255,.10);
+    .tiny{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color:var(--muted2);
+      font-size:12px;
     }
-    .tiny-links{ display:flex; gap:10px; flex-wrap:wrap; }
-    .tiny-links a{ color: var(--muted2); text-decoration:none; }
-    .tiny-links a:hover{ color: var(--text); }
-
-    /* smooth anchor offset for sticky nav */
-    .anchor{ scroll-margin-top: 90px; }
+    a.link{color:var(--cyan);text-decoration:none}
+    a.link:hover{text-decoration:underline}
   </style>
 </head>
 
 <body>
   <div class="bg-grid"></div>
   <div class="bg-noise"></div>
+  <div class="orbs">
+    <div class="orb" style="left:-120px; top:180px;"></div>
+    <div class="orb o2" style="right:-180px; top:-80px;"></div>
+    <div class="orb o3" style="left:260px; bottom:-220px;"></div>
+  </div>
 
-  <div class="container">
-    <!-- NAV -->
-    <div class="nav">
+  <div class="wrap">
+    <header>
       <div class="brand">
-        <div class="brand-badge" aria-hidden="true"></div>
+        <div class="mark" aria-hidden="true"></div>
         <div>
-          <div style="font-size:14px;line-height:1">Chi Chi AI Companion</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px" data-key="nav_tagline">Robotics • AI Companion • Enterprise AI</div>
+          <div class="name" data-key="brand">Chi Chi AI Companion</div>
+          <div class="tagline" data-key="tagline">Robotics • AI Companion • Enterprise Automation</div>
         </div>
       </div>
 
-      <div class="nav-links">
-        <a href="#products" data-key="nav_products">Sản phẩm</a>
-        <a href="#enterprise" data-key="nav_enterprise">Doanh nghiệp</a>
-        <a href="#process" data-key="nav_process">Quy trình</a>
-        <a href="#security" data-key="nav_security">Bảo mật</a>
-        <a href="#contact" data-key="nav_contact">Liên hệ</a>
-      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#research" data-key="nav_research">Research</a>
+        <a href="#products" data-key="nav_products">Products</a>
+        <a href="#enterprise" data-key="nav_enterprise">Enterprise</a>
+        <a href="#roadmap" data-key="nav_roadmap">Roadmap</a>
+        <a href="#contact" data-key="nav_contact">Contact</a>
+      </nav>
 
-      <div class="nav-right">
+      <div class="controls">
         <div class="lang" aria-label="Language switch">
-          <button id="btn-vi" class="active" onclick="setLang('vi')">VI</button>
-          <button id="btn-en" onclick="setLang('en')">EN</button>
-          <button id="btn-zh-cn" onclick="setLang('zh-cn')">简</button>
-          <button id="btn-zh-tw" onclick="setLang('zh-tw')">繁</button>
+          <button class="active" data-lang="vi" onclick="setLang('vi', this)">VI</button>
+          <button data-lang="en" onclick="setLang('en', this)">EN</button>
+          <button data-lang="zh-cn" onclick="setLang('zh-cn', this)">简</button>
+          <button data-lang="zh-tw" onclick="setLang('zh-tw', this)">繁</button>
         </div>
-        <a class="cta" href="#contact" data-key="nav_cta">Tư vấn nhanh</a>
       </div>
+    </header>
+
+    <section class="hero">
+      <div class="panel">
+        <div class="hero-main">
+          <div class="pill">
+            <span class="dot"></span>
+            <span data-key="hero_pill">AI robotics + enterprise-grade automation</span>
+          </div>
+
+          <h1>
+            <span data-key="hero_title_1" class="grad">Chi Chi AI Companion</span><br/>
+            <span data-key="hero_title_2">Build companion robots & AI audit tools</span>
+          </h1>
+
+          <p data-key="hero_desc">
+            Chúng tôi nghiên cứu robot AI bạn đồng hành và xây dựng giải pháp AI giúp doanh nghiệp kiểm toán, đối chiếu sổ sách, xử lý hồ sơ nhanh hơn — ít sai hơn — dễ kiểm soát hơn.
+          </p>
+
+          <div class="cta">
+            <a class="btn primary" href="#contact"><span data-key="cta_primary">Liên hệ</span> →</a>
+            <a class="btn" href="#enterprise"><span data-key="cta_secondary">Xem giải pháp doanh nghiệp</span></a>
+            <span class="tiny">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--brand2);display:inline-block"></span>
+              <span data-key="cta_note">Based in Da Nang • GMT+7</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hero-side">
+          <div class="statgrid">
+            <div class="stat">
+              <div class="k" data-key="stat1_k">Focus</div>
+              <div class="v" data-key="stat1_v">AI + Robotics</div>
+            </div>
+            <div class="stat">
+              <div class="k" data-key="stat2_k">Enterprise</div>
+              <div class="v" data-key="stat2_v">Audit & Reconcile</div>
+            </div>
+            <div class="stat">
+              <div class="k" data-key="stat3_k">Delivery</div>
+              <div class="v">Web / API <small data-key="stat3_s">Automation</small></div>
+            </div>
+            <div class="stat">
+              <div class="k" data-key="stat4_k">Language</div>
+              <div class="v" data-key="stat4_v">VI • EN • 中文</div>
+            </div>
+          </div>
+
+          <div class="badge">
+            <div class="avatar" aria-hidden="true"></div>
+            <div>
+              <div class="t" data-key="it_title">Chuyên viên IT</div>
+              <div class="n"><span id="nameShort">Đăng</span> <span>/ Michael</span></div>
+            </div>
+          </div>
+
+          <div class="quote" data-key="hero_quote">
+            “Automation should be verifiable: clear source-of-truth, stable IDs, audit-friendly logs.”
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="grid">
+        <div class="card">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.2 5.2L20 9l-4.2 3.4L17 18l-5-3-5 3 1.2-5.6L4 9l5.8-1.8L12 2z" stroke="currentColor" stroke-width="1.8"/></svg>
+          </div>
+          <h3 data-key="v1_t">Tech clean, production-minded</h3>
+          <p data-key="v1_d">Thiết kế và triển khai theo chuẩn doanh nghiệp: rõ ràng, kiểm soát được, dễ mở rộng, ít nợ kỹ thuật.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <h3 data-key="v2_t">Robotics + companion AI</h3>
+          <p data-key="v2_d">Tập trung tương tác tự nhiên, cá nhân hoá, nhận diện ngữ cảnh để tạo trải nghiệm “bạn đồng hành”.</p>
+        </div>
+
+        <div class="card">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M7 7h10v10H7V7z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M4 4h4M16 4h4M4 20h4M16 20h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 data-key="v3_t">Audit-friendly automation</h3>
+          <p data-key="v3_d">Giảm thao tác thủ công trong sổ sách/hồ sơ, nhưng vẫn ưu tiên truy vết & đối chiếu được.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="research" class="split">
+      <div class="card">
+        <h3 data-key="r_t">Research direction</h3>
+        <p data-key="r_d">Nghiên cứu robot AI bạn đồng hành, tập trung vào giao tiếp tự nhiên, khả năng trợ giúp theo ngữ cảnh và cá nhân hóa.</p>
+        <ul class="list">
+          <li data-key="r_l1">Natural conversation: thoại mượt, phản hồi đúng ngữ cảnh.</li>
+          <li data-key="r_l2">Long-term memory (tùy chọn): ghi nhớ sở thích & thói quen theo consent.</li>
+          <li data-key="r_l3">Emotion / intent signals: ưu tiên tương tác “đúng lúc”.</li>
+          <li data-key="r_l4">Safety & privacy: kiểm soát dữ liệu và quyền truy cập.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 data-key="r2_t">What we build</h3>
+        <p data-key="r2_d">Các nguyên mẫu và mô-đun có thể ghép: AI companion, voice UI, dashboard quản trị, và tự động hóa tác vụ.</p>
+        <ul class="list">
+          <li data-key="r2_l1">Companion agent: trợ lý cá nhân hóa.</li>
+          <li data-key="r2_l2">Voice interaction: ASR/TTS + hội thoại.</li>
+          <li data-key="r2_l3">Control center: nhật ký, phân quyền, audit trails.</li>
+          <li data-key="r2_l4">Integration: Sheets/Airtable/CRM/ERP (tuỳ nhu cầu).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="products" class="card">
+      <h3 data-key="p_t">Products</h3>
+      <p data-key="p_d">Dòng sản phẩm hướng tới người dùng cá nhân và đội vận hành doanh nghiệp. Có thể phát triển theo gói MVP → Pilot → Production.</p>
+      <div class="grid" style="margin-top:14px;">
+        <div class="card" style="margin:0;">
+          <h3 data-key="p1_t">Chi Chi Companion (Robot/Device)</h3>
+          <p data-key="p1_d">AI bạn đồng hành: nhắc việc, học tập, hỗ trợ công việc, tương tác tự nhiên theo ngữ cảnh.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <h3 data-key="p2_t">Chi Chi Audit Assistant</h3>
+          <p data-key="p2_d">Trợ lý kiểm toán: đối chiếu, phát hiện sai lệch, tóm tắt chứng từ, tạo checklist kiểm tra.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <h3 data-key="p3_t">Chi Chi Workflow Automation</h3>
+          <p data-key="p3_d">Tự động hóa hồ sơ/sổ sách: chuẩn hóa dữ liệu, mapping theo ID ổn định, giảm API thừa & lỗi lặp.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="enterprise" class="split">
+      <div class="card">
+        <h3 data-key="e_t">Enterprise solutions</h3>
+        <p data-key="e_d">Giải pháp tập trung vào kiểm toán, đối chiếu sổ sách và xử lý hồ sơ. Ưu tiên tính đúng đắn, truy vết và kiểm soát.</p>
+        <ul class="list">
+          <li data-key="e_l1">Ledger reconciliation: so khớp, phát hiện chênh lệch, giải thích nguyên nhân.</li>
+          <li data-key="e_l2">Document automation: trích xuất, chuẩn hóa, phân loại, đối chiếu.</li>
+          <li data-key="e_l3">Audit logs: lưu vết thao tác, nguồn dữ liệu, phiên bản pipeline.</li>
+          <li data-key="e_l4">Idempotency & rate-limit: tránh gọi API thừa, có cooldown & retry chuẩn.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 data-key="e2_t">Typical use cases</h3>
+        <p data-key="e2_d">Các ngành cần độ chính xác cao và nhiều hồ sơ: kế toán, kiểm toán, vận hành nhân sự, đối chiếu dữ liệu đa nguồn.</p>
+        <ul class="list">
+          <li data-key="e2_l1">Đối chiếu hóa đơn – chứng từ – sổ cái.</li>
+          <li data-key="e2_l2">Kiểm tra logic dữ liệu, phát hiện outlier.</li>
+          <li data-key="e2_l3">Tự động tạo báo cáo & biên bản kiểm tra.</li>
+          <li data-key="e2_l4">Chuẩn hóa quy trình hồ sơ nội bộ.</li>
+        </ul>
+        <div class="quote" data-key="e_quote">Quy tắc triển khai: source-of-truth rõ, mapping theo ID ổn định, thay đổi schema = version-level.</div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="card">
+      <h3 data-key="m_t">Roadmap</h3>
+      <p data-key="m_d">Lộ trình gợi ý để đi nhanh nhưng vẫn chắc: MVP → Pilot → Production.</p>
+      <div class="grid" style="margin-top:14px;">
+        <div class="card" style="margin:0;">
+          <h3 data-key="m1_t">MVP (2–4 weeks)</h3>
+          <p data-key="m1_d">Xác định use-case, dữ liệu đầu vào/đầu ra, demo end-to-end với logs cơ bản.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <h3 data-key="m2_t">Pilot (4–8 weeks)</h3>
+          <p data-key="m2_d">Tích hợp hệ thống thật, phân quyền, idempotency, giám sát, kiểm thử theo kịch bản.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <h3 data-key="m3_t">Production</h3>
+          <p data-key="m3_d">Versioning pipeline, SLA, dashboard, audit trails đầy đủ, kiểm soát chi phí & quota.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="card">
+        <h3 data-key="c_t">Contact</h3>
+        <p data-key="c_d">Liên hệ để trao đổi nhu cầu: robot AI bạn đồng hành hoặc giải pháp AI cho kiểm toán/đối chiếu dữ liệu.</p>
+
+        <div class="kv">
+          <div class="k" data-key="c_email_k">Email</div>
+          <div class="v"><a class="link" href="mailto:chichicompanion@gmail.com">chichicompanion@gmail.com</a></div>
+
+          <div class="k" data-key="c_phone_k">Phone</div>
+          <div class="v"><a class="link" href="tel:0913434780">0913434780</a></div>
+
+          <div class="k" data-key="c_addr_k">Address</div>
+          <div class="v" data-key="c_addr_v">24 Bàu Trảng 1, Đà Nẵng</div>
+
+          <div class="k" data-key="it_title">Chuyên viên IT</div>
+          <div class="v"><span id="nameShort2">Đăng</span> / Michael</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 data-key="c2_t">Quick message template</h3>
+        <p data-key="c2_d">Copy nhanh nội dung gửi email để tao hiểu đúng và tư vấn đúng use-case:</p>
+        <ul class="list">
+          <li data-key="c2_l1">Mục tiêu: (robot / audit / đối chiếu / hồ sơ...)</li>
+          <li data-key="c2_l2">Nguồn dữ liệu: (Sheets / ERP / PDF / email / API...)</li>
+          <li data-key="c2_l3">Đầu ra mong muốn: (báo cáo / checklist / dashboard...)</li>
+          <li data-key="c2_l4">Ràng buộc: quota, privacy, timeline, ngôn ngữ.</li>
+        </ul>
+        <div class="quote" data-key="c2_quote">Gợi ý: nếu có mẫu file hoặc ảnh quy trình, gửi kèm để thiết kế pipeline chính xác.</div>
+      </div>
+    </section>
+
+    <div class="foot">
+      © <span id="year"></span> <span data-key="brand">Chi Chi AI Companion</span>
     </div>
-
-    <!-- HERO -->
-    <section class="hero" id="top">
-      <div class="panel hero-left">
-        <div class="kicker">
-          <span class="dot"></span>
-          <span data-key="hero_kicker">AI + Robotics dành cho đời sống & doanh nghiệp</span>
-        </div>
-
-        <h1 data-key="hero_title">Chi Chi AI Companion</h1>
-        <p class="sub" data-key="hero_sub">
-          Chúng tôi nghiên cứu robot AI bạn đồng hành và xây dựng giải pháp AI cho doanh nghiệp
-          trong kiểm toán, đối chiếu sổ sách và tự động hoá hồ sơ — giảm tải thủ công, tăng độ chính xác.
-        </p>
-
-        <div class="hero-actions">
-          <a class="btn primary" href="#products" data-key="hero_btn1">Khám phá sản phẩm</a>
-          <a class="btn" href="#enterprise" data-key="hero_btn2">Giải pháp doanh nghiệp</a>
-          <a class="btn" href="#process" data-key="hero_btn3">Xem quy trình triển khai</a>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="grid">
-          <div class="card col-4">
-            <div class="pill"><span class="dot"></span><span data-key="hero_pill1">Robot AI Companion</span></div>
-            <p data-key="hero_p1">Tương tác tự nhiên, cá nhân hoá, hỗ trợ học tập/công việc và đồng hành hằng ngày.</p>
-          </div>
-          <div class="card col-4">
-            <div class="pill"><span class="dot"></span><span data-key="hero_pill2">AI Audit Assist</span></div>
-            <p data-key="hero_p2">Đối chiếu chứng từ – sổ sách, phát hiện sai lệch, tạo báo cáo kiểm soát nhanh.</p>
-          </div>
-          <div class="card col-4">
-            <div class="pill"><span class="dot"></span><span data-key="hero_pill3">Doc Automation</span></div>
-            <p data-key="hero_p3">Tự động hoá xử lý hồ sơ: phân loại, trích xuất, đối chiếu, cảnh báo thiếu sót.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel hero-right">
-        <div class="stat">
-          <div class="icon" aria-hidden="true">
-            <!-- brain icon -->
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 4a3 3 0 0 0-3 3v.4A3.6 3.6 0 0 0 4 10.7V13a4 4 0 0 0 4 4h2" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M15 4a3 3 0 0 1 3 3v.4a3.6 3.6 0 0 1 2 3.3V13a4 4 0 0 1-4 4h-2" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M12 6v12" stroke="rgba(34,211,238,.9)" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <b data-key="stat1_title">Nghiên cứu tập trung</b>
-            <span data-key="stat1_text">AI cá nhân hoá, tương tác tự nhiên, trải nghiệm người dùng & hành vi.</span>
-          </div>
-        </div>
-
-        <div class="stat">
-          <div class="icon" aria-hidden="true">
-            <!-- shield icon -->
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3l8 4v6c0 5-3.4 9-8 11-4.6-2-8-6-8-11V7l8-4z" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M9.5 12l1.7 1.8L14.8 10" stroke="rgba(34,197,94,.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <b data-key="stat2_title">Bảo mật & kiểm soát</b>
-            <span data-key="stat2_text">Thiết kế theo nguyên tắc tối thiểu dữ liệu, phân quyền và nhật ký kiểm tra.</span>
-          </div>
-        </div>
-
-        <div class="stat">
-          <div class="icon" aria-hidden="true">
-            <!-- robot icon -->
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M10 4h4" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M12 4v2" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M7 9a5 5 0 0 1 10 0v6a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V9z" stroke="rgba(232,238,252,.9)" stroke-width="1.6" />
-              <path d="M9.5 12h.01M14.5 12h.01" stroke="rgba(34,211,238,.9)" stroke-width="2.4" stroke-linecap="round"/>
-              <path d="M10 15c.8.8 3.2.8 4 0" stroke="rgba(232,238,252,.9)" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <b data-key="stat3_title">Tối ưu triển khai</b>
-            <span data-key="stat3_text">Tích hợp nhanh với quy trình hiện có: biểu mẫu, sổ sách, kho tài liệu.</span>
-          </div>
-        </div>
-
-        <div class="card" style="padding:16px 16px">
-          <div class="pill"><span class="dot"></span><span data-key="mini_title">Quick facts</span></div>
-          <p class="mono" style="margin:0;color:var(--muted);font-size:12.5px;line-height:1.7">
-            <span data-key="mini_line1">Focus:</span> <span data-key="mini_val1">AI Robotics + Enterprise Automation</span><br>
-            <span data-key="mini_line2">Location:</span> <span data-key="mini_val2">Da Nang, Viet Nam</span><br>
-            <span data-key="mini_line3">Contact:</span> <span class="mono">chichicompanion@gmail.com</span>
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- PRODUCTS -->
-    <section class="section anchor" id="products">
-      <div class="section-head">
-        <h2 data-key="prod_h2">Sản phẩm Robot AI bạn đồng hành</h2>
-        <p data-key="prod_p">Thiết kế để giao tiếp tự nhiên, hiểu ngữ cảnh, và cá nhân hoá trải nghiệm — ưu tiên sự hữu ích và an toàn.</p>
-      </div>
-
-      <div class="grid">
-        <div class="card col-6">
-          <div class="pill"><span class="dot"></span><span data-key="prod1_tag">AI Companion Core</span></div>
-          <h3 data-key="prod1_title">Trí tuệ tương tác & cá nhân hoá</h3>
-          <p data-key="prod1_text">
-            Gợi ý theo thói quen, nhắc việc, hỗ trợ học tập, và đồng hành trong hoạt động hàng ngày. Tập trung vào UX “tự nhiên – nhẹ – đúng lúc”.
-          </p>
-          <ul class="list">
-            <li data-key="prod1_li1">Hội thoại đa ngôn ngữ, ghi nhớ ngữ cảnh theo phiên</li>
-            <li data-key="prod1_li2">Cá nhân hoá hành vi (sở thích, lịch trình, mục tiêu)</li>
-            <li data-key="prod1_li3">Cơ chế an toàn: lọc nội dung & kiểm soát quyền riêng tư</li>
-          </ul>
-        </div>
-
-        <div class="card col-6">
-          <div class="pill"><span class="dot"></span><span data-key="prod2_tag">Embodied UI</span></div>
-          <h3 data-key="prod2_title">Tương tác “robot-friendly”</h3>
-          <p data-key="prod2_text">
-            Thiết kế giao diện và phản hồi phù hợp phần cứng/thiết bị: biểu cảm, đèn trạng thái, âm thanh, hành vi phản hồi.
-          </p>
-          <ul class="list">
-            <li data-key="prod2_li1">Phản hồi theo trạng thái (listening/thinking/acting)</li>
-            <li data-key="prod2_li2">Kịch bản tương tác: hỗ trợ gia đình, học sinh, người lớn tuổi</li>
-            <li data-key="prod2_li3">Tối ưu trải nghiệm: ít thao tác, rõ ràng, nhất quán</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ENTERPRISE -->
-    <section class="section anchor" id="enterprise">
-      <div class="section-head">
-        <h2 data-key="ent_h2">Giải pháp AI cho Doanh nghiệp</h2>
-        <p data-key="ent_p">Tập trung “audit & reconciliation”: đối chiếu, phát hiện sai lệch, chuẩn hoá dữ liệu và tự động hoá hồ sơ.</p>
-      </div>
-
-      <div class="grid">
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="ent1_tag">Ledger Reconciliation</span></div>
-          <h3 data-key="ent1_title">Đối chiếu sổ sách</h3>
-          <p data-key="ent1_text">So khớp dữ liệu đa nguồn, phát hiện chênh lệch, xuất báo cáo kiểm tra & gợi ý nguyên nhân.</p>
-        </div>
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="ent2_tag">Document Intelligence</span></div>
-          <h3 data-key="ent2_title">Trích xuất & chuẩn hoá hồ sơ</h3>
-          <p data-key="ent2_text">Tự động phân loại, trích xuất trường dữ liệu, kiểm tra thiếu/đúng mẫu, giảm lỗi nhập liệu.</p>
-        </div>
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="ent3_tag">Control & Reporting</span></div>
-          <h3 data-key="ent3_title">Kiểm soát & báo cáo</h3>
-          <p data-key="ent3_text">Dashboard kiểm soát rủi ro, nhật ký thay đổi, tiêu chí kiểm toán và phân quyền theo vai trò.</p>
-        </div>
-
-        <div class="card col-12">
-          <h3 data-key="ent_scope_title">Các ngành phù hợp</h3>
-          <p data-key="ent_scope_text">
-            Kế toán – kiểm toán, vận hành nội bộ, nhân sự hồ sơ, chuỗi cửa hàng, logistics, hoặc bất kỳ quy trình nào có
-            “nhiều giấy tờ + cần đối chiếu + cần kiểm soát sai lệch”.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROCESS -->
-    <section class="section anchor" id="process">
-      <div class="section-head">
-        <h2 data-key="proc_h2">Quy trình triển khai</h2>
-        <p data-key="proc_p">Triển khai theo bước nhỏ, có kiểm soát chất lượng, ưu tiên “source of truth” rõ ràng và tránh rủi ro vận hành.</p>
-      </div>
-
-      <div class="grid">
-        <div class="card col-6">
-          <div class="pill"><span class="dot"></span><span data-key="proc1_tag">Step 1</span></div>
-          <h3 data-key="proc1_title">Khảo sát & mô hình dữ liệu</h3>
-          <p data-key="proc1_text">Xác định nguồn dữ liệu, tiêu chí đối chiếu, định nghĩa trường dữ liệu, và mức độ tự động hoá phù hợp.</p>
-          <ul class="list">
-            <li data-key="proc1_li1">Mapping theo ID ổn định</li>
-            <li data-key="proc1_li2">Định nghĩa rule/exception rõ ràng</li>
-            <li data-key="proc1_li3">Thiết kế log & audit trail</li>
-          </ul>
-        </div>
-
-        <div class="card col-6">
-          <div class="pill"><span class="dot"></span><span data-key="proc2_tag">Step 2</span></div>
-          <h3 data-key="proc2_title">PoC nhanh & đo hiệu quả</h3>
-          <p data-key="proc2_text">Chạy thử trên tập dữ liệu mẫu, đo tỷ lệ khớp, lỗi phổ biến, thời gian xử lý và tác động vận hành.</p>
-          <ul class="list">
-            <li data-key="proc2_li1">So sánh trước/sau (time saved, error rate)</li>
-            <li data-key="proc2_li2">Thiết lập checkpoint & rollback</li>
-            <li data-key="proc2_li3">Chuẩn hoá quy trình vận hành</li>
-          </ul>
-        </div>
-
-        <div class="card col-12">
-          <div class="pill"><span class="dot"></span><span data-key="proc3_tag">Step 3</span></div>
-          <h3 data-key="proc3_title">Triển khai chính thức & tối ưu liên tục</h3>
-          <p data-key="proc3_text">
-            Tích hợp vào quy trình thật, phân quyền, giám sát chất lượng, và tối ưu theo dữ liệu thực tế (feedback loop).
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECURITY -->
-    <section class="section anchor" id="security">
-      <div class="section-head">
-        <h2 data-key="sec_h2">Bảo mật & tuân thủ</h2>
-        <p data-key="sec_p">Ưu tiên dữ liệu doanh nghiệp: tối thiểu quyền, log kiểm tra, và nguyên tắc “không để node sau làm mất phản hồi chính”.</p>
-      </div>
-
-      <div class="grid">
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="sec1_tag">Data Minimization</span></div>
-          <h3 data-key="sec1_title">Tối thiểu dữ liệu</h3>
-          <p data-key="sec1_text">Chỉ thu thập đúng phần cần thiết. Che/mask dữ liệu nhạy cảm theo vai trò.</p>
-        </div>
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="sec2_tag">Access Control</span></div>
-          <h3 data-key="sec2_title">Phân quyền & nhật ký</h3>
-          <p data-key="sec2_text">Kiểm soát truy cập theo role, có audit log và khả năng truy vết thay đổi.</p>
-        </div>
-        <div class="card col-4">
-          <div class="pill"><span class="dot"></span><span data-key="sec3_tag">Operational Safety</span></div>
-          <h3 data-key="sec3_title">An toàn vận hành</h3>
-          <p data-key="sec3_text">Idempotency, cooldown, kiểm soát quota/rate limit, rollback khi có sự cố.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- CONTACT -->
-    <section class="section anchor" id="contact">
-      <div class="section-head">
-        <h2 data-key="contact_h2">Liên hệ</h2>
-        <p data-key="contact_p">Gửi yêu cầu — mô tả nhu cầu robot AI hoặc bài toán đối chiếu/kiểm toán. Chúng tôi sẽ phản hồi với lộ trình triển khai phù hợp.</p>
-      </div>
-
-      <div class="grid">
-        <div class="card col-12">
-          <div class="contact-grid">
-            <div>
-              <div class="pill"><span class="dot"></span><span data-key="company_info">Thông tin cơ bản</span></div>
-              <div class="kv"><b data-key="kv_email">Email</b><span class="mono">chichicompanion@gmail.com</span></div>
-              <div class="kv"><b data-key="kv_phone">Số điện thoại</b><span class="mono">0913434780</span></div>
-              <div class="kv"><b data-key="kv_addr">Địa chỉ</b><span data-key="kv_addr_val">24 Bàu Trảng 1, Đà Nẵng</span></div>
-              <div class="kv"><b data-key="kv_eng">Kỹ sư</b><span id="engineerName" class="mono">Nguyễn Ngọc Đăng / Michael</span></div>
-
-              <div class="divider"></div>
-
-              <div class="pill"><span class="dot"></span><span data-key="contact_note_title">Gợi ý mô tả yêu cầu</span></div>
-              <ul class="list">
-                <li data-key="contact_li1">Bạn muốn robot AI companion làm gì? (ngữ cảnh, người dùng, kịch bản)</li>
-                <li data-key="contact_li2">Với doanh nghiệp: nguồn dữ liệu nào cần đối chiếu? tiêu chí sai lệch?</li>
-                <li data-key="contact_li3">Mục tiêu: giảm bao nhiêu thời gian? giảm bao nhiêu lỗi?</li>
-              </ul>
-            </div>
-
-            <div>
-              <div class="pill"><span class="dot"></span><span data-key="faq_title">FAQ nhanh</span></div>
-              <div class="card" style="background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.10); box-shadow:none; padding:14px">
-                <h3 style="margin:0 0 8px; font-size:14px" data-key="faq_q1">Có cần thay đổi quy trình hiện tại không?</h3>
-                <p style="margin:0;color:var(--muted);font-size:13.5px;line-height:1.65" data-key="faq_a1">
-                  Không cần thay đổi lớn. Chúng tôi ưu tiên tích hợp theo từng bước, giữ “source of truth” rõ ràng và có cơ chế rollback.
-                </p>
-                <div class="divider" style="margin:12px 0"></div>
-                <h3 style="margin:0 0 8px; font-size:14px" data-key="faq_q2">Dữ liệu nhạy cảm xử lý thế nào?</h3>
-                <p style="margin:0;color:var(--muted);font-size:13.5px;line-height:1.65" data-key="faq_a2">
-                  Thiết kế theo nguyên tắc tối thiểu dữ liệu, phân quyền, mask dữ liệu và audit log theo vai trò.
-                </p>
-                <div class="divider" style="margin:12px 0"></div>
-                <h3 style="margin:0 0 8px; font-size:14px" data-key="faq_q3">Triển khai mất bao lâu?</h3>
-                <p style="margin:0;color:var(--muted);font-size:13.5px;line-height:1.65" data-key="faq_a3">
-                  Có thể bắt đầu bằng PoC nhỏ để đo hiệu quả trước, sau đó mở rộng dần theo dữ liệu thực tế.
-                </p>
-              </div>
-
-              <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
-                <a class="btn primary" href="mailto:chichicompanion@gmail.com" data-key="btn_mail">Gửi email</a>
-                <a class="btn" href="tel:0913434780" data-key="btn_call">Gọi ngay</a>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <footer>
-      <div>© <span id="year"></span> <span class="mono">Chi Chi AI Companion</span></div>
-      <div class="tiny-links">
-        <a href="#top" data-key="foot_top">Lên đầu trang</a>
-        <a href="#products" data-key="foot_products">Sản phẩm</a>
-        <a href="#enterprise" data-key="foot_enterprise">Doanh nghiệp</a>
-        <a href="#contact" data-key="foot_contact">Liên hệ</a>
-      </div>
-    </footer>
   </div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    const engineerByLang = {
-      "vi": "Nguyễn Ngọc Đăng / Michael",
-      "en": "Nguyen Ngoc Dang / Michael",
-      "zh-cn": "阮玉灯 / Michael",
-      "zh-tw": "阮玉燈 / Michael"
+    // Name "Đăng" changes by language; "Michael" stays.
+    const nameShortMap = {
+      vi: "Đăng",
+      en: "Dang",
+      "zh-cn": "灯",
+      "zh-tw": "燈"
     };
 
     const t = {
       vi: {
-        nav_tagline: "Robotics • AI Companion • Enterprise AI",
-        nav_products:"Sản phẩm", nav_enterprise:"Doanh nghiệp", nav_process:"Quy trình", nav_security:"Bảo mật", nav_contact:"Liên hệ",
-        nav_cta:"Tư vấn nhanh",
+        brand:"Chi Chi AI Companion",
+        tagline:"Robotics • AI Companion • Enterprise Automation",
+        nav_research:"Nghiên cứu",
+        nav_products:"Sản phẩm",
+        nav_enterprise:"Doanh nghiệp",
+        nav_roadmap:"Lộ trình",
+        nav_contact:"Liên hệ",
 
-        hero_kicker:"AI + Robotics dành cho đời sống & doanh nghiệp",
-        hero_title:"Chi Chi AI Companion",
-        hero_sub:"Chúng tôi nghiên cứu robot AI bạn đồng hành và xây dựng giải pháp AI cho doanh nghiệp trong kiểm toán, đối chiếu sổ sách và tự động hoá hồ sơ — giảm tải thủ công, tăng độ chính xác.",
-        hero_btn1:"Khám phá sản phẩm", hero_btn2:"Giải pháp doanh nghiệp", hero_btn3:"Xem quy trình triển khai",
+        hero_pill:"AI robotics + enterprise-grade automation",
+        hero_title_2:"Robot bạn đồng hành & AI cho kiểm toán",
+        hero_desc:"Chúng tôi nghiên cứu robot AI bạn đồng hành và xây dựng giải pháp AI giúp doanh nghiệp kiểm toán, đối chiếu sổ sách, xử lý hồ sơ nhanh hơn — ít sai hơn — dễ kiểm soát hơn.",
+        cta_primary:"Liên hệ",
+        cta_secondary:"Xem giải pháp doanh nghiệp",
+        cta_note:"Da Nang • GMT+7",
 
-        hero_pill1:"Robot AI Companion", hero_p1:"Tương tác tự nhiên, cá nhân hoá, hỗ trợ học tập/công việc và đồng hành hằng ngày.",
-        hero_pill2:"AI Audit Assist", hero_p2:"Đối chiếu chứng từ – sổ sách, phát hiện sai lệch, tạo báo cáo kiểm soát nhanh.",
-        hero_pill3:"Doc Automation", hero_p3:"Tự động hoá xử lý hồ sơ: phân loại, trích xuất, đối chiếu, cảnh báo thiếu sót.",
+        stat1_k:"Trọng tâm", stat1_v:"AI + Robotics",
+        stat2_k:"Doanh nghiệp", stat2_v:"Kiểm toán & Đối chiếu",
+        stat3_k:"Triển khai", stat3_s:"Tự động hoá",
+        stat4_k:"Ngôn ngữ", stat4_v:"VI • EN • 中文",
 
-        stat1_title:"Nghiên cứu tập trung", stat1_text:"AI cá nhân hoá, tương tác tự nhiên, trải nghiệm người dùng & hành vi.",
-        stat2_title:"Bảo mật & kiểm soát", stat2_text:"Thiết kế theo nguyên tắc tối thiểu dữ liệu, phân quyền và nhật ký kiểm tra.",
-        stat3_title:"Tối ưu triển khai", stat3_text:"Tích hợp nhanh với quy trình hiện có: biểu mẫu, sổ sách, kho tài liệu.",
+        it_title:"Chuyên viên IT",
+        hero_quote:"“Automation phải truy vết được: source-of-truth rõ ràng, ID ổn định, logs thân thiện kiểm toán.”",
 
-        mini_title:"Quick facts",
-        mini_line1:"Focus:", mini_val1:"AI Robotics + Enterprise Automation",
-        mini_line2:"Location:", mini_val2:"Da Nang, Viet Nam",
-        mini_line3:"Contact:",
+        v1_t:"Tech clean, production-minded",
+        v1_d:"Thiết kế và triển khai theo chuẩn doanh nghiệp: rõ ràng, kiểm soát được, dễ mở rộng, ít nợ kỹ thuật.",
+        v2_t:"Robotics + companion AI",
+        v2_d:"Tập trung tương tác tự nhiên, cá nhân hoá, nhận diện ngữ cảnh để tạo trải nghiệm “bạn đồng hành”.",
+        v3_t:"Audit-friendly automation",
+        v3_d:"Giảm thao tác thủ công trong sổ sách/hồ sơ, nhưng vẫn ưu tiên truy vết & đối chiếu được.",
 
-        prod_h2:"Sản phẩm Robot AI bạn đồng hành",
-        prod_p:"Thiết kế để giao tiếp tự nhiên, hiểu ngữ cảnh, và cá nhân hoá trải nghiệm — ưu tiên sự hữu ích và an toàn.",
-        prod1_tag:"AI Companion Core", prod1_title:"Trí tuệ tương tác & cá nhân hoá",
-        prod1_text:"Gợi ý theo thói quen, nhắc việc, hỗ trợ học tập, và đồng hành trong hoạt động hàng ngày. Tập trung vào UX “tự nhiên – nhẹ – đúng lúc”.",
-        prod1_li1:"Hội thoại đa ngôn ngữ, ghi nhớ ngữ cảnh theo phiên",
-        prod1_li2:"Cá nhân hoá hành vi (sở thích, lịch trình, mục tiêu)",
-        prod1_li3:"Cơ chế an toàn: lọc nội dung & kiểm soát quyền riêng tư",
-        prod2_tag:"Embodied UI", prod2_title:"Tương tác “robot-friendly”",
-        prod2_text:"Thiết kế giao diện và phản hồi phù hợp phần cứng/thiết bị: biểu cảm, đèn trạng thái, âm thanh, hành vi phản hồi.",
-        prod2_li1:"Phản hồi theo trạng thái (listening/thinking/acting)",
-        prod2_li2:"Kịch bản tương tác: hỗ trợ gia đình, học sinh, người lớn tuổi",
-        prod2_li3:"Tối ưu trải nghiệm: ít thao tác, rõ ràng, nhất quán",
+        r_t:"Hướng nghiên cứu",
+        r_d:"Nghiên cứu robot AI bạn đồng hành, tập trung vào giao tiếp tự nhiên, khả năng trợ giúp theo ngữ cảnh và cá nhân hóa.",
+        r_l1:"Natural conversation: thoại mượt, phản hồi đúng ngữ cảnh.",
+        r_l2:"Long-term memory (tùy chọn): ghi nhớ sở thích & thói quen theo consent.",
+        r_l3:"Emotion / intent signals: ưu tiên tương tác “đúng lúc”.",
+        r_l4:"Safety & privacy: kiểm soát dữ liệu và quyền truy cập.",
 
-        ent_h2:"Giải pháp AI cho Doanh nghiệp",
-        ent_p:"Tập trung “audit & reconciliation”: đối chiếu, phát hiện sai lệch, chuẩn hoá dữ liệu và tự động hoá hồ sơ.",
-        ent1_tag:"Ledger Reconciliation", ent1_title:"Đối chiếu sổ sách", ent1_text:"So khớp dữ liệu đa nguồn, phát hiện chênh lệch, xuất báo cáo kiểm tra & gợi ý nguyên nhân.",
-        ent2_tag:"Document Intelligence", ent2_title:"Trích xuất & chuẩn hoá hồ sơ", ent2_text:"Tự động phân loại, trích xuất trường dữ liệu, kiểm tra thiếu/đúng mẫu, giảm lỗi nhập liệu.",
-        ent3_tag:"Control & Reporting", ent3_title:"Kiểm soát & báo cáo", ent3_text:"Dashboard kiểm soát rủi ro, nhật ký thay đổi, tiêu chí kiểm toán và phân quyền theo vai trò.",
-        ent_scope_title:"Các ngành phù hợp",
-        ent_scope_text:"Kế toán – kiểm toán, vận hành nội bộ, nhân sự hồ sơ, chuỗi cửa hàng, logistics, hoặc bất kỳ quy trình nào có “nhiều giấy tờ + cần đối chiếu + cần kiểm soát sai lệch”.",
+        r2_t:"Chúng tôi xây gì",
+        r2_d:"Các nguyên mẫu và mô-đun có thể ghép: AI companion, voice UI, dashboard quản trị, và tự động hóa tác vụ.",
+        r2_l1:"Companion agent: trợ lý cá nhân hóa.",
+        r2_l2:"Voice interaction: ASR/TTS + hội thoại.",
+        r2_l3:"Control center: nhật ký, phân quyền, audit trails.",
+        r2_l4:"Integration: Sheets/Airtable/CRM/ERP (tuỳ nhu cầu).",
 
-        proc_h2:"Quy trình triển khai",
-        proc_p:"Triển khai theo bước nhỏ, có kiểm soát chất lượng, ưu tiên “source of truth” rõ ràng và tránh rủi ro vận hành.",
-        proc1_tag:"Step 1", proc1_title:"Khảo sát & mô hình dữ liệu",
-        proc1_text:"Xác định nguồn dữ liệu, tiêu chí đối chiếu, định nghĩa trường dữ liệu, và mức độ tự động hoá phù hợp.",
-        proc1_li1:"Mapping theo ID ổn định",
-        proc1_li2:"Định nghĩa rule/exception rõ ràng",
-        proc1_li3:"Thiết kế log & audit trail",
-        proc2_tag:"Step 2", proc2_title:"PoC nhanh & đo hiệu quả",
-        proc2_text:"Chạy thử trên tập dữ liệu mẫu, đo tỷ lệ khớp, lỗi phổ biến, thời gian xử lý và tác động vận hành.",
-        proc2_li1:"So sánh trước/sau (time saved, error rate)",
-        proc2_li2:"Thiết lập checkpoint & rollback",
-        proc2_li3:"Chuẩn hoá quy trình vận hành",
-        proc3_tag:"Step 3", proc3_title:"Triển khai chính thức & tối ưu liên tục",
-        proc3_text:"Tích hợp vào quy trình thật, phân quyền, giám sát chất lượng, và tối ưu theo dữ liệu thực tế (feedback loop).",
+        p_t:"Sản phẩm",
+        p_d:"Dòng sản phẩm hướng tới người dùng cá nhân và đội vận hành doanh nghiệp. Có thể phát triển theo gói MVP → Pilot → Production.",
+        p1_t:"Chi Chi Companion (Robot/Device)",
+        p1_d:"AI bạn đồng hành: nhắc việc, học tập, hỗ trợ công việc, tương tác tự nhiên theo ngữ cảnh.",
+        p2_t:"Chi Chi Audit Assistant",
+        p2_d:"Trợ lý kiểm toán: đối chiếu, phát hiện sai lệch, tóm tắt chứng từ, tạo checklist kiểm tra.",
+        p3_t:"Chi Chi Workflow Automation",
+        p3_d:"Tự động hóa hồ sơ/sổ sách: chuẩn hóa dữ liệu, mapping theo ID ổn định, giảm API thừa & lỗi lặp.",
 
-        sec_h2:"Bảo mật & tuân thủ",
-        sec_p:"Ưu tiên dữ liệu doanh nghiệp: tối thiểu quyền, log kiểm tra, và nguyên tắc “không để node sau làm mất phản hồi chính”.",
-        sec1_tag:"Data Minimization", sec1_title:"Tối thiểu dữ liệu", sec1_text:"Chỉ thu thập đúng phần cần thiết. Che/mask dữ liệu nhạy cảm theo vai trò.",
-        sec2_tag:"Access Control", sec2_title:"Phân quyền & nhật ký", sec2_text:"Kiểm soát truy cập theo role, có audit log và khả năng truy vết thay đổi.",
-        sec3_tag:"Operational Safety", sec3_title:"An toàn vận hành", sec3_text:"Idempotency, cooldown, kiểm soát quota/rate limit, rollback khi có sự cố.",
+        e_t:"Giải pháp doanh nghiệp",
+        e_d:"Giải pháp tập trung vào kiểm toán, đối chiếu sổ sách và xử lý hồ sơ. Ưu tiên tính đúng đắn, truy vết và kiểm soát.",
+        e_l1:"Ledger reconciliation: so khớp, phát hiện chênh lệch, giải thích nguyên nhân.",
+        e_l2:"Document automation: trích xuất, chuẩn hóa, phân loại, đối chiếu.",
+        e_l3:"Audit logs: lưu vết thao tác, nguồn dữ liệu, phiên bản pipeline.",
+        e_l4:"Idempotency & rate-limit: tránh gọi API thừa, có cooldown & retry chuẩn.",
+        e2_t:"Use-cases phổ biến",
+        e2_d:"Các ngành cần độ chính xác cao và nhiều hồ sơ: kế toán, kiểm toán, vận hành nhân sự, đối chiếu dữ liệu đa nguồn.",
+        e2_l1:"Đối chiếu hóa đơn – chứng từ – sổ cái.",
+        e2_l2:"Kiểm tra logic dữ liệu, phát hiện outlier.",
+        e2_l3:"Tự động tạo báo cáo & biên bản kiểm tra.",
+        e2_l4:"Chuẩn hóa quy trình hồ sơ nội bộ.",
+        e_quote:"Quy tắc triển khai: source-of-truth rõ, mapping theo ID ổn định, thay đổi schema = version-level.",
 
-        contact_h2:"Liên hệ",
-        contact_p:"Gửi yêu cầu — mô tả nhu cầu robot AI hoặc bài toán đối chiếu/kiểm toán. Chúng tôi sẽ phản hồi với lộ trình triển khai phù hợp.",
-        company_info:"Thông tin cơ bản",
-        kv_email:"Email", kv_phone:"Số điện thoại", kv_addr:"Địa chỉ", kv_addr_val:"24 Bàu Trảng 1, Đà Nẵng", kv_eng:"Kỹ sư",
+        m_t:"Lộ trình",
+        m_d:"Lộ trình gợi ý để đi nhanh nhưng vẫn chắc: MVP → Pilot → Production.",
+        m1_t:"MVP (2–4 tuần)",
+        m1_d:"Xác định use-case, dữ liệu đầu vào/đầu ra, demo end-to-end với logs cơ bản.",
+        m2_t:"Pilot (4–8 tuần)",
+        m2_d:"Tích hợp hệ thống thật, phân quyền, idempotency, giám sát, kiểm thử theo kịch bản.",
+        m3_t:"Production",
+        m3_d:"Versioning pipeline, SLA, dashboard, audit trails đầy đủ, kiểm soát chi phí & quota.",
 
-        contact_note_title:"Gợi ý mô tả yêu cầu",
-        contact_li1:"Bạn muốn robot AI companion làm gì? (ngữ cảnh, người dùng, kịch bản)",
-        contact_li2:"Với doanh nghiệp: nguồn dữ liệu nào cần đối chiếu? tiêu chí sai lệch?",
-        contact_li3:"Mục tiêu: giảm bao nhiêu thời gian? giảm bao nhiêu lỗi?",
-
-        faq_title:"FAQ nhanh",
-        faq_q1:"Có cần thay đổi quy trình hiện tại không?",
-        faq_a1:"Không cần thay đổi lớn. Chúng tôi ưu tiên tích hợp theo từng bước, giữ “source of truth” rõ ràng và có cơ chế rollback.",
-        faq_q2:"Dữ liệu nhạy cảm xử lý thế nào?",
-        faq_a2:"Thiết kế theo nguyên tắc tối thiểu dữ liệu, phân quyền, mask dữ liệu và audit log theo vai trò.",
-        faq_q3:"Triển khai mất bao lâu?",
-        faq_a3:"Có thể bắt đầu bằng PoC nhỏ để đo hiệu quả trước, sau đó mở rộng dần theo dữ liệu thực tế.",
-
-        btn_mail:"Gửi email", btn_call:"Gọi ngay",
-
-        foot_top:"Lên đầu trang", foot_products:"Sản phẩm", foot_enterprise:"Doanh nghiệp", foot_contact:"Liên hệ"
+        c_t:"Liên hệ",
+        c_d:"Liên hệ để trao đổi nhu cầu: robot AI bạn đồng hành hoặc giải pháp AI cho kiểm toán/đối chiếu dữ liệu.",
+        c_email_k:"Email",
+        c_phone_k:"Số điện thoại",
+        c_addr_k:"Địa chỉ",
+        c_addr_v:"24 Bàu Trảng 1, Đà Nẵng",
+        c2_t:"Mẫu tin nhắn nhanh",
+        c2_d:"Copy nhanh nội dung gửi email để tao hiểu đúng và tư vấn đúng use-case:",
+        c2_l1:"Mục tiêu: (robot / audit / đối chiếu / hồ sơ...)",
+        c2_l2:"Nguồn dữ liệu: (Sheets / ERP / PDF / email / API...)",
+        c2_l3:"Đầu ra mong muốn: (báo cáo / checklist / dashboard...)",
+        c2_l4:"Ràng buộc: quota, privacy, timeline, ngôn ngữ.",
+        c2_quote:"Gợi ý: nếu có mẫu file hoặc ảnh quy trình, gửi kèm để thiết kế pipeline chính xác."
       },
 
       en: {
-        nav_tagline: "Robotics • AI Companion • Enterprise AI",
-        nav_products:"Products", nav_enterprise:"Enterprise", nav_process:"Process", nav_security:"Security", nav_contact:"Contact",
-        nav_cta:"Quick consult",
+        brand:"Chi Chi AI Companion",
+        tagline:"Robotics • AI Companion • Enterprise Automation",
+        nav_research:"Research",
+        nav_products:"Products",
+        nav_enterprise:"Enterprise",
+        nav_roadmap:"Roadmap",
+        nav_contact:"Contact",
 
-        hero_kicker:"AI + Robotics for life & business",
-        hero_title:"Chi Chi AI Companion",
-        hero_sub:"We research AI companion robots and build enterprise AI solutions for auditing, ledger reconciliation, and document automation — reducing manual workload and improving accuracy.",
-        hero_btn1:"Explore products", hero_btn2:"Enterprise solutions", hero_btn3:"View delivery process",
+        hero_pill:"AI robotics + enterprise-grade automation",
+        hero_title_2:"Companion robots & AI for auditing",
+        hero_desc:"We build AI companion robots and enterprise AI solutions for auditing, ledger reconciliation, and document automation—faster operations with verifiable outputs.",
+        cta_primary:"Contact",
+        cta_secondary:"Enterprise solutions",
+        cta_note:"Da Nang • GMT+7",
 
-        hero_pill1:"Robot AI Companion", hero_p1:"Natural interaction, personalization, learning/work support, and daily companionship.",
-        hero_pill2:"AI Audit Assist", hero_p2:"Reconcile documents vs. ledgers, detect discrepancies, and generate control reports.",
-        hero_pill3:"Doc Automation", hero_p3:"Automate document workflows: classify, extract fields, reconcile, and alert missing items.",
+        stat1_k:"Focus", stat1_v:"AI + Robotics",
+        stat2_k:"Enterprise", stat2_v:"Audit & Reconcile",
+        stat3_k:"Delivery", stat3_s:"Automation",
+        stat4_k:"Language", stat4_v:"VI • EN • 中文",
 
-        stat1_title:"Focused R&D", stat1_text:"Personalized AI, natural interaction, user experience & behavior.",
-        stat2_title:"Security by design", stat2_text:"Data minimization, role-based access, and auditable logs.",
-        stat3_title:"Deployment-ready", stat3_text:"Integrates with existing processes: forms, ledgers, and document repositories.",
-
-        mini_title:"Quick facts",
-        mini_line1:"Focus:", mini_val1:"AI Robotics + Enterprise Automation",
-        mini_line2:"Location:", mini_val2:"Da Nang, Viet Nam",
-        mini_line3:"Contact:",
-
-        prod_h2:"AI Companion Robot Products",
-        prod_p:"Built for natural interaction, contextual understanding, and personalization — with safety and usefulness first.",
-        prod1_tag:"AI Companion Core", prod1_title:"Interactive intelligence & personalization",
-        prod1_text:"Habit-based suggestions, reminders, learning support, and daily companionship. UX is designed to be natural, lightweight, and timely.",
-        prod1_li1:"Multilingual conversations with session context",
-        prod1_li2:"Behavior personalization (preferences, schedule, goals)",
-        prod1_li3:"Safety controls: content filtering & privacy settings",
-        prod2_tag:"Embodied UI", prod2_title:"Robot-friendly interaction",
-        prod2_text:"Interaction design aligned with hardware: expressions, status lights, audio cues, and action feedback.",
-        prod2_li1:"State-based responses (listening/thinking/acting)",
-        prod2_li2:"Use-cases: families, students, seniors",
-        prod2_li3:"Optimized UX: fewer steps, clarity, consistency",
-
-        ent_h2:"Enterprise AI Solutions",
-        ent_p:"Audit & reconciliation focused: matching, discrepancy detection, data standardization, and document automation.",
-        ent1_tag:"Ledger Reconciliation", ent1_title:"Ledger reconciliation", ent1_text:"Match multi-source data, detect gaps, and produce audit-ready reports with root-cause hints.",
-        ent2_tag:"Document Intelligence", ent2_title:"Document extraction & normalization", ent2_text:"Auto classify documents, extract fields, validate completeness, and reduce data-entry errors.",
-        ent3_tag:"Control & Reporting", ent3_title:"Controls & reporting", ent3_text:"Risk dashboards, change logs, audit criteria, and role-based access.",
-        ent_scope_title:"Best-fit industries",
-        ent_scope_text:"Accounting & audit, operations, HR documents, retail chains, logistics — any workflow with heavy paperwork + reconciliation + control requirements.",
-
-        proc_h2:"Delivery Process",
-        proc_p:"Small steps, measurable quality, clear source-of-truth, and operational safety.",
-        proc1_tag:"Step 1", proc1_title:"Discovery & data model",
-        proc1_text:"Define data sources, reconciliation rules, field definitions, and automation boundaries.",
-        proc1_li1:"Stable ID-based mapping",
-        proc1_li2:"Clear rules & exceptions",
-        proc1_li3:"Audit trail & logs design",
-        proc2_tag:"Step 2", proc2_title:"Fast PoC & impact measurement",
-        proc2_text:"Run on sample data to measure match rate, common errors, throughput, and operational impact.",
-        proc2_li1:"Before/after comparison (time saved, error rate)",
-        proc2_li2:"Checkpoints & rollback strategy",
-        proc2_li3:"Operational standardization",
-        proc3_tag:"Step 3", proc3_title:"Go-live & continuous optimization",
-        proc3_text:"Integrate into real operations, enforce permissions, monitor quality, and improve via feedback loops.",
-
-        sec_h2:"Security & Compliance",
-        sec_p:"Enterprise-grade controls: minimal permissions, auditable logs, and safe automation patterns.",
-        sec1_tag:"Data Minimization", sec1_title:"Minimize data", sec1_text:"Collect only what’s necessary. Mask sensitive data by role.",
-        sec2_tag:"Access Control", sec2_title:"Access & audit logs", sec2_text:"Role-based access, audit logs, and traceable changes.",
-        sec3_tag:"Operational Safety", sec3_title:"Operational safety", sec3_text:"Idempotency, cooldown, quota/rate-limit control, and rollback on incidents.",
-
-        contact_h2:"Contact",
-        contact_p:"Send your request — robot companion needs or reconciliation/audit workflow. We’ll respond with a practical roadmap.",
-        company_info:"Basic information",
-        kv_email:"Email", kv_phone:"Phone", kv_addr:"Address", kv_addr_val:"24 Bau Trang 1, Da Nang", kv_eng:"Engineer",
-
-        contact_note_title:"How to describe your request",
-        contact_li1:"What should the AI companion robot do? (context, users, scenarios)",
-        contact_li2:"For enterprises: which data sources to reconcile? discrepancy criteria?",
-        contact_li3:"Targets: how much time/error reduction?",
-
-        faq_title:"Quick FAQ",
-        faq_q1:"Do we need to change our current process?",
-        faq_a1:"No major changes. We integrate step-by-step, keep a clear source-of-truth, and ensure rollback capability.",
-        faq_q2:"How do you handle sensitive data?",
-        faq_a2:"We follow data minimization, role-based access, masking, and auditable logs.",
-        faq_q3:"How long does it take to deploy?",
-        faq_a3:"We can start with a small PoC to measure impact, then scale gradually.",
-
-        btn_mail:"Email us", btn_call:"Call now",
-
-        foot_top:"Back to top", foot_products:"Products", foot_enterprise:"Enterprise", foot_contact:"Contact"
+        it_title:"IT Specialist",
+        hero_quote:"“Automation should be verifiable: clear source-of-truth, stable IDs, audit-friendly logs.”"
       },
 
       "zh-cn": {
-        nav_tagline: "机器人 • AI陪伴 • 企业AI",
-        nav_products:"产品", nav_enterprise:"企业方案", nav_process:"流程", nav_security:"安全", nav_contact:"联系",
-        nav_cta:"快速咨询",
+        brand:"Chi Chi AI Companion",
+        tagline:"机器人 • AI陪伴 • 企业自动化",
+        nav_research:"研究",
+        nav_products:"产品",
+        nav_enterprise:"企业方案",
+        nav_roadmap:"路线图",
+        nav_contact:"联系",
 
-        hero_kicker:"面向生活与企业的 AI + 机器人",
-        hero_title:"Chi Chi 人工智能伙伴",
-        hero_sub:"我们研发AI陪伴机器人，并为企业提供审计、账目对账与文件自动化解决方案——减少人工工作，提高准确性。",
-        hero_btn1:"查看产品", hero_btn2:"企业解决方案", hero_btn3:"实施流程",
+        hero_pill:"AI机器人 + 企业级自动化",
+        hero_title_2:"陪伴机器人 & 审计对账AI",
+        hero_desc:"我们研发AI陪伴机器人，并为企业提供审计、账目对账与文件自动化解决方案——更快、更准、可追溯。",
+        cta_primary:"联系",
+        cta_secondary:"查看企业方案",
+        cta_note:"岘港 • GMT+7",
 
-        hero_pill1:"AI陪伴机器人", hero_p1:"自然互动、个性化、学习/工作辅助与日常陪伴。",
-        hero_pill2:"AI审计辅助", hero_p2:"对账与差异检测，生成控制报告与提示原因。",
-        hero_pill3:"文件自动化", hero_p3:"文档分类、字段抽取、对账核验与缺失提醒。",
+        stat1_k:"方向", stat1_v:"AI + 机器人",
+        stat2_k:"企业", stat2_v:"审计与对账",
+        stat3_k:"交付", stat3_s:"自动化",
+        stat4_k:"语言", stat4_v:"VI • EN • 中文",
 
-        stat1_title:"研发聚焦", stat1_text:"个性化AI、自然交互、用户体验与行为研究。",
-        stat2_title:"安全优先", stat2_text:"最小化数据、按角色授权与可审计日志。",
-        stat3_title:"快速集成", stat3_text:"对接现有流程：表单、账册、资料库。",
-
-        mini_title:"Quick facts",
-        mini_line1:"Focus:", mini_val1:"AI机器人 + 企业自动化",
-        mini_line2:"Location:", mini_val2:"越南 • 岘港",
-        mini_line3:"Contact:",
-
-        prod_h2:"AI陪伴机器人产品",
-        prod_p:"强调自然交互、上下文理解与个性化——以安全与实用为先。",
-        prod1_tag:"AI Companion Core", prod1_title:"交互智能与个性化",
-        prod1_text:"基于习惯的建议与提醒、学习辅助与日常陪伴，追求自然、轻量、恰到好处的体验。",
-        prod1_li1:"多语言对话，支持会话上下文",
-        prod1_li2:"行为个性化（偏好、日程、目标）",
-        prod1_li3:"安全机制：内容过滤与隐私控制",
-        prod2_tag:"Embodied UI", prod2_title:"适配机器人的交互设计",
-        prod2_text:"面向硬件的反馈设计：表情、状态灯、声音提示与动作回馈。",
-        prod2_li1:"状态反馈（倾听/思考/执行）",
-        prod2_li2:"场景：家庭、学生、长者",
-        prod2_li3:"优化体验：更少步骤、更清晰一致",
-
-        ent_h2:"企业AI解决方案",
-        ent_p:"聚焦审计与对账：匹配核对、差异检测、数据标准化与文件自动化。",
-        ent1_tag:"Ledger Reconciliation", ent1_title:"账目对账", ent1_text:"多来源数据匹配，发现差异并输出审计报告与原因提示。",
-        ent2_tag:"Document Intelligence", ent2_title:"文档抽取与标准化", ent2_text:"自动分类、字段抽取、完整性校验，降低录入错误。",
-        ent3_tag:"Control & Reporting", ent3_title:"控制与报告", ent3_text:"风险看板、变更日志、审计标准与角色权限。",
-        ent_scope_title:"适用行业",
-        ent_scope_text:"会计审计、运营、HR资料、连锁门店、物流等——任何“资料多 + 需要核对 + 需要管控差异”的流程。",
-
-        proc_h2:"实施流程",
-        proc_p:"小步快跑、可量化质量、明确数据源，并确保运行安全。",
-        proc1_tag:"Step 1", proc1_title:"调研与数据模型",
-        proc1_text:"明确数据来源、对账规则、字段定义与自动化边界。",
-        proc1_li1:"稳定ID映射",
-        proc1_li2:"规则与例外清晰",
-        proc1_li3:"审计轨迹与日志设计",
-        proc2_tag:"Step 2", proc2_title:"快速PoC与效果评估",
-        proc2_text:"基于样本数据评估匹配率、常见错误、处理效率与业务影响。",
-        proc2_li1:"对比前后（节省时间、错误率）",
-        proc2_li2:"检查点与回滚策略",
-        proc2_li3:"流程标准化",
-        proc3_tag:"Step 3", proc3_title:"正式上线与持续优化",
-        proc3_text:"接入真实流程，权限控制，质量监控，并通过反馈持续优化。",
-
-        sec_h2:"安全与合规",
-        sec_p:"企业级控制：最小权限、可审计日志与安全自动化模式。",
-        sec1_tag:"Data Minimization", sec1_title:"数据最小化", sec1_text:"只收集必要数据，按角色脱敏/遮罩。",
-        sec2_tag:"Access Control", sec2_title:"权限与审计日志", sec2_text:"按角色授权、审计日志与可追溯变更。",
-        sec3_tag:"Operational Safety", sec3_title:"运行安全", sec3_text:"幂等、冷却、配额/限流控制，出现问题可回滚。",
-
-        contact_h2:"联系",
-        contact_p:"请描述需求——陪伴机器人或对账/审计流程。我们将提供可落地的路线。",
-        company_info:"基本信息",
-        kv_email:"邮箱", kv_phone:"电话", kv_addr:"地址", kv_addr_val:"越南岘港 • 24 Bàu Trảng 1", kv_eng:"工程师",
-
-        contact_note_title:"如何描述需求",
-        contact_li1:"陪伴机器人要做什么？（场景、用户、流程）",
-        contact_li2:"企业：要核对哪些数据源？差异判定规则？",
-        contact_li3:"目标：节省多少时间？减少多少错误？",
-
-        faq_title:"常见问题",
-        faq_q1:"需要大改现有流程吗？",
-        faq_a1:"不需要大改。我们分阶段集成，保持数据源清晰，并提供回滚能力。",
-        faq_q2:"敏感数据如何处理？",
-        faq_a2:"遵循数据最小化、按角色授权、脱敏与审计日志。",
-        faq_q3:"部署需要多久？",
-        faq_a3:"可先做小型PoC评估效果，再逐步扩大上线。",
-
-        btn_mail:"发送邮件", btn_call:"立即拨打",
-
-        foot_top:"回到顶部", foot_products:"产品", foot_enterprise:"企业方案", foot_contact:"联系"
+        it_title:"IT专员",
+        hero_quote:"“自动化必须可验证：明确数据源、稳定ID、审计友好日志。”"
       },
 
       "zh-tw": {
-        nav_tagline: "機器人 • AI陪伴 • 企業AI",
-        nav_products:"產品", nav_enterprise:"企業方案", nav_process:"流程", nav_security:"安全", nav_contact:"聯絡",
-        nav_cta:"快速諮詢",
+        brand:"Chi Chi AI Companion",
+        tagline:"機器人 • AI陪伴 • 企業自動化",
+        nav_research:"研究",
+        nav_products:"產品",
+        nav_enterprise:"企業方案",
+        nav_roadmap:"路線圖",
+        nav_contact:"聯絡",
 
-        hero_kicker:"面向生活與企業的 AI + 機器人",
-        hero_title:"Chi Chi 人工智慧夥伴",
-        hero_sub:"我們研發AI陪伴機器人，並提供審計、帳務對帳與文件自動化方案——降低人工作業，提高準確性。",
-        hero_btn1:"查看產品", hero_btn2:"企業解決方案", hero_btn3:"實施流程",
+        hero_pill:"AI機器人 + 企業級自動化",
+        hero_title_2:"陪伴機器人 & 審計對帳AI",
+        hero_desc:"我們研發AI陪伴機器人，並為企業提供審計、帳務對帳與文件自動化方案——更快、更準、可追溯。",
+        cta_primary:"聯絡",
+        cta_secondary:"查看企業方案",
+        cta_note:"峴港 • GMT+7",
 
-        hero_pill1:"AI陪伴機器人", hero_p1:"自然互動、個人化、學習/工作輔助與日常陪伴。",
-        hero_pill2:"AI審計輔助", hero_p2:"對帳與差異檢測，產出控管報告與原因提示。",
-        hero_pill3:"文件自動化", hero_p3:"文件分類、欄位擷取、對帳核驗與缺失提醒。",
+        stat1_k:"方向", stat1_v:"AI + 機器人",
+        stat2_k:"企業", stat2_v:"審計與對帳",
+        stat3_k:"交付", stat3_s:"自動化",
+        stat4_k:"語言", stat4_v:"VI • EN • 中文",
 
-        stat1_title:"研發聚焦", stat1_text:"個人化AI、自然互動、使用者體驗與行為研究。",
-        stat2_title:"安全優先", stat2_text:"資料最小化、角色權限與可稽核日誌。",
-        stat3_title:"快速整合", stat3_text:"對接既有流程：表單、帳冊、資料庫。",
-
-        mini_title:"Quick facts",
-        mini_line1:"Focus:", mini_val1:"AI機器人 + 企業自動化",
-        mini_line2:"Location:", mini_val2:"越南 • 峴港",
-        mini_line3:"Contact:",
-
-        prod_h2:"AI陪伴機器人產品",
-        prod_p:"強調自然互動、上下文理解與個人化——以安全與實用為先。",
-        prod1_tag:"AI Companion Core", prod1_title:"互動智慧與個人化",
-        prod1_text:"基於習慣的建議與提醒、學習輔助與日常陪伴，追求自然、輕量、剛剛好的體驗。",
-        prod1_li1:"多語對話，支援會話上下文",
-        prod1_li2:"行為個人化（偏好、行程、目標）",
-        prod1_li3:"安全機制：內容過濾與隱私控制",
-        prod2_tag:"Embodied UI", prod2_title:"適配機器人的互動設計",
-        prod2_text:"面向硬體的回饋設計：表情、狀態燈、聲音提示與動作回饋。",
-        prod2_li1:"狀態回饋（聆聽/思考/執行）",
-        prod2_li2:"情境：家庭、學生、長者",
-        prod2_li3:"優化體驗：更少步驟、更清晰一致",
-
-        ent_h2:"企業AI解決方案",
-        ent_p:"聚焦審計與對帳：比對核對、差異檢測、資料標準化與文件自動化。",
-        ent1_tag:"Ledger Reconciliation", ent1_title:"帳務對帳", ent1_text:"多來源資料比對，發現差異並輸出稽核報告與原因提示。",
-        ent2_tag:"Document Intelligence", ent2_title:"文件擷取與標準化", ent2_text:"自動分類、欄位擷取、完整性檢查，降低輸入錯誤。",
-        ent3_tag:"Control & Reporting", ent3_title:"控管與報告", ent3_text:"風險儀表板、變更日誌、稽核標準與角色權限。",
-        ent_scope_title:"適用產業",
-        ent_scope_text:"會計稽核、營運、HR文件、連鎖門市、物流等——任何「文件多 + 需要對帳 + 需要管控差異」的流程。",
-
-        proc_h2:"實施流程",
-        proc_p:"小步快跑、可量化品質、明確資料來源，並確保運行安全。",
-        proc1_tag:"Step 1", proc1_title:"調研與資料模型",
-        proc1_text:"釐清資料來源、對帳規則、欄位定義與自動化邊界。",
-        proc1_li1:"穩定ID映射",
-        proc1_li2:"規則與例外清晰",
-        proc1_li3:"稽核軌跡與日誌設計",
-        proc2_tag:"Step 2", proc2_title:"快速PoC與效益評估",
-        proc2_text:"以樣本資料評估匹配率、常見錯誤、處理效率與營運影響。",
-        proc2_li1:"前後對比（節省時間、錯誤率）",
-        proc2_li2:"檢查點與回滾策略",
-        proc2_li3:"流程標準化",
-        proc3_tag:"Step 3", proc3_title:"正式上線與持續優化",
-        proc3_text:"接入真實流程、權限控管、品質監控，並透過回饋持續優化。",
-
-        sec_h2:"安全與合規",
-        sec_p:"企業級控管：最小權限、可稽核日誌與安全自動化模式。",
-        sec1_tag:"Data Minimization", sec1_title:"資料最小化", sec1_text:"僅收集必要資料，按角色遮罩/脫敏。",
-        sec2_tag:"Access Control", sec2_title:"權限與稽核日誌", sec2_text:"角色權限、稽核日誌與可追溯變更。",
-        sec3_tag:"Operational Safety", sec3_title:"運行安全", sec3_text:"冪等、冷卻、配額/限流控管，出問題可回滾。",
-
-        contact_h2:"聯絡",
-        contact_p:"請描述需求——陪伴機器人或對帳/稽核流程。我們將提供可落地的路線。",
-        company_info:"基本資訊",
-        kv_email:"信箱", kv_phone:"電話", kv_addr:"地址", kv_addr_val:"越南峴港 • 24 Bàu Trảng 1", kv_eng:"工程師",
-
-        contact_note_title:"如何描述需求",
-        contact_li1:"陪伴機器人要做什麼？（情境、使用者、流程）",
-        contact_li2:"企業：要核對哪些資料源？差異判定規則？",
-        contact_li3:"目標：節省多少時間？降低多少錯誤？",
-
-        faq_title:"常見問題",
-        faq_q1:"需要大改現有流程嗎？",
-        faq_a1:"不需要大改。我們分階段整合，保持資料來源清楚，並提供回滾能力。",
-        faq_q2:"敏感資料如何處理？",
-        faq_a2:"遵循資料最小化、角色權限、脫敏與稽核日誌。",
-        faq_q3:"部署需要多久？",
-        faq_a3:"可先做小型PoC評估效益，再逐步擴大上線。",
-
-        btn_mail:"寄送郵件", btn_call:"立即撥打",
-
-        foot_top:"回到頂部", foot_products:"產品", foot_enterprise:"企業方案", foot_contact:"聯絡"
+        it_title:"IT專員",
+        hero_quote:"“自動化必須可驗證：明確資料源、穩定ID、審計友好日誌。”"
       }
     };
 
-    function setLang(lang){
-      // active UI
-      ["vi","en","zh-cn","zh-tw"].forEach(k=>{
-        const b = document.getElementById("btn-"+k);
-        if(!b) return;
-        b.classList.toggle("active", k===lang);
-      });
-
-      // translate
+    // Fallback: if a language misses some keys, it keeps existing text (so page won't break).
+    function applyTranslations(lang){
       document.querySelectorAll("[data-key]").forEach(el=>{
         const key = el.getAttribute("data-key");
-        const pack = t[lang];
-        if(pack && pack[key]) el.textContent = pack[key];
+        if(t[lang] && t[lang][key]){
+          el.textContent = t[lang][key];
+        }
       });
 
-      // engineer name
-      const eng = document.getElementById("engineerName");
-      if(eng && engineerByLang[lang]) eng.textContent = engineerByLang[lang];
+      const nm = nameShortMap[lang] || nameShortMap.vi;
+      document.getElementById("nameShort").textContent = nm;
+      document.getElementById("nameShort2").textContent = nm;
 
-      // set html lang
-      document.documentElement.lang = (lang==="zh-cn") ? "zh-Hans" : (lang==="zh-tw") ? "zh-Hant" : lang;
+      document.documentElement.lang = (lang === "zh-cn") ? "zh-Hans" : (lang === "zh-tw" ? "zh-Hant" : lang);
     }
+
+    function setLang(lang, btn){
+      document.querySelectorAll(".lang button").forEach(b=>b.classList.remove("active"));
+      if(btn) btn.classList.add("active");
+      applyTranslations(lang);
+      try{ localStorage.setItem("cc_lang", lang); }catch(e){}
+    }
+
+    (function init(){
+      let saved="vi";
+      try{ saved = localStorage.getItem("cc_lang") || "vi"; }catch(e){}
+      const btn = document.querySelector(`.lang button[data-lang="${saved}"]`);
+      setLang(saved, btn || document.querySelector('.lang button[data-lang="vi"]'));
+    })();
   </script>
 </body>
 </html>
