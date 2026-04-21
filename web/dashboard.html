@@ -314,12 +314,22 @@
         document.getElementById('nav-admin').style.display = 'inline-block';
       }
 
-      const bal = getBalance(session.email);
-      document.getElementById('stat-balance').textContent = formatMoney(bal) + ' đ';
-      document.getElementById('nav-balance').textContent  = formatMoney(bal);
+      function refreshBalance() {
+        const bal = getBalance(session.email);
+        document.getElementById('stat-balance').textContent = formatMoney(bal) + ' đ';
+        document.getElementById('nav-balance').textContent  = formatMoney(bal);
+        const txs = JSON.parse(localStorage.getItem('cc_txs_' + session.email) || '[]');
+        document.getElementById('stat-txcount').textContent = txs.length;
+      }
+      refreshBalance();
 
-      const txs = JSON.parse(localStorage.getItem('cc_txs_' + session.email) || '[]');
-      document.getElementById('stat-txcount').textContent = txs.length;
+      // Auto-refresh khi tab được focus lại hoặc localStorage thay đổi từ tab khác
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'cc_balances') refreshBalance();
+      });
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) refreshBalance();
+      });
 
       function logout() {
         sessionStorage.removeItem('cc_session');

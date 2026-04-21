@@ -303,14 +303,17 @@
         else                     newBal = amount;
 
         setBalance(email, newBal);
-        document.getElementById('adj-current').textContent = formatMoney(newBal) + ' đ';
+
+        // Đọc lại để xác nhận đã lưu thật sự
+        const saved = getBalance(email);
+        document.getElementById('adj-current').textContent = formatMoney(saved) + ' đ';
         status.textContent = '';
 
         const label = mode === 'add'
-          ? `Đã cộng ${formatMoney(amount)} đ vào ${email}`
+          ? `Đã cộng ${formatMoney(amount)} đ → ${email} còn ${formatMoney(saved)} đ`
           : mode === 'sub'
-          ? `Đã trừ ${formatMoney(amount)} đ của ${email}`
-          : `Đã đặt số dư ${email} thành ${formatMoney(newBal)} đ`;
+          ? `Đã trừ ${formatMoney(amount)} đ → ${email} còn ${formatMoney(saved)} đ`
+          : `Đã đặt số dư ${email} = ${formatMoney(saved)} đ`;
         showToast(label, 'success');
         renderUsers(); loadStats();
       }
