@@ -233,8 +233,13 @@ document.getElementById('login-form').addEventListener('submit', function (e) {
   if (!password) { setError('login-pass-err',  'Vui lòng nhập mật khẩu.'); ok = false; }
   if (!ok) return;
   const found = getAccounts().find(a => a.email === email && a.password === password);
-  if (found) showStatus('login-status', `Đăng nhập thành công! Chào mừng, ${found.name} 👋`, 'success');
-  else        showStatus('login-status', 'Email hoặc mật khẩu không đúng.', 'error');
+  if (found) {
+    sessionStorage.setItem('cc_session', JSON.stringify({ name: found.name, email: found.email }));
+    showStatus('login-status', `Đăng nhập thành công! Đang chuyển trang...`, 'success');
+    setTimeout(() => { window.location.href = './dashboard.html'; }, 900);
+  } else {
+    showStatus('login-status', 'Email hoặc mật khẩu không đúng.', 'error');
+  }
 });
 
 document.getElementById('register-form').addEventListener('submit', function (e) {
@@ -255,6 +260,7 @@ document.getElementById('register-form').addEventListener('submit', function (e)
   if (!ok) return;
   if (getAccounts().find(a => a.email === email)) { setError('reg-email-err', 'Email này đã được đăng ký.'); return; }
   saveAccount(name, email, password);
-  showStatus('register-status', 'Tạo tài khoản thành công! Đang chuyển sang đăng nhập...', 'success');
-  setTimeout(() => switchTab('login'), 1800);
+  sessionStorage.setItem('cc_session', JSON.stringify({ name, email }));
+  showStatus('register-status', 'Tạo tài khoản thành công! Đang chuyển trang...', 'success');
+  setTimeout(() => { window.location.href = './dashboard.html'; }, 1000);
 });
