@@ -215,7 +215,12 @@
           </svg>
           ChiChi AI
         </div>
+        <nav style="display:flex;gap:4px;">
+          <a href="./dashboard.html" style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;background:rgba(124,58,237,0.25);text-decoration:none;">Dashboard</a>
+          <a href="./nap-the.html"   style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Nạp thẻ</a>
+        </nav>
         <div class="topbar-right">
+          <div style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:#a78bfa;">💰 <span id="nav-balance">0</span> đ</div>
           <div class="avatar" id="user-avatar">?</div>
           <span class="user-name" id="user-name-display">...</span>
           <button class="btn-logout" onclick="logout()">Đăng xuất</button>
@@ -230,32 +235,33 @@
         <!-- Stats -->
         <div class="cards-grid">
           <div class="info-card">
-            <div class="card-icon icon-purple">👤</div>
+            <div class="card-icon icon-purple">💰</div>
+            <div class="card-label">Số dư</div>
+            <div class="card-value" id="stat-balance">0 đ</div>
+            <div class="card-desc">Số dư khả dụng</div>
+          </div>
+          <div class="info-card">
+            <div class="card-icon icon-blue">🧾</div>
+            <div class="card-label">Giao dịch</div>
+            <div class="card-value" id="stat-txcount">0</div>
+            <div class="card-desc">Tổng lần nạp thẻ</div>
+          </div>
+          <div class="info-card">
+            <div class="card-icon icon-pink">👤</div>
             <div class="card-label">Tài khoản</div>
             <div class="card-value" id="stat-total">0</div>
-            <div class="card-desc">Tổng tài khoản đã đăng ký</div>
-          </div>
-          <div class="info-card">
-            <div class="card-icon icon-blue">📧</div>
-            <div class="card-label">Email của bạn</div>
-            <div class="card-value" style="font-size:14px; margin-top:6px" id="stat-email">—</div>
-            <div class="card-desc">Tài khoản đang đăng nhập</div>
-          </div>
-          <div class="info-card">
-            <div class="card-icon icon-pink">🤖</div>
-            <div class="card-label">Chatbot</div>
-            <div class="card-value">Telegram</div>
-            <div class="card-desc">Tích hợp sẵn, dùng ngay</div>
+            <div class="card-desc">Tổng thành viên đã đăng ký</div>
           </div>
         </div>
 
-        <!-- Coming soon -->
-        <div class="coming-soon" style="margin-bottom: 40px">
-          <div class="coming-soon-icon">🚀</div>
-          <div>
-            <h3>Tính năng đang được phát triển</h3>
-            <p>Chat UI, lịch sử hội thoại, quản lý tài khoản và nhiều hơn nữa sẽ sớm ra mắt.</p>
+        <!-- Nạp thẻ CTA -->
+        <div class="coming-soon" style="margin-bottom: 40px; cursor:pointer;" onclick="window.location.href='./nap-the.html'">
+          <div class="coming-soon-icon">💳</div>
+          <div style="flex:1">
+            <h3>Nạp thẻ cào — nhận điểm ngay</h3>
+            <p>Hỗ trợ Viettel, Mobifone, Vinaphone, Vietnamobile, Gmobile. Chiết khấu 10%, xử lý tự động.</p>
           </div>
+          <div style="color:#a78bfa;font-size:20px;">→</div>
         </div>
 
         <!-- Account list (only visible if admin) -->
@@ -282,11 +288,22 @@
       const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
       if (!session) { window.location.href = './index.html'; }
 
+      function getBalance(email) {
+        return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0;
+      }
+      function formatMoney(n) { return n.toLocaleString('vi-VN'); }
+
       // Populate UI
       document.getElementById('welcome-text').textContent = `Xin chào, ${session.name}! 👋`;
       document.getElementById('user-name-display').textContent = session.name;
       document.getElementById('user-avatar').textContent = session.name.charAt(0).toUpperCase();
-      document.getElementById('stat-email').textContent = session.email;
+
+      const bal = getBalance(session.email);
+      document.getElementById('stat-balance').textContent = formatMoney(bal) + ' đ';
+      document.getElementById('nav-balance').textContent  = formatMoney(bal);
+
+      const txs = JSON.parse(localStorage.getItem('cc_txs_' + session.email) || '[]');
+      document.getElementById('stat-txcount').textContent = txs.length;
 
       const accounts = JSON.parse(localStorage.getItem('cc_accounts') || '[]');
       document.getElementById('stat-total').textContent = accounts.length;
