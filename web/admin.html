@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin | gachthe1s</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      body { overflow: auto; }
+      .admin-wrap { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
+
+      /* Topbar */
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 32px; border-bottom: 1px solid rgba(255,100,100,0.15); background: rgba(20,4,4,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
+      .topbar-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+      .admin-badge { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; color: #ef4444; letter-spacing: .5px; }
+      .topbar-right { display: flex; align-items: center; gap: 12px; }
+      .btn-logout { padding: 7px 16px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: background .2s; }
+      .btn-logout:hover { background: rgba(239,68,68,.2); }
+
+      /* Layout */
+      .admin-content { max-width: 1100px; margin: 0 auto; width: 100%; padding: 32px 24px; }
+
+      /* Stats row */
+      .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+      .stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; }
+      .stat-label { font-size: 12px; font-weight: 500; color: #6b698a; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+      .stat-value { font-size: 26px; font-weight: 700; }
+      .stat-sub { font-size: 12px; color: #6b698a; margin-top: 4px; }
+      .stat-card.red   .stat-value { color: #f87171; }
+      .stat-card.green .stat-value { color: #4ade80; }
+      .stat-card.blue  .stat-value { color: #60a5fa; }
+      .stat-card.purple .stat-value { background: linear-gradient(135deg,#fff,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+      /* Section */
+      .section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; margin-bottom: 24px; overflow: hidden; }
+      .section-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .section-head h3 { font-size: 14px; font-weight: 600; }
+      .section-head span { font-size: 12px; color: #6b698a; }
+
+      /* Table */
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-size: 11px; font-weight: 600; color: #6b698a; text-transform: uppercase; letter-spacing: .5px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #ccc; }
+      tr:last-child td { border-bottom: none; }
+      tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+      .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+      .badge-green  { background: rgba(34,197,94,.12);  color: #22c55e; border: 1px solid rgba(34,197,94,.2); }
+      .badge-red    { background: rgba(248,113,113,.12); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+      .badge-yellow { background: rgba(251,191,36,.12);  color: #fbbf24; border: 1px solid rgba(251,191,36,.2); }
+      .badge-purple { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.2); }
+
+      /* Action buttons */
+      .btn-sm { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all .2s; border: 1px solid; }
+      .btn-add  { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.25);  color: #4ade80; }
+      .btn-sub  { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.25); color: #f87171; }
+      .btn-view { background: rgba(124,58,237,.1);  border-color: rgba(124,58,237,.25);  color: #a78bfa; }
+      .btn-add:hover  { background: rgba(34,197,94,.2); }
+      .btn-sub:hover  { background: rgba(248,113,113,.2); }
+      .btn-view:hover { background: rgba(124,58,237,.2); }
+
+      /* Modal */
+      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+      .modal-overlay.show { display: flex; }
+      .modal { background: #0e0b1f; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; max-width: 420px; width: 100%; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
+      .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+      .modal p  { font-size: 13px; color: #9490b0; margin-bottom: 20px; }
+      .modal input { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; outline: none; margin-bottom: 16px; }
+      .modal input:focus { border-color: #7c3aed; }
+      .modal-actions { display: flex; gap: 10px; }
+      .btn-cancel  { flex: 1; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #9490b0; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; }
+      .btn-confirm { flex: 2; padding: 11px; background: linear-gradient(135deg,#7c3aed,#6366f1); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+      .modal-status { margin-top: 12px; font-size: 13px; text-align: center; min-height: 18px; }
+
+      /* Search */
+      .search-input { padding: 8px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #fff; font-size: 13px; font-family: inherit; outline: none; width: 220px; }
+      .search-input:focus { border-color: #7c3aed; }
+
+      /* Tabs */
+      .tab-pills { display: flex; gap: 6px; }
+      .pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #6b698a; font-family: inherit; transition: all .2s; }
+      .pill.active { background: rgba(124,58,237,.2); border-color: rgba(124,58,237,.4); color: #a78bfa; }
+
+      @media (max-width: 768px) {
+        .stats-row { grid-template-columns: repeat(2, 1fr); }
+        .topbar { padding: 12px 16px; }
+        .admin-content { padding: 20px 14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="orbs"></div>
+
+    <!-- Balance modal -->
+    <div class="modal-overlay" id="bal-modal">
+      <div class="modal">
+        <h3 id="bal-modal-title">Cộng tiền</h3>
+        <p id="bal-modal-sub">Tài khoản: —</p>
+        <input id="bal-amount" type="number" min="0" placeholder="Nhập số tiền (VD: 50000)" />
+        <input id="bal-note" type="text" placeholder="Ghi chú (tuỳ chọn)" maxlength="80" />
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeBalModal()">Huỷ</button>
+          <button class="btn-confirm" onclick="confirmBalChange()">Xác nhận</button>
+        </div>
+        <div class="modal-status" id="bal-modal-status"></div>
+      </div>
+    </div>
+
+    <!-- User detail modal -->
+    <div class="modal-overlay" id="user-modal">
+      <div class="modal" style="max-width:520px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 id="um-name">Chi tiết tài khoản</h3>
+          <button onclick="closeUserModal()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#9490b0;width:30px;height:30px;cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div id="um-content"></div>
+      </div>
+    </div>
+
+    <div class="admin-wrap">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-logo">
+          <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
+            <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
+            <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+          </svg>
+          gachthe1s
+          <span class="admin-badge">ADMIN</span>
+        </div>
+        <div class="topbar-right">
+          <span style="font-size:13px;color:#6b698a;" id="admin-email-display">—</span>
+          <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+        </div>
+      </header>
+
+      <main class="admin-content">
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card purple">
+            <div class="stat-label">Tổng thành viên</div>
+            <div class="stat-value" id="st-users">0</div>
+            <div class="stat-sub">Tài khoản đã đăng ký</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Tổng tiền trong hệ thống</div>
+            <div class="stat-value" id="st-total-bal">0 đ</div>
+            <div class="stat-sub">Tổng số dư tất cả user</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Giao dịch nạp thẻ</div>
+            <div class="stat-value" id="st-nap">0</div>
+            <div class="stat-sub">Tổng lần nạp thẻ</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-label">Giao dịch mua thẻ</div>
+            <div class="stat-value" id="st-mua">0</div>
+            <div class="stat-sub">Tổng lần mua thẻ</div>
+          </div>
+        </div>
+
+        <!-- Users table -->
+        <div class="section">
+          <div class="section-head">
+            <h3>👥 Quản lý thành viên</h3>
+            <input class="search-input" id="user-search" placeholder="Tìm theo email hoặc tên..." oninput="renderUsers()" />
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Họ tên</th>
+                  <th>Email</th>
+                  <th>Số dư</th>
+                  <th>Giao dịch</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Transaction log -->
+        <div class="section">
+          <div class="section-head">
+            <h3>📋 Nhật ký giao dịch</h3>
+            <div class="tab-pills">
+              <button class="pill active" onclick="switchTxTab('nap',this)">Nạp thẻ</button>
+              <button class="pill"        onclick="switchTxTab('mua',this)">Mua thẻ</button>
+              <button class="pill"        onclick="switchTxTab('transfer',this)">Chuyển tiền</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead id="tx-thead"></thead>
+              <tbody id="tx-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+    <script>
+      const ADMIN_EMAIL = 'nguyenngoctri2910@gmail.com';
+      const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+      if (!session || session.email.toLowerCase() !== ADMIN_EMAIL) {
+        window.location.href = './index.html';
+      }
+      document.getElementById('admin-email-display').textContent = session.email;
+
+      function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
+      function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
+      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = Math.max(0, val); localStorage.setItem('cc_balances', JSON.stringify(d)); }
+      function getAccounts() { return JSON.parse(localStorage.getItem('cc_accounts') || '[]'); }
+
+      // ── Stats ──────────────────────────────────────────────
+      function loadStats() {
+        const accounts = getAccounts();
+        let totalBal = 0, totalNap = 0, totalMua = 0;
+        accounts.forEach(acc => {
+          totalBal += getBalance(acc.email);
+          totalNap += JSON.parse(localStorage.getItem('cc_txs_'    + acc.email) || '[]').length;
+          totalMua += JSON.parse(localStorage.getItem('cc_buytx_'  + acc.email) || '[]').length;
+        });
+        document.getElementById('st-users').textContent     = accounts.length;
+        document.getElementById('st-total-bal').textContent = formatMoney(totalBal) + ' đ';
+        document.getElementById('st-nap').textContent       = totalNap;
+        document.getElementById('st-mua').textContent       = totalMua;
+      }
+
+      // ── Users table ────────────────────────────────────────
+      function renderUsers() {
+        const q        = (document.getElementById('user-search').value || '').toLowerCase();
+        const accounts = getAccounts().filter(a =>
+          a.email.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+        );
+        const tbody = document.getElementById('users-tbody');
+
+        if (!accounts.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#4a4860;padding:24px;">Không tìm thấy tài khoản</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = accounts.map((acc, i) => {
+          const bal  = getBalance(acc.email);
+          const nap  = JSON.parse(localStorage.getItem('cc_txs_' + acc.email) || '[]').length;
+          const mua  = JSON.parse(localStorage.getItem('cc_buytx_' + acc.email) || '[]').length;
+          const isAdmin = acc.email.toLowerCase() === ADMIN_EMAIL;
+          return `
+            <tr>
+              <td style="color:#4a4860;">${i+1}</td>
+              <td style="font-weight:600;">${acc.name} ${isAdmin ? '<span class="badge badge-red">Admin</span>' : ''}</td>
+              <td style="color:#9490b0;">${acc.email}</td>
+              <td style="font-weight:600;color:#4ade80;">${formatMoney(bal)} đ</td>
+              <td style="color:#9490b0;">Nạp: ${nap} · Mua: ${mua}</td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-sm btn-add"  onclick="openBalModal('${acc.email}','${acc.name}','add')">+ Cộng</button>
+                  <button class="btn-sm btn-sub"  onclick="openBalModal('${acc.email}','${acc.name}','sub')">− Trừ</button>
+                  <button class="btn-sm btn-view" onclick="openUserModal('${acc.email}','${acc.name}')">Xem</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // ── Balance modal ──────────────────────────────────────
+      let balTarget = null;
+      function openBalModal(email, name, type) {
+        balTarget = { email, name, type };
+        document.getElementById('bal-modal-title').textContent = type === 'add' ? '➕ Cộng tiền' : '➖ Trừ tiền';
+        document.getElementById('bal-modal-sub').textContent   = `Tài khoản: ${name} (${email})`;
+        document.getElementById('bal-amount').value            = '';
+        document.getElementById('bal-note').value              = '';
+        document.getElementById('bal-modal-status').textContent = '';
+        document.getElementById('bal-modal').classList.add('show');
+      }
+      function closeBalModal() { document.getElementById('bal-modal').classList.remove('show'); balTarget = null; }
+      function confirmBalChange() {
+        if (!balTarget) return;
+        const amount = parseInt(document.getElementById('bal-amount').value);
+        if (!amount || amount <= 0) { document.getElementById('bal-modal-status').textContent = 'Vui lòng nhập số tiền hợp lệ.'; document.getElementById('bal-modal-status').style.color = '#f87171'; return; }
+        const cur = getBalance(balTarget.email);
+        const nw  = balTarget.type === 'add' ? cur + amount : cur - amount;
+        if (nw < 0) { document.getElementById('bal-modal-status').textContent = 'Số dư không đủ để trừ.'; document.getElementById('bal-modal-status').style.color = '#f87171'; return; }
+        setBalance(balTarget.email, nw);
+        document.getElementById('bal-modal-status').textContent = `✓ ${balTarget.type === 'add' ? 'Đã cộng' : 'Đã trừ'} ${formatMoney(amount)} đ`;
+        document.getElementById('bal-modal-status').style.color = '#22c55e';
+        renderUsers(); loadStats();
+        setTimeout(closeBalModal, 1200);
+      }
+
+      // ── User detail modal ──────────────────────────────────
+      function openUserModal(email, name) {
+        document.getElementById('um-name').textContent = name;
+        const bal      = getBalance(email);
+        const napTxs   = JSON.parse(localStorage.getItem('cc_txs_'      + email) || '[]');
+        const buyTxs   = JSON.parse(localStorage.getItem('cc_buytx_'    + email) || '[]');
+        const tranTxs  = JSON.parse(localStorage.getItem('cc_transfer_' + email) || '[]');
+
+        const allTx = [
+          ...napTxs.map(t  => ({ icon:'📱', desc:`Nạp thẻ ${(t.carrier||'').toUpperCase()} ${formatMoney(t.denom)}đ`,  amt:`+${formatMoney(t.credited)}đ`, color:'#4ade80', time: t.time })),
+          ...buyTxs.map(t  => ({ icon:'🎴', desc:`Mua thẻ ${(t.telco||'').toUpperCase()} ${formatMoney(t.denom)}đ×${t.qty}`, amt:`-${formatMoney(t.total)}đ`, color:'#f87171', time: t.time })),
+          ...tranTxs.map(t => ({ icon: t.type==='out'?'↑':'↓', desc:`${t.type==='out'?'Chuyển đến':'Nhận từ'} ${t.counterpart}`, amt:`${t.type==='out'?'-':'+'}${formatMoney(t.amount)}đ`, color: t.type==='out'?'#f87171':'#4ade80', time: t.time })),
+        ];
+
+        document.getElementById('um-content').innerHTML = `
+          <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:#9490b0;">Số dư hiện tại</span>
+            <span style="font-size:20px;font-weight:700;color:#a78bfa;">${formatMoney(bal)} đ</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
+            ${allTx.length ? allTx.map(t => `
+              <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:16px;">${t.icon}</span>
+                  <div>
+                    <div style="font-size:12px;font-weight:500;">${t.desc}</div>
+                    <div style="font-size:11px;color:#4a4860;">${t.time||''}</div>
+                  </div>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:${t.color};">${t.amt}</span>
+              </div>
+            `).join('') : '<div style="text-align:center;color:#4a4860;font-size:13px;padding:20px;">Chưa có giao dịch</div>'}
+          </div>
+        `;
+        document.getElementById('user-modal').classList.add('show');
+      }
+      function closeUserModal() { document.getElementById('user-modal').classList.remove('show'); }
+
+      // ── Transaction log ────────────────────────────────────
+      let currentTxTab = 'nap';
+      function switchTxTab(tab, btn) {
+        currentTxTab = tab;
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        renderTxLog();
+      }
+
+      function renderTxLog() {
+        const accounts = getAccounts();
+        let rows = [];
+
+        if (currentTxTab === 'nap') {
+          document.getElementById('tx-thead').innerHTML = '<tr><th>Thời gian</th><th>Người dùng</th><th>Nhà mạng</th><th>Mệnh giá</th><th>Nhận được</th><th>Trạng thái</th></tr>';
+          accounts.forEach(acc => {
+            JSON.parse(localStorage.getItem('cc_txs_' + acc.email) || '[]').forEach(tx => {
+              rows.push(`<tr>
+                <td style="color:#4a4860;font-size:12px;">${tx.time||'—'}</td>
+                <td>${acc.name}<br><span style="font-size:11px;color:#6b698a;">${acc.email}</span></td>
+                <td><span class="badge badge-purple">${(tx.carrier||'').toUpperCase()}</span></td>
+                <td style="font-weight:600;">${formatMoney(tx.denom)} đ</td>
+                <td style="color:#4ade80;font-weight:600;">+${formatMoney(tx.credited)} đ</td>
+                <td><span class="badge ${tx.status==='success'?'badge-green':tx.status==='pending'?'badge-yellow':'badge-red'}">${tx.status==='success'?'Thành công':tx.status==='pending'?'Chờ xử lý':'Thất bại'}</span></td>
+              </tr>`);
+            });
+          });
+        } else if (currentTxTab === 'mua') {
+          document.getElementById('tx-thead').innerHTML = '<tr><th>Thời gian</th><th>Người dùng</th><th>Loại thẻ</th><th>Mệnh giá</th><th>SL</th><th>Thanh toán</th></tr>';
+          accounts.forEach(acc => {
+            JSON.parse(localStorage.getItem('cc_buytx_' + acc.email) || '[]').forEach(tx => {
+              rows.push(`<tr>
+                <td style="color:#4a4860;font-size:12px;">${tx.time||'—'}</td>
+                <td>${acc.name}<br><span style="font-size:11px;color:#6b698a;">${acc.email}</span></td>
+                <td><span class="badge badge-purple">${(tx.telco||'').toUpperCase()}</span></td>
+                <td style="font-weight:600;">${formatMoney(tx.denom)} đ</td>
+                <td>${tx.qty}</td>
+                <td style="color:#f87171;font-weight:600;">-${formatMoney(tx.total)} đ</td>
+              </tr>`);
+            });
+          });
+        } else {
+          document.getElementById('tx-thead').innerHTML = '<tr><th>Thời gian</th><th>Người gửi</th><th>Người nhận</th><th>Số tiền</th><th>Lời nhắn</th></tr>';
+          const seen = new Set();
+          accounts.forEach(acc => {
+            JSON.parse(localStorage.getItem('cc_transfer_' + acc.email) || '[]')
+              .filter(tx => tx.type === 'out')
+              .forEach(tx => {
+                const key = acc.email + '_' + tx.counterpartEmail + '_' + tx.time;
+                if (seen.has(key)) return;
+                seen.add(key);
+                rows.push(`<tr>
+                  <td style="color:#4a4860;font-size:12px;">${tx.time||'—'}</td>
+                  <td>${acc.name}<br><span style="font-size:11px;color:#6b698a;">${acc.email}</span></td>
+                  <td>${tx.counterpart}<br><span style="font-size:11px;color:#6b698a;">${tx.counterpartEmail}</span></td>
+                  <td style="color:#a78bfa;font-weight:600;">${formatMoney(tx.amount)} đ</td>
+                  <td style="color:#6b698a;font-style:italic;">${tx.note||'—'}</td>
+                </tr>`);
+              });
+          });
+        }
+
+        document.getElementById('tx-tbody').innerHTML = rows.length
+          ? rows.join('')
+          : '<tr><td colspan="6" style="text-align:center;color:#4a4860;padding:24px;">Chưa có giao dịch</td></tr>';
+      }
+
+      // Close modals on outside click
+      ['bal-modal','user-modal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+      });
+
+      function logout() { sessionStorage.removeItem('cc_session'); window.location.href = './index.html'; }
+
+      // Init
+      loadStats();
+      renderUsers();
+      renderTxLog();
+    </script>
+  </body>
+</html>

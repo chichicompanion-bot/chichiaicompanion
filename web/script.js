@@ -182,6 +182,10 @@
 // ═══════════════════════════════════════════════════════════
 //  AUTH LOGIC
 // ═══════════════════════════════════════════════════════════
+const ADMIN_EMAIL = 'nguyenngoctri2910@gmail.com';
+function getRedirectUrl(email) {
+  return email.trim().toLowerCase() === ADMIN_EMAIL ? './admin.html' : './dashboard.html';
+}
 function switchTab(tab) {
   document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
   document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
@@ -223,6 +227,16 @@ function saveAccount(name, email, password) {
   localStorage.setItem('cc_accounts', JSON.stringify(list));
 }
 
+// Pre-seed admin account if not exists
+(function seedAdmin() {
+  const adminEmail = ADMIN_EMAIL;
+  const accounts = getAccounts();
+  if (!accounts.find(a => a.email === adminEmail)) {
+    accounts.push({ name: 'Admin', email: adminEmail, password: 'shsajaks' });
+    localStorage.setItem('cc_accounts', JSON.stringify(accounts));
+  }
+})();
+
 document.getElementById('login-form').addEventListener('submit', function (e) {
   e.preventDefault();
   clearErrors('login-email-err', 'login-pass-err');
@@ -236,7 +250,7 @@ document.getElementById('login-form').addEventListener('submit', function (e) {
   if (found) {
     sessionStorage.setItem('cc_session', JSON.stringify({ name: found.name, email: found.email }));
     showStatus('login-status', `Đăng nhập thành công! Đang chuyển trang...`, 'success');
-    setTimeout(() => { window.location.href = './dashboard.html'; }, 900);
+    setTimeout(() => { window.location.href = getRedirectUrl(found.email); }, 900);
   } else {
     showStatus('login-status', 'Email hoặc mật khẩu không đúng.', 'error');
   }
@@ -262,5 +276,5 @@ document.getElementById('register-form').addEventListener('submit', function (e)
   saveAccount(name, email, password);
   sessionStorage.setItem('cc_session', JSON.stringify({ name, email }));
   showStatus('register-status', 'Tạo tài khoản thành công! Đang chuyển trang...', 'success');
-  setTimeout(() => { window.location.href = './dashboard.html'; }, 1000);
+  setTimeout(() => { window.location.href = getRedirectUrl(email); }, 1000);
 });
