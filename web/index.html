@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dang nhap | StudyBot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="login-page">
+      <section class="brand-panel">
+        <p class="eyebrow">StudyBot Web</p>
+        <h1>Dang nhap de truy cap chatbot va khu vuc quan ly.</h1>
+        <p class="brand-text">
+          Day la giao dien dang nhap co ban de minh co the noi backend sau nay.
+          Hien tai no phu hop de lam trang vao cua cho web cua ban.
+        </p>
+<!-- Đã xóa code cũ, chuẩn bị cho code mới -->
+        <div class="brand-points">
+          <article class="point-card">
+            <h2>De mo rong</h2>
+            <p>Co the them API login, luu session va phan quyen sau.</p>
+          </article>
+          <article class="point-card">
+            <h2>De quan ly</h2>
+            <p>Web tach rieng, chatbot tach rieng, moi phan mot khu ro rang.</p>
+          </article>
+          <article class="point-card">
+            <h2>De nang cap</h2>
+            <p>Co the mo rong thanh dashboard, chat UI, upload anh va lich su.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="login-card">
+        <div class="login-card-inner">
+          <span class="status-pill">Dang nhap co ban</span>
+          <h2>Chao mung ban quay lai</h2>
+          <p class="login-text">
+            Nhap thong tin de vao he thong. Sau nay minh se noi phan nay voi
+            backend that.
+          </p>
+
+          <form id="login-form" class="login-form">
+            <label class="field">
+              <span>Email</span>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="ban@example.com"
+                autocomplete="email"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Mat khau</span>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Nhap mat khau"
+                autocomplete="current-password"
+                required
+              />
+            </label>
+
+            <div class="form-row">
+              <label class="checkbox-field">
+                <input type="checkbox" id="remember" name="remember" />
+                <span>Ghi nho dang nhap</span>
+              </label>
+
+              <a class="text-link" href="#">Quen mat khau?</a>
+            </div>
+
+            <button class="primary-button full-width" type="submit">
+              Dang nhap
+            </button>
+          </form>
+
+          <p id="form-status" class="form-status" aria-live="polite">
+            Hay dang nhap bang giao dien mau nay.
+          </p>
+
+          <div class="demo-box">
+            <p class="demo-title">Tai khoan demo</p>
+            <p>Email: <strong>demo@studybot.vn</strong></p>
+            <p>Mat khau: <strong>123456</strong></p>
+            <button class="secondary-button" type="button" id="fill-demo">
+              Dien san tai khoan demo
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

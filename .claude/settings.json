@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(git rebase *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Administrator\\OneDrive\\Desktop\\telegram-bot\\.git\\rebase-merge"
+    ]
+  }
+}
