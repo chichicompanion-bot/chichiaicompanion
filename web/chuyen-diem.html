@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chuyển Điểm | ChiChi AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      body { overflow: auto; }
+      .dash-wrapper { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
+
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 36px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(4,2,14,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
+      .topbar-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; text-decoration: none; color: inherit; }
+      .topbar-nav { display: flex; gap: 4px; }
+      .nav-link { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #9490b0; text-decoration: none; transition: all .2s; }
+      .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+      .nav-link.active { color: #fff; background: rgba(124,58,237,0.25); }
+      .topbar-right { display: flex; align-items: center; gap: 12px; }
+      .balance-pill { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: #a78bfa; }
+      .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+
+      .page-content { max-width: 800px; margin: 0 auto; width: 100%; padding: 36px 24px; }
+      .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.4px; margin-bottom: 4px; }
+      .page-sub { font-size: 13px; color: #7a7890; margin-bottom: 32px; }
+
+      .transfer-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+
+      /* Form card */
+      .form-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 28px; }
+      .form-card-title { font-size: 15px; font-weight: 600; margin-bottom: 22px; }
+
+      .field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+      .field-group label { font-size: 13px; font-weight: 500; color: #bbb; }
+      .field-group input { padding: 11px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s; }
+      .field-group input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.18); }
+      .field-group input::placeholder { color: #4a4860; }
+
+      /* Quick amount buttons */
+      .quick-amounts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+      .quick-btn { padding: 6px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 12px; font-weight: 500; color: #9490b0; cursor: pointer; font-family: inherit; transition: all .2s; }
+      .quick-btn:hover { border-color: rgba(124,58,237,.4); color: #fff; }
+
+      /* Recipient preview */
+      .recipient-preview { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-top: 6px; display: none; }
+      .recipient-preview.show { display: flex; }
+      .recipient-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+      .recipient-name { font-size: 13px; font-weight: 600; color: #4ade80; }
+      .recipient-email { font-size: 11px; color: #6b698a; }
+
+      /* Confirm modal */
+      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; }
+      .modal-overlay.show { display: flex; }
+      .modal { background: #0e0b1f; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; max-width: 380px; width: 90%; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
+      .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+      .modal p { font-size: 13px; color: #9490b0; margin-bottom: 24px; }
+      .modal-detail { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+      .modal-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; }
+      .modal-row .label { color: #6b698a; }
+      .modal-row .value { font-weight: 600; }
+      .modal-row .value.highlight { color: #a78bfa; font-size: 16px; }
+      .modal-actions { display: flex; gap: 10px; }
+      .btn-cancel { flex: 1; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #9490b0; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; transition: background .2s; }
+      .btn-cancel:hover { background: rgba(255,255,255,0.1); }
+      .btn-confirm { flex: 2; padding: 11px; background: linear-gradient(135deg, #7c3aed, #6366f1); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .2s; }
+      .btn-confirm:hover { opacity: .9; }
+
+      .submit-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 8px; transition: opacity .2s, transform .1s; box-shadow: 0 4px 20px rgba(124,58,237,.4); }
+      .submit-btn:hover:not(:disabled) { opacity: .9; }
+      .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+      .result-box { margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 13px; display: none; }
+      .result-box.show { display: block; }
+      .result-box.success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); color: #4ade80; }
+      .result-box.error   { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); color: #f87171; }
+      .result-title { font-weight: 600; margin-bottom: 4px; font-size: 14px; }
+
+      /* Sidebar */
+      .sidebar { display: flex; flex-direction: column; gap: 16px; }
+      .side-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; }
+      .side-card-title { font-size: 13px; font-weight: 600; color: #9490b0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+
+      .balance-big { text-align: center; padding: 8px 0 16px; }
+      .balance-big .amount { font-size: 30px; font-weight: 700; background: linear-gradient(135deg, #fff 30%, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+      .balance-big .label { font-size: 12px; color: #6b698a; margin-top: 4px; }
+
+      /* Transfer history */
+      .history-section { margin-top: 28px; }
+      .history-title { font-size: 14px; font-weight: 600; color: #9490b0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+      .tx-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      .tx-left { display: flex; align-items: center; gap: 12px; }
+      .tx-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+      .tx-icon.out { background: rgba(248,113,113,.15); }
+      .tx-icon.in  { background: rgba(34,197,94,.15); }
+      .tx-carrier { font-size: 13px; font-weight: 600; }
+      .tx-time { font-size: 11px; color: #6b698a; margin-top: 2px; }
+      .tx-amount-out { font-size: 14px; font-weight: 700; color: #f87171; }
+      .tx-amount-in  { font-size: 14px; font-weight: 700; color: #4ade80; }
+      .tx-empty { text-align: center; color: #4a4860; font-size: 13px; padding: 24px; background: rgba(255,255,255,0.02); border-radius: 10px; }
+
+      .notice-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+      .notice-list li { font-size: 12px; color: #7a7890; display: flex; gap: 8px; }
+      .notice-list li::before { content: '•'; color: #7c3aed; flex-shrink: 0; }
+
+      @media (max-width: 700px) {
+        .transfer-grid { grid-template-columns: 1fr; }
+        .topbar-nav { display: none; }
+        .topbar { padding: 14px 16px; }
+        .page-content { padding: 24px 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="orbs"></div>
+
+    <!-- Confirm modal -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal">
+        <h3>Xác nhận chuyển điểm</h3>
+        <p>Vui lòng kiểm tra thông tin trước khi xác nhận.</p>
+        <div class="modal-detail">
+          <div class="modal-row"><span class="label">Người nhận</span><span class="value" id="m-receiver">—</span></div>
+          <div class="modal-row"><span class="label">Email</span><span class="value" id="m-email" style="font-size:12px;color:#9490b0">—</span></div>
+          <div class="modal-row" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
+            <span class="label">Số điểm chuyển</span>
+            <span class="value highlight" id="m-amount">0 đ</span>
+          </div>
+          <div class="modal-row"><span class="label">Số dư sau chuyển</span><span class="value" id="m-after">0 đ</span></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Huỷ</button>
+          <button class="btn-confirm" onclick="confirmTransfer()">Xác nhận chuyển</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-wrapper">
+      <header class="topbar">
+        <a href="./dashboard.html" class="topbar-logo">
+          <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
+            <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
+            <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+          </svg>
+          ChiChi AI
+        </a>
+        <nav class="topbar-nav">
+          <a href="./dashboard.html"  class="nav-link">Dashboard</a>
+          <a href="./nap-the.html"    class="nav-link">Nạp thẻ</a>
+          <a href="./chuyen-diem.html" class="nav-link active">Chuyển điểm</a>
+        </nav>
+        <div class="topbar-right">
+          <div class="balance-pill">💰 <span id="nav-balance">0</span> đ</div>
+          <div class="avatar" id="user-avatar">?</div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <h1 class="page-title">Chuyển điểm</h1>
+        <p class="page-sub">Chuyển điểm sang tài khoản khác trong hệ thống ChiChi AI</p>
+
+        <div class="transfer-grid">
+          <div>
+            <div class="form-card">
+              <div class="form-card-title">💸 Thông tin chuyển điểm</div>
+
+              <div class="field-group">
+                <label>Email người nhận</label>
+                <input id="inp-receiver" type="email" placeholder="email@example.com" oninput="lookupReceiver(this.value)" />
+                <div class="recipient-preview" id="recipient-preview">
+                  <div class="recipient-avatar" id="recv-avatar">?</div>
+                  <div>
+                    <div class="recipient-name" id="recv-name">—</div>
+                    <div class="recipient-email" id="recv-email-txt">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>Số điểm muốn chuyển</label>
+                <div class="quick-amounts">
+                  <button class="quick-btn" onclick="setAmount(5000)">5.000</button>
+                  <button class="quick-btn" onclick="setAmount(10000)">10.000</button>
+                  <button class="quick-btn" onclick="setAmount(20000)">20.000</button>
+                  <button class="quick-btn" onclick="setAmount(50000)">50.000</button>
+                  <button class="quick-btn" onclick="setAmount(100000)">100.000</button>
+                </div>
+                <input id="inp-amount" type="number" min="1000" placeholder="Nhập số điểm (tối thiểu 1.000 đ)" oninput="updateAfter()" />
+              </div>
+
+              <div class="field-group">
+                <label>Lời nhắn (tuỳ chọn)</label>
+                <input id="inp-note" type="text" placeholder="Ví dụ: Cảm ơn bạn nhé!" maxlength="100" />
+              </div>
+
+              <button class="submit-btn" onclick="openModal()">Chuyển điểm ngay →</button>
+              <div class="result-box" id="result-box">
+                <div class="result-title" id="result-title"></div>
+                <div id="result-desc"></div>
+              </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section">
+              <div class="history-title">Lịch sử chuyển điểm</div>
+              <div id="transfer-history"><div class="tx-empty">Chưa có giao dịch nào</div></div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="sidebar">
+            <div class="side-card">
+              <div class="side-card-title">Số dư của bạn</div>
+              <div class="balance-big">
+                <div class="amount" id="sidebar-balance">0 đ</div>
+                <div class="label" id="sidebar-name">—</div>
+              </div>
+              <div style="font-size:13px;color:#6b698a;text-align:center;padding-top:4px">
+                Sau chuyển: <strong style="color:#fff" id="after-balance">—</strong>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-title">Lưu ý</div>
+              <ul class="notice-list">
+                <li>Chuyển điểm nội bộ, không quy đổi ra tiền mặt</li>
+                <li>Giao dịch không thể hoàn tác sau khi xác nhận</li>
+                <li>Tối thiểu 1.000 điểm mỗi lần chuyển</li>
+                <li>Người nhận phải có tài khoản trong hệ thống</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+    <script>
+      const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+      if (!session) { window.location.href = './index.html'; }
+
+      document.getElementById('user-avatar').textContent = session.name.charAt(0).toUpperCase();
+      document.getElementById('sidebar-name').textContent = session.name;
+
+      function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
+      function setBalance(email, val) {
+        const d = JSON.parse(localStorage.getItem('cc_balances') || '{}');
+        d[email] = val;
+        localStorage.setItem('cc_balances', JSON.stringify(d));
+      }
+      function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
+
+      function refreshBalance() {
+        const bal = getBalance(session.email);
+        document.getElementById('sidebar-balance').textContent = formatMoney(bal) + ' đ';
+        document.getElementById('nav-balance').textContent     = formatMoney(bal);
+        updateAfter();
+      }
+
+      function updateAfter() {
+        const amt = parseInt(document.getElementById('inp-amount').value) || 0;
+        const bal = getBalance(session.email);
+        const after = bal - amt;
+        const el = document.getElementById('after-balance');
+        el.textContent = after >= 0 ? formatMoney(after) + ' đ' : '—';
+        el.style.color = after >= 0 ? '#fff' : '#f87171';
+      }
+
+      function setAmount(v) {
+        document.getElementById('inp-amount').value = v;
+        updateAfter();
+      }
+
+      let foundReceiver = null;
+      function lookupReceiver(email) {
+        const preview = document.getElementById('recipient-preview');
+        email = email.trim().toLowerCase();
+        if (!email) { preview.classList.remove('show'); foundReceiver = null; return; }
+        if (email === session.email) { preview.classList.remove('show'); foundReceiver = null; return; }
+
+        const accounts = JSON.parse(localStorage.getItem('cc_accounts') || '[]');
+        const found = accounts.find(a => a.email === email);
+        if (found) {
+          foundReceiver = found;
+          document.getElementById('recv-avatar').textContent    = found.name.charAt(0).toUpperCase();
+          document.getElementById('recv-name').textContent      = found.name;
+          document.getElementById('recv-email-txt').textContent = found.email;
+          preview.classList.add('show');
+        } else {
+          foundReceiver = null;
+          preview.classList.remove('show');
+        }
+      }
+
+      function showResult(type, title, desc) {
+        const box = document.getElementById('result-box');
+        box.className = 'result-box show ' + type;
+        document.getElementById('result-title').textContent = title;
+        document.getElementById('result-desc').textContent  = desc;
+      }
+
+      let pendingTransfer = null;
+
+      function openModal() {
+        document.getElementById('result-box').className = 'result-box';
+
+        const receiverEmail = document.getElementById('inp-receiver').value.trim().toLowerCase();
+        const amount        = parseInt(document.getElementById('inp-amount').value);
+        const myBalance     = getBalance(session.email);
+
+        if (!receiverEmail) { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập email người nhận.'); return; }
+        if (receiverEmail === session.email) { showResult('error', 'Không hợp lệ', 'Không thể chuyển cho chính mình.'); return; }
+        if (!foundReceiver) { showResult('error', 'Không tìm thấy', 'Email người nhận không tồn tại trong hệ thống.'); return; }
+        if (!amount || amount < 1000) { showResult('error', 'Số điểm không hợp lệ', 'Số điểm tối thiểu là 1.000 đ.'); return; }
+        if (amount > myBalance) { showResult('error', 'Số dư không đủ', `Số dư của bạn chỉ còn ${formatMoney(myBalance)} đ.`); return; }
+
+        pendingTransfer = { receiver: foundReceiver, amount, note: document.getElementById('inp-note').value.trim() };
+
+        document.getElementById('m-receiver').textContent = foundReceiver.name;
+        document.getElementById('m-email').textContent    = foundReceiver.email;
+        document.getElementById('m-amount').textContent   = formatMoney(amount) + ' đ';
+        document.getElementById('m-after').textContent    = formatMoney(myBalance - amount) + ' đ';
+        document.getElementById('modal').classList.add('show');
+      }
+
+      function closeModal() {
+        document.getElementById('modal').classList.remove('show');
+        pendingTransfer = null;
+      }
+
+      function confirmTransfer() {
+        if (!pendingTransfer) return;
+        const { receiver, amount, note } = pendingTransfer;
+
+        const senderBal   = getBalance(session.email);
+        const receiverBal = getBalance(receiver.email);
+
+        setBalance(session.email,   senderBal   - amount);
+        setBalance(receiver.email,  receiverBal + amount);
+
+        const now = new Date().toLocaleString('vi-VN');
+        saveTx({ type: 'out', counterpart: receiver.name, counterpartEmail: receiver.email, amount, note, time: now });
+        saveIncomingTx(receiver.email, { type: 'in', counterpart: session.name, counterpartEmail: session.email, amount, note, time: now });
+
+        closeModal();
+        refreshBalance();
+        renderHistory();
+
+        showResult('success',
+          '✓ Chuyển điểm thành công!',
+          `Đã chuyển ${formatMoney(amount)} đ đến ${receiver.name} (${receiver.email}).`
+        );
+
+        document.getElementById('inp-receiver').value = '';
+        document.getElementById('inp-amount').value   = '';
+        document.getElementById('inp-note').value     = '';
+        document.getElementById('recipient-preview').classList.remove('show');
+        foundReceiver = null;
+      }
+
+      function saveTx(tx) {
+        const key  = 'cc_transfer_' + session.email;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift(tx);
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 100)));
+      }
+
+      function saveIncomingTx(receiverEmail, tx) {
+        const key  = 'cc_transfer_' + receiverEmail;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift(tx);
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 100)));
+      }
+
+      function renderHistory() {
+        const key  = 'cc_transfer_' + session.email;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        const el   = document.getElementById('transfer-history');
+
+        if (!list.length) { el.innerHTML = '<div class="tx-empty">Chưa có giao dịch nào</div>'; return; }
+
+        el.innerHTML = list.map(tx => `
+          <div class="tx-item">
+            <div class="tx-left">
+              <div class="tx-icon ${tx.type}">${tx.type === 'out' ? '↑' : '↓'}</div>
+              <div>
+                <div class="tx-carrier">${tx.type === 'out' ? 'Chuyển đến' : 'Nhận từ'} ${tx.counterpart}</div>
+                <div class="tx-time">${tx.time}${tx.note ? ' · ' + tx.note : ''}</div>
+              </div>
+            </div>
+            <div class="tx-${tx.type === 'out' ? 'amount-out' : 'amount-in'}">
+              ${tx.type === 'out' ? '-' : '+'}${formatMoney(tx.amount)} đ
+            </div>
+          </div>
+        `).join('');
+      }
+
+      refreshBalance();
+      renderHistory();
+    </script>
+  </body>
+</html>

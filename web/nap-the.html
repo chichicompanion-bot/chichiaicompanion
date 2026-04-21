@@ -353,51 +353,90 @@
         `).join('');
       }
 
+      function genRequestId() {
+        return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+      }
+
       async function submitCard() {
         document.getElementById('result-box').style.display = 'none';
 
         const serial = document.getElementById('inp-serial').value.trim();
         const pin    = document.getElementById('inp-pin').value.trim();
 
-        if (!selectedCarrier) { showResult('error', 'Thiếu thông tin', 'Vui lòng chọn nhà mạng.'); return; }
-        if (!selectedDenom)   { showResult('error', 'Thiếu thông tin', 'Vui lòng chọn mệnh giá.'); return; }
-        if (!serial)          { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập mã serial.'); return; }
-        if (!pin)             { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập mã thẻ.'); return; }
-        if (serial.length < 8) { showResult('error', 'Không hợp lệ', 'Mã serial không hợp lệ.'); return; }
-        if (pin.length < 8)    { showResult('error', 'Không hợp lệ', 'Mã thẻ không hợp lệ.'); return; }
+        if (!selectedCarrier)  { showResult('error', 'Thiếu thông tin', 'Vui lòng chọn nhà mạng.'); return; }
+        if (!selectedDenom)    { showResult('error', 'Thiếu thông tin', 'Vui lòng chọn mệnh giá.'); return; }
+        if (!serial)           { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập mã serial.'); return; }
+        if (!pin)              { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập mã thẻ.'); return; }
+        if (serial.length < 8) { showResult('error', 'Không hợp lệ', 'Mã serial phải có ít nhất 8 ký tự.'); return; }
+        if (pin.length < 8)    { showResult('error', 'Không hợp lệ', 'Mã thẻ phải có ít nhất 8 ký tự.'); return; }
 
         setLoading(true);
 
-        // ── GỌI API THẬT Ở ĐÂY ─────────────────────────────────────────────
-        // Khi có API key partner (TheSieure, Trumthe, v.v.) thay đoạn dưới:
-        //
-        // const res = await fetch('/api/nap-the', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ carrier: selectedCarrier, denom: selectedDenom, serial, pin })
-        // });
-        // const data = await res.json();
-        // ───────────────────────────────────────────────────────────────────
-
-        // Demo: giả lập xử lý 2.5 giây
-        await new Promise(r => setTimeout(r, 2500));
-
-        const credited = Math.round(selectedDenom * 0.9);
-        addBalance(session.email, credited);
-        saveTransaction({
-          carrier:  selectedCarrier,
-          denom:    selectedDenom,
-          credited: credited,
-          serial:   serial,
-          status:   'success',
-          time:     new Date().toLocaleString('vi-VN'),
-        });
+        let apiResult;
+        try {
+          const resp = await fetch('/api/nap-the', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              carrier:    selectedCarrier,
+              amount:     selectedDenom,
+              serial,
+              pin,
+              request_id: genRequestId(),
+            }),
+          });
+          apiResult = await resp.json();
+        } catch (e) {
+          setLoading(false);
+          showResult('error', '✗ Lỗi kết nối', 'Không thể kết nối đến cổng nạp thẻ. Vui lòng thử lại sau.');
+          return;
+        }
 
         setLoading(false);
-        showResult('success',
-          '✓ Nạp thẻ thành công!',
-          `Thẻ ${formatMoney(selectedDenom)} đ đã được xử lý. Tài khoản được cộng ${formatMoney(credited)} đ (chiết khấu 10%).`
-        );
+
+        const { status, actual_amount, declared_amount } = apiResult;
+
+        // status 1 — thành công, đúng mệnh giá
+        if (status === 1) {
+          const credited = Math.round(actual_amount * 0.9);
+          addBalance(session.email, credited);
+          saveTransaction({ carrier: selectedCarrier, denom: actual_amount, credited, serial, status: 'success', time: new Date().toLocaleString('vi-VN') });
+          showResult('success',
+            '✓ Nạp thẻ thành công!',
+            `Thẻ ${formatMoney(actual_amount)} đ đã được xác nhận. Tài khoản được cộng ${formatMoney(credited)} đ (chiết khấu 10%).`
+          );
+        }
+        // status 2 — thẻ đúng nhưng SAI mệnh giá khai báo → phạt 50%
+        else if (status === 2) {
+          const credited = Math.round(actual_amount * 0.5);
+          addBalance(session.email, credited);
+          saveTransaction({ carrier: selectedCarrier, denom: actual_amount, credited, serial, status: 'success', note: 'sai_menh_gia', time: new Date().toLocaleString('vi-VN') });
+          showResult('pending',
+            '⚠ Sai mệnh giá — áp dụng phạt 50%',
+            `Bạn khai báo ${formatMoney(declared_amount)} đ nhưng thẻ thực tế là ${formatMoney(actual_amount)} đ. Do sai mệnh giá, chỉ cộng ${formatMoney(credited)} đ (50% mệnh giá thực).`
+          );
+        }
+        // status 99 — đang xử lý bất đồng bộ
+        else if (status === 99) {
+          saveTransaction({ carrier: selectedCarrier, denom: selectedDenom, credited: 0, serial, status: 'pending', time: new Date().toLocaleString('vi-VN') });
+          showResult('pending',
+            '⏳ Đang xử lý...',
+            'Thẻ đang được xác minh. Điểm sẽ được cộng tự động trong vài phút. Vui lòng kiểm tra lại lịch sử.'
+          );
+        }
+        // status 3 — thẻ lỗi / đã dùng
+        else if (status === 3) {
+          saveTransaction({ carrier: selectedCarrier, denom: selectedDenom, credited: 0, serial, status: 'error', time: new Date().toLocaleString('vi-VN') });
+          showResult('error', '✗ Thẻ không hợp lệ', apiResult.message || 'Thẻ đã được sử dụng hoặc thông tin không chính xác.');
+        }
+        // status 4 — bảo trì
+        else if (status === 4) {
+          showResult('error', '✗ Hệ thống bảo trì', 'Cổng nạp thẻ đang bảo trì. Vui lòng thử lại sau.');
+        }
+        // Lỗi khác
+        else {
+          showResult('error', '✗ Lỗi', apiResult.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+        }
 
         refreshBalance();
         renderHistory();
@@ -408,6 +447,7 @@
         document.querySelectorAll('.carrier-btn, .denom-btn').forEach(b => b.classList.remove('selected'));
         selectedCarrier = null; selectedDenom = null;
       }
+
     </script>
   </body>
 </html>
