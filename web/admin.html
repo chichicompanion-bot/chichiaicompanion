@@ -13,12 +13,14 @@
       .admin-wrap { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
 
       /* Topbar */
-      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 32px; border-bottom: 1px solid rgba(255,100,100,0.15); background: rgba(20,4,4,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 36px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(4,2,14,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
       .topbar-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
       .admin-badge { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; color: #ef4444; letter-spacing: .5px; }
-      .topbar-right { display: flex; align-items: center; gap: 12px; }
-      .btn-logout { padding: 7px 16px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: background .2s; }
-      .btn-logout:hover { background: rgba(239,68,68,.2); }
+      .topbar-right { display: flex; align-items: center; gap: 16px; }
+      .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; box-shadow: 0 0 16px rgba(124,58,237,.5); }
+      .user-name { font-size: 14px; font-weight: 500; color: #ddd; }
+      .btn-logout { padding: 7px 16px; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: background .2s; }
+      .btn-logout:hover { background: rgba(248,113,113,0.22); }
 
       /* Layout */
       .admin-content { max-width: 1100px; margin: 0 auto; width: 100%; padding: 32px 24px; }
@@ -137,17 +139,25 @@
       <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-logo">
-          <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
             <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
             <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
             <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
             <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
           </svg>
-          gachthe1s
-          <span class="admin-badge">ADMIN</span>
+          ChiChi AI
         </div>
+        <nav style="display:flex;gap:4px;">
+          <a href="./dashboard.html"   style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Dashboard</a>
+          <a href="./nap-the.html"     style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Nạp tiền</a>
+          <a href="./mua-the.html"     style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Mua thẻ</a>
+          <a href="./chuyen-diem.html" style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Chuyển tiền</a>
+          <a href="./admin.html"       style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.15);text-decoration:none;">⚙️ Điều hành</a>
+        </nav>
         <div class="topbar-right">
-          <span style="font-size:13px;color:#6b698a;" id="admin-email-display">—</span>
+          <div style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:#a78bfa;">💰 <span id="nav-balance">0</span> đ</div>
+          <div class="avatar" id="user-avatar">?</div>
+          <span class="user-name" id="user-name-display">...</span>
           <button class="btn-logout" onclick="logout()">Đăng xuất</button>
         </div>
       </header>
@@ -264,7 +274,14 @@
       if (!session || session.email.toLowerCase() !== ADMIN_EMAIL) {
         window.location.href = './index.html';
       }
-      document.getElementById('admin-email-display').textContent = session.email;
+      document.getElementById('user-name-display').textContent = session.name || session.email;
+      document.getElementById('user-avatar').textContent = (session.name || session.email)[0].toUpperCase();
+      function _navBalance() {
+        const bal = (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[session.email] || 0;
+        document.getElementById('nav-balance').textContent = Number(bal).toLocaleString('vi-VN');
+      }
+      _navBalance();
+      window.addEventListener('storage', _navBalance);
 
       function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
       function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
