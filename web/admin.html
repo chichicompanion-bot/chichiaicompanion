@@ -86,6 +86,12 @@
       .pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #6b698a; font-family: inherit; transition: all .2s; }
       .pill.active { background: rgba(124,58,237,.2); border-color: rgba(124,58,237,.4); color: #a78bfa; }
 
+      /* Toast */
+      .toast { position: fixed; bottom: 32px; right: 32px; z-index: 999; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
+      .toast.show { transform: translateY(0); opacity: 1; }
+      .toast.success { background: rgba(22,163,74,0.95); border: 1px solid rgba(34,197,94,0.4); color: #fff; }
+      .toast.error   { background: rgba(185,28,28,0.95);  border: 1px solid rgba(248,113,113,0.4); color: #fff; }
+
       @media (max-width: 900px) {
         .stats-row { grid-template-columns: repeat(3, 1fr); }
       }
@@ -99,6 +105,7 @@
   <body>
     <canvas id="bg-canvas"></canvas>
     <div class="orbs"></div>
+    <div class="toast" id="toast"></div>
 
     <!-- Balance modal -->
     <div class="modal-overlay" id="bal-modal">
@@ -264,6 +271,16 @@
       function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = Math.max(0, val); localStorage.setItem('cc_balances', JSON.stringify(d)); }
       function getAccounts() { return JSON.parse(localStorage.getItem('cc_accounts') || '[]'); }
 
+      // ── Toast ─────────────────────────────────────────────
+      let toastTimer;
+      function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
+        t.className = 'toast ' + type + ' show';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+      }
+
       // ── Balance adjuster ──────────────────────────────────
       function adjEmailChange() {
         const email = document.getElementById('adj-email').value.trim().toLowerCase();
@@ -276,8 +293,8 @@
         const email  = document.getElementById('adj-email').value.trim().toLowerCase();
         const amount = parseFloat(document.getElementById('adj-amount').value);
         const status = document.getElementById('adj-status');
-        if (!email) { status.style.color = '#f87171'; status.textContent = 'Vui lòng nhập email.'; return; }
-        if (!amount || amount <= 0) { status.style.color = '#f87171'; status.textContent = 'Vui lòng nhập số tiền hợp lệ.'; return; }
+        if (!email) { showToast('Vui lòng nhập email.', 'error'); return; }
+        if (!amount || amount <= 0) { showToast('Vui lòng nhập số tiền hợp lệ.', 'error'); return; }
 
         const cur = getBalance(email);
         let newBal;
@@ -287,9 +304,14 @@
 
         setBalance(email, newBal);
         document.getElementById('adj-current').textContent = formatMoney(newBal) + ' đ';
-        const label = mode === 'add' ? `Đã cộng ${formatMoney(amount)} đ` : mode === 'sub' ? `Đã trừ ${formatMoney(amount)} đ` : `Đã đặt số dư thành ${formatMoney(newBal)} đ`;
-        status.style.color = '#4ade80';
-        status.textContent = '✓ ' + label;
+        status.textContent = '';
+
+        const label = mode === 'add'
+          ? `Đã cộng ${formatMoney(amount)} đ vào ${email}`
+          : mode === 'sub'
+          ? `Đã trừ ${formatMoney(amount)} đ của ${email}`
+          : `Đã đặt số dư ${email} thành ${formatMoney(newBal)} đ`;
+        showToast(label, 'success');
         renderUsers(); loadStats();
       }
 
