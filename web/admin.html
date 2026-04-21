@@ -274,17 +274,10 @@
 
       function adjBalance(mode) {
         const email  = document.getElementById('adj-email').value.trim().toLowerCase();
-        const amount = parseFloat(document.getElementById('adj-amount').value) || 0;
+        const amount = parseFloat(document.getElementById('adj-amount').value);
         const status = document.getElementById('adj-status');
         if (!email) { status.style.color = '#f87171'; status.textContent = 'Vui lòng nhập email.'; return; }
-        if (amount < 0) { status.style.color = '#f87171'; status.textContent = 'Số tiền không hợp lệ.'; return; }
-
-        const accounts = getAccounts();
-        const acc = accounts.find(a => a.email === email);
-        if (!acc) {
-          // Auto-create balance entry even if account not in list (e.g. admin pre-seed)
-          if (email !== ADMIN_EMAIL) { status.style.color = '#f87171'; status.textContent = 'Không tìm thấy tài khoản.'; return; }
-        }
+        if (!amount || amount <= 0) { status.style.color = '#f87171'; status.textContent = 'Vui lòng nhập số tiền hợp lệ.'; return; }
 
         const cur = getBalance(email);
         let newBal;
