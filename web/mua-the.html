@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mua Thẻ | ChiChi AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      body { overflow: auto; }
+      .dash-wrapper { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
+
+      /* Topbar */
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 36px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(4,2,14,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
+      .topbar-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; text-decoration: none; color: inherit; }
+      .topbar-nav { display: flex; gap: 4px; }
+      .nav-link { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #9490b0; text-decoration: none; transition: all .2s; }
+      .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+      .nav-link.active { color: #fff; background: rgba(124,58,237,0.25); }
+      .topbar-right { display: flex; align-items: center; gap: 12px; }
+      .balance-pill { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: #a78bfa; }
+      .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+
+      .page-content { max-width: 1000px; margin: 0 auto; width: 100%; padding: 36px 24px; }
+      .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.4px; margin-bottom: 4px; }
+      .page-sub { font-size: 13px; color: #7a7890; margin-bottom: 32px; }
+
+      .main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+
+      /* Form card */
+      .form-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 28px; }
+      .section-label { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
+
+      /* Card type grid */
+      .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+      .type-btn { padding: 14px 8px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); border-radius: 12px; cursor: pointer; text-align: center; transition: all .2s; }
+      .type-btn:hover { border-color: rgba(124,58,237,.4); background: rgba(124,58,237,.08); }
+      .type-btn.selected { border-color: #7c3aed; background: rgba(124,58,237,.18); box-shadow: 0 0 14px rgba(124,58,237,.25); }
+      .type-icon { width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff; }
+      .type-name { font-size: 12px; font-weight: 500; color: #ccc; }
+      .type-tag { font-size: 10px; color: #6b698a; margin-top: 2px; }
+
+      /* Denomination grid */
+      .denom-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 24px; }
+      .denom-btn { padding: 12px; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; text-align: center; font-size: 13px; font-weight: 600; color: #ccc; transition: all .2s; font-family: inherit; }
+      .denom-btn:hover { border-color: rgba(124,58,237,.4); }
+      .denom-btn.selected { border-color: #7c3aed; background: rgba(124,58,237,.15); color: #fff; }
+      .denom-btn small { display: block; font-size: 10px; font-weight: 400; color: #f87171; margin-top: 3px; }
+      .denom-btn.selected small { color: #fca5a5; }
+
+      /* Quantity */
+      .qty-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+      .qty-label { font-size: 13px; font-weight: 500; color: #bbb; flex-shrink: 0; }
+      .qty-input { width: 80px; padding: 9px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; outline: none; text-align: center; }
+      .qty-input:focus { border-color: #7c3aed; }
+      .qty-note { font-size: 12px; color: #6b698a; }
+
+      /* Summary box */
+      .summary-box { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; display: none; }
+      .summary-box.show { display: block; }
+      .summary-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+      .summary-row .s-label { color: #9490b0; }
+      .summary-row .s-value { font-weight: 600; }
+      .summary-row.total { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 8px; padding-top: 10px; }
+      .summary-row.total .s-value { color: #a78bfa; font-size: 16px; }
+
+      .submit-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .2s, transform .1s; box-shadow: 0 4px 20px rgba(124,58,237,.4); display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .submit-btn:hover:not(:disabled) { opacity: .9; }
+      .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+      .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: none; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Result + card display */
+      .result-box { margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 13px; display: none; }
+      .result-box.show { display: block; }
+      .result-box.success { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2); }
+      .result-box.error   { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2); color: #f87171; }
+      .result-box.pending { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.2); color: #fbbf24; }
+      .result-title { font-weight: 600; margin-bottom: 10px; font-size: 14px; }
+
+      /* Card result items */
+      .card-result-list { display: flex; flex-direction: column; gap: 10px; }
+      .card-result-item { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 16px; }
+      .card-result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+      .card-badge { background: rgba(124,58,237,.2); border: 1px solid rgba(124,58,237,.35); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; color: #a78bfa; }
+      .card-copy-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border-radius: 7px; padding: 8px 12px; margin-bottom: 6px; }
+      .card-copy-label { font-size: 11px; color: #6b698a; margin-bottom: 2px; }
+      .card-copy-value { font-size: 14px; font-weight: 700; letter-spacing: 1.5px; color: #fff; font-family: monospace; }
+      .copy-btn { padding: 5px 10px; background: rgba(124,58,237,.2); border: 1px solid rgba(124,58,237,.3); border-radius: 6px; color: #a78bfa; font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background .2s; white-space: nowrap; }
+      .copy-btn:hover { background: rgba(124,58,237,.35); }
+      .copy-btn.copied { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.3); color: #22c55e; }
+
+      /* Sidebar */
+      .sidebar { display: flex; flex-direction: column; gap: 16px; }
+      .side-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; }
+      .side-card-title { font-size: 13px; font-weight: 600; color: #9490b0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+      .balance-display { text-align: center; padding: 6px 0; }
+      .balance-display .amount { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, #fff 30%, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+      .balance-display .label { font-size: 12px; color: #6b698a; margin-top: 4px; }
+
+      .price-table { width: 100%; border-collapse: collapse; }
+      .price-table tr td { padding: 7px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .price-table tr:last-child td { border-bottom: none; }
+      .price-table td:first-child { color: #9490b0; }
+      .price-table td:last-child { text-align: right; font-weight: 600; color: #f87171; }
+
+      .notice-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+      .notice-list li { font-size: 12px; color: #7a7890; display: flex; gap: 8px; }
+      .notice-list li::before { content: '•'; color: #7c3aed; flex-shrink: 0; }
+
+      /* History */
+      .history-section { margin-top: 28px; }
+      .history-title { font-size: 14px; font-weight: 600; color: #9490b0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+      .tx-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      .tx-left { display: flex; align-items: center; gap: 12px; }
+      .tx-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(248,113,113,.12); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+      .tx-info .tx-title { font-size: 13px; font-weight: 600; }
+      .tx-info .tx-time { font-size: 11px; color: #6b698a; margin-top: 2px; }
+      .tx-amount { font-size: 14px; font-weight: 700; color: #f87171; }
+      .tx-empty { text-align: center; color: #4a4860; font-size: 13px; padding: 24px; background: rgba(255,255,255,0.02); border-radius: 10px; }
+
+      @media (max-width: 768px) {
+        .main-grid { grid-template-columns: 1fr; }
+        .type-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .denom-grid { grid-template-columns: repeat(3, 1fr); }
+        .topbar-nav { display: none; }
+        .topbar { padding: 14px 16px; }
+        .page-content { padding: 24px 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="orbs"></div>
+
+    <div class="dash-wrapper">
+      <header class="topbar">
+        <a href="./dashboard.html" class="topbar-logo">
+          <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
+            <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
+            <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+          </svg>
+          ChiChi AI
+        </a>
+        <nav class="topbar-nav">
+          <a href="./dashboard.html"   class="nav-link">Dashboard</a>
+          <a href="./nap-the.html"     class="nav-link">Nạp tiền</a>
+          <a href="./mua-the.html"     class="nav-link active">Mua thẻ</a>
+          <a href="./chuyen-diem.html" class="nav-link">Chuyển tiền</a>
+        </nav>
+        <div class="topbar-right">
+          <div class="balance-pill">💰 <span id="nav-balance">0</span> đ</div>
+          <div class="avatar" id="user-avatar">?</div>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <h1 class="page-title">Mua thẻ cào</h1>
+        <p class="page-sub">Dùng số dư tài khoản để mua thẻ điện thoại hoặc thẻ game — nhận mã thẻ ngay lập tức</p>
+
+        <div class="main-grid">
+          <div>
+            <div class="form-card">
+              <!-- Card type -->
+              <div class="section-label">🎴 Chọn loại thẻ</div>
+              <div class="type-grid">
+                <div class="type-btn" data-telco="viettel" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#e53935,#c62828);">VTT</div>
+                  <div class="type-name">Viettel</div>
+                  <div class="type-tag">Di động</div>
+                </div>
+                <div class="type-btn" data-telco="mobifone" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#1565c0,#0d47a1);">MBF</div>
+                  <div class="type-name">Mobifone</div>
+                  <div class="type-tag">Di động</div>
+                </div>
+                <div class="type-btn" data-telco="vinaphone" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#2e7d32,#1b5e20);">VNP</div>
+                  <div class="type-name">Vinaphone</div>
+                  <div class="type-tag">Di động</div>
+                </div>
+                <div class="type-btn" data-telco="vietnamobile" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#f57f17,#e65100);">VNM</div>
+                  <div class="type-name">Vietnamobile</div>
+                  <div class="type-tag">Di động</div>
+                </div>
+                <div class="type-btn" data-telco="garena" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#ff6f00,#e65100);">GRN</div>
+                  <div class="type-name">Garena</div>
+                  <div class="type-tag">Game</div>
+                </div>
+                <div class="type-btn" data-telco="vcoin" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#00838f,#006064);">VCN</div>
+                  <div class="type-name">Vcoin</div>
+                  <div class="type-tag">Game</div>
+                </div>
+                <div class="type-btn" data-telco="zing" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#6a1b9a,#4a148c);">ZNG</div>
+                  <div class="type-name">Zing</div>
+                  <div class="type-tag">Game</div>
+                </div>
+                <div class="type-btn" data-telco="gmobile" onclick="selectType(this)">
+                  <div class="type-icon" style="background:linear-gradient(135deg,#37474f,#263238);">GMB</div>
+                  <div class="type-name">Gmobile</div>
+                  <div class="type-tag">Di động</div>
+                </div>
+              </div>
+
+              <!-- Denomination -->
+              <div class="section-label">💵 Chọn mệnh giá</div>
+              <div class="denom-grid">
+                <button class="denom-btn" data-value="10000"  onclick="selectDenom(this)">10.000 đ<small id="fee-10000"></small></button>
+                <button class="denom-btn" data-value="20000"  onclick="selectDenom(this)">20.000 đ<small id="fee-20000"></small></button>
+                <button class="denom-btn" data-value="50000"  onclick="selectDenom(this)">50.000 đ<small id="fee-50000"></small></button>
+                <button class="denom-btn" data-value="100000" onclick="selectDenom(this)">100.000 đ<small id="fee-100000"></small></button>
+                <button class="denom-btn" data-value="200000" onclick="selectDenom(this)">200.000 đ<small id="fee-200000"></small></button>
+                <button class="denom-btn" data-value="500000" onclick="selectDenom(this)">500.000 đ<small id="fee-500000"></small></button>
+              </div>
+
+              <!-- Quantity -->
+              <div class="qty-row">
+                <span class="qty-label">Số lượng:</span>
+                <input id="inp-qty" class="qty-input" type="number" min="1" max="10" value="1" oninput="updateSummary()" />
+                <span class="qty-note">Tối đa 10 thẻ / lần</span>
+              </div>
+
+              <!-- Summary -->
+              <div class="summary-box" id="summary-box">
+                <div class="summary-row"><span class="s-label">Loại thẻ</span><span class="s-value" id="s-type">—</span></div>
+                <div class="summary-row"><span class="s-label">Mệnh giá</span><span class="s-value" id="s-denom">—</span></div>
+                <div class="summary-row"><span class="s-label">Số lượng</span><span class="s-value" id="s-qty">—</span></div>
+                <div class="summary-row"><span class="s-label">Phí dịch vụ</span><span class="s-value" style="color:#f87171" id="s-fee">—</span></div>
+                <div class="summary-row total"><span class="s-label">Tổng thanh toán</span><span class="s-value" id="s-total">—</span></div>
+              </div>
+
+              <button class="submit-btn" id="submit-btn" onclick="buyCard()">
+                <div class="spinner" id="spinner"></div>
+                <span id="btn-text">Mua thẻ ngay</span>
+              </button>
+
+              <div class="result-box" id="result-box">
+                <div class="result-title" id="result-title"></div>
+                <div id="result-content"></div>
+              </div>
+            </div>
+
+            <!-- History -->
+            <div class="history-section">
+              <div class="history-title">Lịch sử mua thẻ</div>
+              <div id="buy-history"><div class="tx-empty">Chưa có giao dịch nào</div></div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="sidebar">
+            <div class="side-card">
+              <div class="side-card-title">Số dư hiện tại</div>
+              <div class="balance-display">
+                <div class="amount" id="sidebar-balance">0 đ</div>
+                <div class="label" id="sidebar-email">—</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-title">Phí dịch vụ</div>
+              <table class="price-table">
+                <tr><td>Thẻ di động</td><td>+5%</td></tr>
+                <tr><td>Garena / Game</td><td>+8%</td></tr>
+              </table>
+              <p style="font-size:11px;color:#4a4860;margin-top:10px;">Phí tính trên mệnh giá thẻ. Số tiền trừ = mệnh giá + phí.</p>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-title">Lưu ý</div>
+              <ul class="notice-list">
+                <li>Mã thẻ hiển thị ngay sau khi mua</li>
+                <li>Lưu lại mã thẻ — không khôi phục được</li>
+                <li>Thẻ game không áp dụng cho tài khoản lừa đảo</li>
+                <li>Giao dịch không thể hoàn tiền sau khi xác nhận</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+    <script>
+      const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+      if (!session) { window.location.href = './index.html'; }
+
+      document.getElementById('user-avatar').textContent  = session.name.charAt(0).toUpperCase();
+      document.getElementById('sidebar-email').textContent = session.email;
+
+      const TELCO_NAMES = { viettel:'Viettel', mobifone:'Mobifone', vinaphone:'Vinaphone', vietnamobile:'Vietnamobile', garena:'Garena', vcoin:'Vcoin', zing:'Zing', gmobile:'Gmobile' };
+      const GAME_TELCOS = ['garena', 'vcoin', 'zing'];
+      const FEE_RATE    = { mobile: 0.05, game: 0.08 };
+
+      let selectedTelco = null, selectedDenom = null;
+
+      function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
+      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = val; localStorage.setItem('cc_balances', JSON.stringify(d)); }
+      function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
+
+      function getFeeRate(telco) { return GAME_TELCOS.includes(telco) ? FEE_RATE.game : FEE_RATE.mobile; }
+      function getCost(denom, telco) { return Math.round(denom * (1 + getFeeRate(telco))); }
+
+      function refreshBalance() {
+        const bal = getBalance(session.email);
+        document.getElementById('sidebar-balance').textContent = formatMoney(bal) + ' đ';
+        document.getElementById('nav-balance').textContent     = formatMoney(bal);
+      }
+
+      function selectType(el) {
+        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedTelco = el.dataset.telco;
+        // Update fee labels
+        [10000,20000,50000,100000,200000,500000].forEach(d => {
+          const el2 = document.getElementById('fee-' + d);
+          if (el2) el2.textContent = 'Phí: ' + formatMoney(getCost(d, selectedTelco) - d) + ' đ';
+        });
+        updateSummary();
+      }
+
+      function selectDenom(el) {
+        document.querySelectorAll('.denom-btn').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedDenom = parseInt(el.dataset.value);
+        updateSummary();
+      }
+
+      function updateSummary() {
+        const box = document.getElementById('summary-box');
+        if (!selectedTelco || !selectedDenom) { box.classList.remove('show'); return; }
+        const qty   = Math.max(1, Math.min(10, parseInt(document.getElementById('inp-qty').value) || 1));
+        const fee   = getCost(selectedDenom, selectedTelco) - selectedDenom;
+        const total = getCost(selectedDenom, selectedTelco) * qty;
+        document.getElementById('s-type').textContent  = TELCO_NAMES[selectedTelco];
+        document.getElementById('s-denom').textContent = formatMoney(selectedDenom) + ' đ';
+        document.getElementById('s-qty').textContent   = qty + ' thẻ';
+        document.getElementById('s-fee').textContent   = '+' + formatMoney(fee * qty) + ' đ (' + (getFeeRate(selectedTelco)*100) + '%)';
+        document.getElementById('s-total').textContent = formatMoney(total) + ' đ';
+        box.classList.add('show');
+      }
+
+      function setLoading(on) {
+        document.getElementById('spinner').style.display = on ? 'block' : 'none';
+        document.getElementById('btn-text').textContent  = on ? 'Đang xử lý...' : 'Mua thẻ ngay';
+        document.getElementById('submit-btn').disabled   = on;
+      }
+
+      function showResult(type, title, content) {
+        const box = document.getElementById('result-box');
+        box.className = 'result-box show ' + type;
+        document.getElementById('result-title').textContent   = title;
+        document.getElementById('result-content').innerHTML   = content;
+      }
+
+      function copyText(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = '✓ Đã copy';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+        });
+      }
+
+      function saveBuyHistory(item) {
+        const key  = 'cc_buytx_' + session.email;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift(item);
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+      }
+
+      function renderHistory() {
+        const key  = 'cc_buytx_' + session.email;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        const el   = document.getElementById('buy-history');
+        if (!list.length) { el.innerHTML = '<div class="tx-empty">Chưa có giao dịch nào</div>'; return; }
+        el.innerHTML = list.map(tx => `
+          <div class="tx-item">
+            <div class="tx-left">
+              <div class="tx-icon">🎴</div>
+              <div class="tx-info">
+                <div class="tx-title">${TELCO_NAMES[tx.telco] || tx.telco} — ${formatMoney(tx.denom)} đ × ${tx.qty}</div>
+                <div class="tx-time">${tx.time}</div>
+              </div>
+            </div>
+            <div class="tx-amount">-${formatMoney(tx.total)} đ</div>
+          </div>
+        `).join('');
+      }
+
+      function genId() { return Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+      async function buyCard() {
+        document.getElementById('result-box').className = 'result-box';
+
+        if (!selectedTelco) { showResult('error', '✗ Chưa chọn loại thẻ', 'Vui lòng chọn loại thẻ muốn mua.'); return; }
+        if (!selectedDenom) { showResult('error', '✗ Chưa chọn mệnh giá', 'Vui lòng chọn mệnh giá.'); return; }
+
+        const qty     = Math.max(1, Math.min(10, parseInt(document.getElementById('inp-qty').value) || 1));
+        const total   = getCost(selectedDenom, selectedTelco) * qty;
+        const balance = getBalance(session.email);
+
+        if (total > balance) {
+          showResult('error', '✗ Số dư không đủ', `Cần ${formatMoney(total)} đ, số dư hiện tại chỉ có ${formatMoney(balance)} đ. Vui lòng nạp thêm tiền.`);
+          return;
+        }
+
+        setLoading(true);
+
+        let apiResult;
+        try {
+          const resp = await fetch('/api/mua-the', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telco: selectedTelco, amount: selectedDenom, quantity: qty, request_id: genId() }),
+          });
+          apiResult = await resp.json();
+        } catch (e) {
+          setLoading(false);
+          showResult('error', '✗ Lỗi kết nối', 'Không thể kết nối cổng mua thẻ. Vui lòng thử lại.');
+          return;
+        }
+
+        setLoading(false);
+
+        if (apiResult.status === 1 && apiResult.cards?.length) {
+          // Trừ tiền
+          setBalance(session.email, balance - total);
+          saveBuyHistory({ telco: selectedTelco, denom: selectedDenom, qty, total, time: new Date().toLocaleString('vi-VN') });
+          refreshBalance();
+          renderHistory();
+
+          // Hiển thị thẻ
+          const cardsHtml = apiResult.cards.map((card, i) => `
+            <div class="card-result-item">
+              <div class="card-result-header">
+                <span style="font-size:13px;font-weight:600;">Thẻ #${i+1}</span>
+                <span class="card-badge">${TELCO_NAMES[selectedTelco]} ${formatMoney(selectedDenom)} đ</span>
+              </div>
+              <div class="card-copy-row">
+                <div><div class="card-copy-label">Serial</div><div class="card-copy-value">${card.serial}</div></div>
+                <button class="copy-btn" onclick="copyText('${card.serial}', this)">Copy</button>
+              </div>
+              <div class="card-copy-row">
+                <div><div class="card-copy-label">Mã thẻ (PIN)</div><div class="card-copy-value">${card.code}</div></div>
+                <button class="copy-btn" onclick="copyText('${card.code}', this)">Copy</button>
+              </div>
+            </div>
+          `).join('');
+
+          showResult('success', `✓ Mua thành công ${qty} thẻ! Lưu lại mã thẻ ngay:`,
+            `<div class="card-result-list">${cardsHtml}</div>`);
+        }
+        else if (apiResult.status === 2) {
+          showResult('pending', '⏳ Đang xử lý', 'Đơn hàng đang được xử lý. Vui lòng chờ và kiểm tra lại sau ít phút.');
+        }
+        else {
+          showResult('error', '✗ Mua thẻ thất bại', apiResult.message || 'Đã có lỗi xảy ra. Vui lòng thử lại hoặc chọn mệnh giá khác.');
+        }
+      }
+
+      refreshBalance();
+      renderHistory();
+    </script>
+  </body>
+</html>
