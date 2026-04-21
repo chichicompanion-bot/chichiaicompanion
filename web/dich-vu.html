@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dịch vụ | ChiChi AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="./style.css"/>
+  <style>
+    body { overflow: auto; }
+    .page-wrap { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column; }
+
+    /* Topbar */
+    .topbar { display:flex;align-items:center;justify-content:space-between;padding:18px 36px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(4,2,14,0.6);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50; }
+    .topbar-logo { display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px; }
+    .topbar-right { display:flex;align-items:center;gap:16px; }
+    .nav-link { padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;transition:background .15s,color .15s; }
+    .nav-link:hover { color:#fff;background:rgba(255,255,255,0.06); }
+    .nav-link.active { color:#fff;background:rgba(124,58,237,0.25); }
+    .avatar { width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6366f1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;box-shadow:0 0 16px rgba(124,58,237,.5); }
+    .user-name { font-size:14px;font-weight:500;color:#ddd; }
+    .btn-logout { padding:7px 16px;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);border-radius:8px;color:#f87171;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .2s; }
+    .btn-logout:hover { background:rgba(248,113,113,0.22); }
+
+    /* Layout */
+    .main-content { display:flex;gap:24px;padding:32px 36px;max-width:1200px;margin:0 auto;width:100%; }
+
+    /* Sidebar categories */
+    .sidebar { width:220px;flex-shrink:0; }
+    .cat-title { font-size:11px;font-weight:600;color:#6b698a;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding:0 4px; }
+    .cat-btn { display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:10px;border:none;background:transparent;color:#9490b0;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:all .15s;text-align:left;margin-bottom:4px; }
+    .cat-btn:hover { background:rgba(255,255,255,0.05);color:#ddd; }
+    .cat-btn.active { background:rgba(124,58,237,0.18);color:#a78bfa;border:1px solid rgba(124,58,237,0.25); }
+    .cat-btn .cat-icon { font-size:18px;width:24px;text-align:center; }
+
+    /* Right panel */
+    .right-panel { flex:1;min-width:0; }
+
+    /* Order form */
+    .order-card { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:24px;margin-bottom:24px; }
+    .order-card h3 { font-size:15px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block;font-size:12px;font-weight:500;color:#9490b0;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px; }
+    .field input, .field select { width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box; }
+    .field input:focus, .field select:focus { border-color:#7c3aed; }
+    .field select option { background:#0e0b1f;color:#fff; }
+
+    /* Service grid */
+    .service-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:20px; }
+    .svc-card { background:rgba(255,255,255,0.03);border:2px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s; }
+    .svc-card:hover { border-color:rgba(124,58,237,0.35);background:rgba(124,58,237,0.06); }
+    .svc-card.selected { border-color:#7c3aed;background:rgba(124,58,237,0.12); }
+    .svc-name { font-size:13px;font-weight:600;margin-bottom:6px; }
+    .svc-meta { display:flex;justify-content:space-between;align-items:center; }
+    .svc-price { font-size:12px;color:#a78bfa;font-weight:600; }
+    .svc-minmax { font-size:11px;color:#6b698a; }
+    .svc-badge { display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;margin-bottom:8px; }
+    .badge-hot { background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.25); }
+    .badge-new { background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2); }
+    .badge-vip { background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.2); }
+
+    /* Order summary */
+    .order-summary { background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px; }
+    .order-summary .row { display:flex;justify-content:space-between;margin-bottom:6px; }
+    .order-summary .row:last-child { margin-bottom:0;font-weight:700;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;margin-top:4px; }
+    .order-summary .label { color:#9490b0; }
+    .order-summary .val { color:#fff; }
+    .order-summary .total-val { color:#a78bfa;font-size:15px; }
+
+    .btn-order { width:100%;padding:13px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .2s; }
+    .btn-order:hover { opacity:.88; }
+    .btn-order:disabled { opacity:.45;cursor:not-allowed; }
+
+    /* Result */
+    .result-box { margin-top:14px;padding:12px 16px;border-radius:10px;font-size:13px;display:none; }
+    .result-box.success { background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ade80; }
+    .result-box.error   { background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171; }
+
+    /* Orders table */
+    .orders-card { background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden; }
+    .orders-head { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06); }
+    .orders-head h3 { font-size:14px;font-weight:600; }
+    table { width:100%;border-collapse:collapse; }
+    th { text-align:left;font-size:11px;font-weight:600;color:#6b698a;text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05); }
+    td { padding:11px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03);color:#ccc; }
+    tr:last-child td { border-bottom:none; }
+    tbody tr:hover td { background:rgba(255,255,255,0.02); }
+    .status-badge { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500; }
+    .status-processing { background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2); }
+    .status-done       { background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.2); }
+    .status-failed     { background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2); }
+    .empty-orders { text-align:center;padding:40px;color:#6b698a;font-size:13px; }
+
+    @media(max-width:768px){
+      .main-content { flex-direction:column;padding:20px 16px; }
+      .sidebar { width:100%; }
+      .service-grid { grid-template-columns:1fr 1fr; }
+      .topbar { padding:14px 16px; }
+      .user-name { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div class="orbs"></div>
+
+  <div class="page-wrap">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-logo">
+        <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
+          <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
+          <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+        </svg>
+        ChiChi AI
+      </div>
+      <nav style="display:flex;gap:4px;">
+        <a href="./dashboard.html"  class="nav-link">Dashboard</a>
+        <a href="./nap-the.html"    class="nav-link">Nạp tiền</a>
+        <a href="./dich-vu.html"    class="nav-link active">Dịch vụ</a>
+        <a href="./mua-the.html"    class="nav-link">Mua thẻ</a>
+        <a href="./chuyen-diem.html"class="nav-link">Chuyển tiền</a>
+        <a href="./admin.html" id="nav-admin" style="display:none;" class="nav-link" style="color:#f59e0b;background:rgba(245,158,11,0.12);font-weight:600;">⚙️ Điều hành</a>
+      </nav>
+      <div class="topbar-right">
+        <div style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:#a78bfa;">💰 <span id="nav-balance">0</span> đ</div>
+        <div class="avatar" id="user-avatar">?</div>
+        <span class="user-name" id="user-name-display">...</span>
+        <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="cat-title">Nền tảng</div>
+        <button class="cat-btn active" onclick="setCategory('facebook',this)"><span class="cat-icon">📘</span> Facebook</button>
+        <button class="cat-btn" onclick="setCategory('instagram',this)"><span class="cat-icon">📸</span> Instagram</button>
+        <button class="cat-btn" onclick="setCategory('tiktok',this)"><span class="cat-icon">🎵</span> TikTok</button>
+        <button class="cat-btn" onclick="setCategory('youtube',this)"><span class="cat-icon">▶️</span> YouTube</button>
+        <button class="cat-btn" onclick="setCategory('twitter',this)"><span class="cat-icon">🐦</span> Twitter / X</button>
+        <div class="cat-title" style="margin-top:20px;">Đặc biệt</div>
+        <button class="cat-btn" onclick="setCategory('tickxanh',this)"><span class="cat-icon">✅</span> Tick xanh</button>
+        <button class="cat-btn" onclick="setCategory('seo',this)"><span class="cat-icon">🔍</span> SEO / Traffic</button>
+        <button class="cat-btn" onclick="setCategory('review',this)"><span class="cat-icon">⭐</span> Đánh giá</button>
+
+        <div style="margin-top:24px;padding:14px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.18);border-radius:12px;">
+          <div style="font-size:12px;font-weight:600;color:#a78bfa;margin-bottom:6px;">Số dư của bạn</div>
+          <div style="font-size:22px;font-weight:700;" id="sidebar-balance">0 đ</div>
+          <a href="./nap-the.html" style="display:block;margin-top:10px;text-align:center;padding:7px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);border-radius:8px;color:#a78bfa;font-size:12px;font-weight:600;text-decoration:none;">+ Nạp tiền ngay</a>
+        </div>
+      </aside>
+
+      <!-- Right panel -->
+      <div class="right-panel">
+        <!-- Service list -->
+        <div class="order-card">
+          <h3 id="cat-title">📘 Dịch vụ Facebook</h3>
+          <div class="service-grid" id="service-grid"></div>
+
+          <!-- Order form (shown after selecting service) -->
+          <div id="order-form" style="display:none;border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;margin-top:4px;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:16px;">📋 Thông tin đơn hàng</div>
+            <div class="field">
+              <label>Link / URL cần tăng</label>
+              <input id="input-url" type="url" placeholder="https://..." />
+            </div>
+            <div class="field">
+              <label>Số lượng</label>
+              <input id="input-qty" type="number" min="10" placeholder="Nhập số lượng..." oninput="updateSummary()"/>
+              <div id="qty-hint" style="font-size:11px;color:#6b698a;margin-top:4px;"></div>
+            </div>
+            <div class="order-summary" id="order-summary" style="display:none;">
+              <div class="row"><span class="label">Dịch vụ</span><span class="val" id="sum-svc">—</span></div>
+              <div class="row"><span class="label">Đơn giá</span><span class="val" id="sum-price">—</span></div>
+              <div class="row"><span class="label">Số lượng</span><span class="val" id="sum-qty">—</span></div>
+              <div class="row"><span class="label">Tổng tiền</span><span class="total-val" id="sum-total">—</span></div>
+            </div>
+            <button class="btn-order" id="btn-order" onclick="placeOrder()">🚀 Đặt đơn ngay</button>
+            <div class="result-box" id="result-box"></div>
+          </div>
+        </div>
+
+        <!-- Order history -->
+        <div class="orders-card">
+          <div class="orders-head">
+            <h3>📋 Lịch sử đơn hàng</h3>
+            <span style="font-size:12px;color:#6b698a;" id="orders-count">0 đơn</span>
+          </div>
+          <div id="orders-body">
+            <div class="empty-orders">Chưa có đơn hàng nào</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+  <script>
+    // ── Auth guard ─────────────────────────────────────────
+    const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+    if (!session) window.location.href = './index.html';
+
+    const ADMIN_EMAIL_DV = 'nguyenngoctri2910@gmail.com';
+    document.getElementById('user-name-display').textContent = session.name;
+    document.getElementById('user-avatar').textContent = session.name[0].toUpperCase();
+    if (session.email.toLowerCase() === ADMIN_EMAIL_DV) {
+      document.getElementById('nav-admin').style.display = 'inline-block';
+    }
+
+    function getBalance() { return (JSON.parse(localStorage.getItem('cc_balances')||'{}'))[session.email]||0; }
+    function setBalance(v){ const d=JSON.parse(localStorage.getItem('cc_balances')||'{}'); d[session.email]=Math.max(0,v); localStorage.setItem('cc_balances',JSON.stringify(d)); }
+    function fmoney(n){ return Number(n).toLocaleString('vi-VN'); }
+
+    function refreshBalance() {
+      const b = getBalance();
+      document.getElementById('nav-balance').textContent    = fmoney(b);
+      document.getElementById('sidebar-balance').textContent = fmoney(b) + ' đ';
+    }
+    refreshBalance();
+    window.addEventListener('storage', refreshBalance);
+
+    function logout() { sessionStorage.removeItem('cc_session'); window.location.href='./index.html'; }
+
+    // ── Service catalogue ──────────────────────────────────
+    const SERVICES = {
+      facebook: [
+        { id:'fb_like',      name:'Like bài viết',        price:15,   min:50,   max:50000, badge:'hot',  desc:'Tăng lượt thích bài viết, page, ảnh' },
+        { id:'fb_follow',    name:'Follow trang / Profile',price:25,   min:50,   max:20000, badge:'hot',  desc:'Tăng người theo dõi trang hoặc tài khoản' },
+        { id:'fb_share',     name:'Share bài viết',        price:30,   min:20,   max:5000,  badge:null,   desc:'Chia sẻ bài viết viral' },
+        { id:'fb_comment',   name:'Comment bài viết',      price:80,   min:10,   max:1000,  badge:'new',  desc:'Bình luận ngẫu nhiên từ tài khoản thật' },
+        { id:'fb_livestream',name:'Mắt Livestream',        price:50,   min:100,  max:10000, badge:'hot',  desc:'Tăng người xem live theo thời gian thực' },
+        { id:'fb_group',     name:'Thành viên Group',      price:35,   min:50,   max:10000, badge:null,   desc:'Tăng thành viên vào nhóm Facebook' },
+        { id:'fb_checkin',   name:'Check-in địa điểm',     price:60,   min:20,   max:2000,  badge:null,   desc:'Tăng lượt check-in fanpage địa điểm' },
+        { id:'fb_review5s',  name:'Review 5 sao',          price:150,  min:5,    max:500,   badge:'vip',  desc:'Đánh giá 5 sao cho trang doanh nghiệp' },
+      ],
+      instagram: [
+        { id:'ig_like',      name:'Like ảnh / Reel',       price:12,   min:50,   max:50000, badge:'hot',  desc:'Tăng tim cho ảnh, video, reel' },
+        { id:'ig_follow',    name:'Follow',                 price:20,   min:50,   max:30000, badge:'hot',  desc:'Tăng người theo dõi tài khoản' },
+        { id:'ig_view',      name:'View Story / Reel',      price:5,    min:100,  max:100000,badge:null,   desc:'Tăng lượt xem story và reel' },
+        { id:'ig_comment',   name:'Comment',                price:90,   min:10,   max:500,   badge:'new',  desc:'Bình luận từ tài khoản thật' },
+        { id:'ig_save',      name:'Lưu bài viết',          price:18,   min:50,   max:20000, badge:null,   desc:'Tăng lượt save bài viết' },
+        { id:'ig_igtv',      name:'View IGTV',              price:8,    min:200,  max:100000,badge:null,   desc:'Lượt xem video IGTV' },
+      ],
+      tiktok: [
+        { id:'tt_like',      name:'Tim video',             price:8,    min:100,  max:100000,badge:'hot',  desc:'Tăng lượt thích video TikTok' },
+        { id:'tt_follow',    name:'Follow',                price:18,   min:50,   max:50000, badge:'hot',  desc:'Tăng người theo dõi TikTok' },
+        { id:'tt_view',      name:'View video',            price:3,    min:500,  max:500000,badge:'hot',  desc:'Tăng lượt xem video' },
+        { id:'tt_comment',   name:'Comment',               price:80,   min:10,   max:1000,  badge:'new',  desc:'Bình luận thật dưới video' },
+        { id:'tt_share',     name:'Share video',           price:25,   min:50,   max:10000, badge:null,   desc:'Chia sẻ video TikTok' },
+        { id:'tt_live',      name:'Mắt Livestream',        price:45,   min:100,  max:5000,  badge:'hot',  desc:'Người xem live TikTok thời gian thực' },
+        { id:'tt_save',      name:'Lưu / Bookmark',        price:15,   min:100,  max:20000, badge:null,   desc:'Tăng lượt lưu video TikTok' },
+      ],
+      youtube: [
+        { id:'yt_view',      name:'View video',            price:4,    min:500,  max:500000,badge:'hot',  desc:'Tăng lượt xem video YouTube' },
+        { id:'yt_like',      name:'Like video',            price:20,   min:50,   max:20000, badge:null,   desc:'Tăng lượt thích video' },
+        { id:'yt_sub',       name:'Subscribe',             price:30,   min:50,   max:20000, badge:'hot',  desc:'Tăng lượt đăng ký kênh' },
+        { id:'yt_watchtime', name:'Watch time (giờ)',      price:200,  min:10,   max:4000,  badge:'vip',  desc:'Tăng giờ xem để đủ điều kiện kiếm tiền' },
+        { id:'yt_comment',   name:'Comment',               price:100,  min:5,    max:500,   badge:'new',  desc:'Bình luận thật dưới video' },
+        { id:'yt_share',     name:'Share video',           price:30,   min:50,   max:5000,  badge:null,   desc:'Chia sẻ video YouTube' },
+      ],
+      twitter: [
+        { id:'tw_like',      name:'Like tweet',            price:15,   min:50,   max:20000, badge:null,   desc:'Tăng lượt thích tweet' },
+        { id:'tw_follow',    name:'Follow',                price:22,   min:50,   max:20000, badge:'hot',  desc:'Tăng người theo dõi Twitter' },
+        { id:'tw_retweet',   name:'Retweet',               price:25,   min:20,   max:10000, badge:null,   desc:'Chia sẻ lại tweet' },
+        { id:'tw_view',      name:'View tweet',            price:5,    min:200,  max:100000,badge:null,   desc:'Tăng lượt xem tweet' },
+        { id:'tw_reply',     name:'Reply / Comment',       price:90,   min:10,   max:500,   badge:'new',  desc:'Trả lời tweet từ tài khoản thật' },
+      ],
+      tickxanh: [
+        { id:'tx_fb',        name:'Tick xanh Facebook',    price:2500000, min:1, max:1,     badge:'vip',  desc:'Huy hiệu xác minh Facebook cá nhân / trang' },
+        { id:'tx_ig',        name:'Tick xanh Instagram',   price:3000000, min:1, max:1,     badge:'vip',  desc:'Huy hiệu xác minh Instagram' },
+        { id:'tx_tt',        name:'Tick xanh TikTok',      price:2000000, min:1, max:1,     badge:'vip',  desc:'Huy hiệu xác minh TikTok' },
+        { id:'tx_yt',        name:'Tick xanh YouTube',     price:1500000, min:1, max:1,     badge:'vip',  desc:'Nút bạc / nút vàng YouTube' },
+        { id:'tx_tw',        name:'Tick xanh Twitter/X',   price:4000000, min:1, max:1,     badge:'vip',  desc:'Huy hiệu xác minh Twitter' },
+      ],
+      seo: [
+        { id:'seo_traffic',  name:'Traffic website',       price:2,    min:500,  max:500000,badge:'hot',  desc:'Lượt truy cập website từ IP thật' },
+        { id:'seo_google',   name:'Tìm kiếm Google',       price:15,   min:100,  max:10000, badge:'new',  desc:'Tìm kiếm từ khoá và vào web tăng thứ hạng' },
+        { id:'seo_backlink', name:'Backlink chất lượng',   price:500,  min:1,    max:100,   badge:'vip',  desc:'Backlink DA50+ tăng thứ hạng SEO' },
+        { id:'seo_gmaps',    name:'Google Maps Review',    price:200,  min:5,    max:500,   badge:null,   desc:'Đánh giá Google Maps cho doanh nghiệp' },
+      ],
+      review: [
+        { id:'rv_shopee',    name:'Đánh giá Shopee',       price:120,  min:5,    max:500,   badge:'hot',  desc:'Review 5 sao sản phẩm Shopee có nội dung' },
+        { id:'rv_lazada',    name:'Đánh giá Lazada',       price:130,  min:5,    max:500,   badge:null,   desc:'Review 5 sao sản phẩm Lazada' },
+        { id:'rv_tiki',      name:'Đánh giá Tiki',         price:140,  min:5,    max:300,   badge:null,   desc:'Review 5 sao sản phẩm Tiki' },
+        { id:'rv_grab',      name:'Đánh giá Grab/Baemin',  price:160,  min:5,    max:300,   badge:'new',  desc:'Đánh giá quán ăn, dịch vụ Grab/Baemin' },
+        { id:'rv_google',    name:'Google Business Review',price:180,  min:5,    max:300,   badge:'hot',  desc:'Đánh giá 5 sao Google My Business' },
+      ],
+    };
+
+    const CAT_TITLES = {
+      facebook:'📘 Dịch vụ Facebook', instagram:'📸 Dịch vụ Instagram',
+      tiktok:'🎵 Dịch vụ TikTok', youtube:'▶️ Dịch vụ YouTube',
+      twitter:'🐦 Dịch vụ Twitter / X', tickxanh:'✅ Tick xanh xác minh',
+      seo:'🔍 SEO & Traffic', review:'⭐ Dịch vụ đánh giá',
+    };
+
+    let currentCat = 'facebook';
+    let selectedSvc = null;
+
+    function setCategory(cat, btn) {
+      currentCat = cat;
+      selectedSvc = null;
+      document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('cat-title').textContent = CAT_TITLES[cat];
+      document.getElementById('order-form').style.display = 'none';
+      document.getElementById('result-box').style.display = 'none';
+      renderServices();
+    }
+
+    function renderServices() {
+      const grid = document.getElementById('service-grid');
+      const svcs = SERVICES[currentCat] || [];
+      grid.innerHTML = svcs.map(s => `
+        <div class="svc-card${selectedSvc===s.id?' selected':''}" onclick="selectService('${s.id}')">
+          ${s.badge ? `<div class="svc-badge badge-${s.badge}">${s.badge==='hot'?'🔥 Hot':s.badge==='new'?'✨ Mới':'💎 VIP'}</div>` : ''}
+          <div class="svc-name">${s.name}</div>
+          <div style="font-size:11px;color:#6b698a;margin-bottom:8px;">${s.desc}</div>
+          <div class="svc-meta">
+            <span class="svc-price">${fmoney(s.price)} đ / ${currentCat==='tickxanh'?'gói':'đơn vị'}</span>
+            <span class="svc-minmax">Min: ${fmoney(s.min)} – Max: ${fmoney(s.max)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectService(id) {
+      selectedSvc = id;
+      renderServices();
+      const svc = SERVICES[currentCat].find(s=>s.id===id);
+      document.getElementById('order-form').style.display = 'block';
+      document.getElementById('qty-hint').textContent = `Min: ${fmoney(svc.min)} — Max: ${fmoney(svc.max)}`;
+      document.getElementById('input-qty').min = svc.min;
+      document.getElementById('input-qty').max = svc.max;
+      document.getElementById('input-qty').placeholder = `${svc.min} – ${fmoney(svc.max)}`;
+      document.getElementById('input-url').value = '';
+      document.getElementById('input-qty').value = '';
+      document.getElementById('order-summary').style.display = 'none';
+      document.getElementById('result-box').style.display = 'none';
+      document.getElementById('order-form').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+
+    function updateSummary() {
+      if (!selectedSvc) return;
+      const svc = SERVICES[currentCat].find(s=>s.id===selectedSvc);
+      const qty = parseInt(document.getElementById('input-qty').value)||0;
+      if (!qty) { document.getElementById('order-summary').style.display='none'; return; }
+      const total = qty * svc.price;
+      document.getElementById('sum-svc').textContent   = svc.name;
+      document.getElementById('sum-price').textContent = fmoney(svc.price) + ' đ';
+      document.getElementById('sum-qty').textContent   = fmoney(qty);
+      document.getElementById('sum-total').textContent = fmoney(total) + ' đ';
+      document.getElementById('order-summary').style.display = 'block';
+    }
+
+    function showResult(type, msg) {
+      const box = document.getElementById('result-box');
+      box.className = 'result-box ' + type;
+      box.textContent = msg;
+      box.style.display = 'block';
+    }
+
+    function placeOrder() {
+      if (!selectedSvc) return;
+      const svc  = SERVICES[currentCat].find(s=>s.id===selectedSvc);
+      const url  = document.getElementById('input-url').value.trim();
+      const qty  = parseInt(document.getElementById('input-qty').value)||0;
+      const total = qty * svc.price;
+      const bal   = getBalance();
+
+      if (!url)                    return showResult('error','⚠️ Vui lòng nhập link / URL.');
+      if (qty < svc.min)           return showResult('error',`⚠️ Số lượng tối thiểu là ${fmoney(svc.min)}.`);
+      if (qty > svc.max)           return showResult('error',`⚠️ Số lượng tối đa là ${fmoney(svc.max)}.`);
+      if (bal < total)             return showResult('error',`⚠️ Số dư không đủ. Cần ${fmoney(total)} đ, bạn có ${fmoney(bal)} đ.`);
+
+      setBalance(bal - total);
+      refreshBalance();
+
+      const order = {
+        id:      'ORD' + Date.now(),
+        cat:     currentCat,
+        svcId:   svc.id,
+        svcName: svc.name,
+        url,
+        qty,
+        total,
+        status:  'processing',
+        time:    new Date().toLocaleString('vi-VN'),
+      };
+      const orders = JSON.parse(localStorage.getItem('cc_orders_'+session.email)||'[]');
+      orders.unshift(order);
+      localStorage.setItem('cc_orders_'+session.email, JSON.stringify(orders));
+
+      showResult('success', `✅ Đặt hàng thành công! Mã đơn: ${order.id}. Đã trừ ${fmoney(total)} đ. Đơn hàng đang được xử lý.`);
+      document.getElementById('input-url').value  = '';
+      document.getElementById('input-qty').value  = '';
+      document.getElementById('order-summary').style.display = 'none';
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const orders = JSON.parse(localStorage.getItem('cc_orders_'+session.email)||'[]');
+      const body   = document.getElementById('orders-body');
+      document.getElementById('orders-count').textContent = orders.length + ' đơn';
+      if (!orders.length) { body.innerHTML='<div class="empty-orders">Chưa có đơn hàng nào</div>'; return; }
+      body.innerHTML = `<table>
+        <thead><tr><th>Mã đơn</th><th>Dịch vụ</th><th>Link</th><th>SL</th><th>Tiền</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+        <tbody>
+          ${orders.map(o=>`<tr>
+            <td style="font-size:11px;color:#6b698a;font-family:monospace;">${o.id}</td>
+            <td style="font-weight:600;">${o.svcName}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="${o.url}" target="_blank" style="color:#a78bfa;text-decoration:none;">${o.url}</a></td>
+            <td>${fmoney(o.qty)}</td>
+            <td style="color:#4ade80;font-weight:600;">${fmoney(o.total)} đ</td>
+            <td><span class="status-badge status-${o.status}">${o.status==='processing'?'⏳ Đang xử lý':o.status==='done'?'✅ Hoàn thành':'❌ Thất bại'}</span></td>
+            <td style="font-size:11px;color:#6b698a;">${o.time}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    renderServices();
+    renderOrders();
+  </script>
+</body>
+</html>
