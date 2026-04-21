@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chuyển Điểm | ChiChi AI</title>
+    <title>Chuyển Tiền | ChiChi AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -125,7 +125,7 @@
           <div class="modal-row"><span class="label">Người nhận</span><span class="value" id="m-receiver">—</span></div>
           <div class="modal-row"><span class="label">Email</span><span class="value" id="m-email" style="font-size:12px;color:#9490b0">—</span></div>
           <div class="modal-row" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
-            <span class="label">Số điểm chuyển</span>
+            <span class="label">Số tiền chuyển</span>
             <span class="value highlight" id="m-amount">0 đ</span>
           </div>
           <div class="modal-row"><span class="label">Số dư sau chuyển</span><span class="value" id="m-after">0 đ</span></div>
@@ -151,7 +151,7 @@
         <nav class="topbar-nav">
           <a href="./dashboard.html"  class="nav-link">Dashboard</a>
           <a href="./nap-the.html"    class="nav-link">Nạp thẻ</a>
-          <a href="./chuyen-diem.html" class="nav-link active">Chuyển điểm</a>
+          <a href="./chuyen-diem.html" class="nav-link active">Chuyển tiền</a>
         </nav>
         <div class="topbar-right">
           <div class="balance-pill">💰 <span id="nav-balance">0</span> đ</div>
@@ -160,8 +160,8 @@
       </header>
 
       <main class="page-content">
-        <h1 class="page-title">Chuyển điểm</h1>
-        <p class="page-sub">Chuyển điểm sang tài khoản khác trong hệ thống ChiChi AI</p>
+        <h1 class="page-title">Chuyển tiền</h1>
+        <p class="page-sub">Chuyển tiền sang tài khoản khác trong hệ thống ChiChi AI</p>
 
         <div class="transfer-grid">
           <div>
@@ -181,7 +181,7 @@
               </div>
 
               <div class="field-group">
-                <label>Số điểm muốn chuyển</label>
+                <label>Số tiền muốn chuyển</label>
                 <div class="quick-amounts">
                   <button class="quick-btn" onclick="setAmount(5000)">5.000</button>
                   <button class="quick-btn" onclick="setAmount(10000)">10.000</button>
@@ -189,7 +189,7 @@
                   <button class="quick-btn" onclick="setAmount(50000)">50.000</button>
                   <button class="quick-btn" onclick="setAmount(100000)">100.000</button>
                 </div>
-                <input id="inp-amount" type="number" min="1000" placeholder="Nhập số điểm (tối thiểu 1.000 đ)" oninput="updateAfter()" />
+                <input id="inp-amount" type="number" min="1000" placeholder="Nhập số tiền (tối thiểu 1.000 đ)" oninput="updateAfter()" />
               </div>
 
               <div class="field-group">
@@ -197,7 +197,7 @@
                 <input id="inp-note" type="text" placeholder="Ví dụ: Cảm ơn bạn nhé!" maxlength="100" />
               </div>
 
-              <button class="submit-btn" onclick="openModal()">Chuyển điểm ngay →</button>
+              <button class="submit-btn" onclick="openModal()">Chuyển tiền ngay →</button>
               <div class="result-box" id="result-box">
                 <div class="result-title" id="result-title"></div>
                 <div id="result-desc"></div>
@@ -227,10 +227,10 @@
             <div class="side-card">
               <div class="side-card-title">Lưu ý</div>
               <ul class="notice-list">
-                <li>Chuyển điểm nội bộ, không quy đổi ra tiền mặt</li>
+                <li>Chuyển tiền nội bộ trong hệ thống</li>
                 <li>Giao dịch không thể hoàn tác sau khi xác nhận</li>
-                <li>Tối thiểu 1.000 điểm mỗi lần chuyển</li>
-                <li>Người nhận phải có tài khoản trong hệ thống</li>
+                <li>Tối thiểu 1.000 đ mỗi lần chuyển</li>
+                <li>Người nhận phải có tài khoản trong hệ thống ChiChi AI</li>
               </ul>
             </div>
           </div>
@@ -351,7 +351,7 @@
         renderHistory();
 
         showResult('success',
-          '✓ Chuyển điểm thành công!',
+          '✓ Chuyển tiền thành công!',
           `Đã chuyển ${formatMoney(amount)} đ đến ${receiver.name} (${receiver.email}).`
         );
 
