@@ -275,7 +275,6 @@
                 <option value="">Tất cả danh mục</option>
               </select>
               <button onclick="loadSmmServices()" style="padding:7px 16px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.35);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Tải lại</button>
-              <button onclick="testSmmApi()" style="padding:7px 16px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;color:#fbbf24;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">🔍 Test API</button>
             </div>
           </div>
           <div id="smm-status" style="padding:16px 20px;font-size:13px;color:#6b698a;"></div>
@@ -625,176 +624,141 @@
       let smmAllServices = [];
       let smmMap = JSON.parse(localStorage.getItem('admin_smm_map') || '{}');
 
-      const SMM_KEY = '6f72ef46afcea6eb0c0ee31016dc4277';
-      const SMM_URL = 'https://smmviet.com/api/v2';
-
-      async function tryFetchServices(url, options) {
-        const resp = await fetch(url, { ...options, signal: AbortSignal.timeout(12000) });
-        const text = await resp.text();
-        const data = JSON.parse(text);
-        if (Array.isArray(data) && data.length > 0) return data;
-        return null;
+      function smmFetch(url, opts) {
+        return new Promise(function(resolve, reject) {
+          var t = setTimeout(function() { reject(new Error('timeout')); }, 12000);
+          fetch(url, opts).then(function(r) {
+            clearTimeout(t);
+            resolve(r);
+          }).catch(function(e) {
+            clearTimeout(t);
+            reject(e);
+          });
+        });
       }
 
-      async function loadSmmServices() {
-        const status = document.getElementById('smm-status');
-        status.innerHTML = '⏳ Đang kết nối smmviet.com...';
+      function loadSmmServices() {
+        var status = document.getElementById('smm-status');
+        status.innerHTML = '⏳ Đang tải dịch vụ từ smmviet.com...';
         document.getElementById('smm-table').style.display = 'none';
 
-        const body = new URLSearchParams({ key: SMM_KEY, action: 'services' }).toString();
-        const postOpts = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
+        smmFetch('/api/smm-services', {})
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!Array.isArray(data) || data.length === 0) throw new Error('not array');
+            smmLoaded(data);
+          })
+          .catch(function() {
+            status.innerHTML = '❌ Không tải được dịch vụ. Kiểm tra Vercel env vars đã set chưa.';
+          });
+      }
 
-        let data = null;
-
-        // Cách 1: Vercel serverless (nếu site đang trên Vercel)
-        if (!data) {
-          try {
-            status.innerHTML = '⏳ Thử qua Vercel API...';
-            const resp = await fetch('/api/smm-services', { signal: AbortSignal.timeout(8000) });
-            if (resp.ok) {
-              const d = await resp.json();
-              if (Array.isArray(d) && d.length > 0) data = d;
-            }
-          } catch(_) {}
-        }
-
-        // Cách 2: Gọi trực tiếp smmviet (nếu họ cho phép CORS)
-        if (!data) {
-          try {
-            status.innerHTML = '⏳ Gọi trực tiếp smmviet.com...';
-            data = await tryFetchServices(SMM_URL, postOpts);
-          } catch(_) {}
-        }
-
-        // Cách 3: Qua CORS proxy corsproxy.io
-        if (!data) {
-          try {
-            status.innerHTML = '⏳ Thử qua CORS proxy...';
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(SMM_URL);
-            data = await tryFetchServices(proxyUrl, postOpts);
-          } catch(_) {}
-        }
-
-        // Cách 4: Proxy dự phòng allorigins
-        if (!data) {
-          try {
-            status.innerHTML = '⏳ Thử proxy dự phòng...';
-            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SMM_URL + '?' + body);
-            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
-            const text = await resp.text();
-            const d = JSON.parse(text);
-            if (Array.isArray(d) && d.length > 0) data = d;
-          } catch(_) {}
-        }
-
-        if (!data) {
-          status.innerHTML = `❌ Không thể kết nối smmviet.com qua bất kỳ phương thức nào.<br>
-            <span style="color:#fbbf24;font-size:12px;">Kiểm tra API key còn hợp lệ không tại <a href="https://smmviet.com/apidoc" target="_blank" style="color:#a78bfa;">smmviet.com/apidoc</a></span>`;
-          return;
-        }
-
+      function smmLoaded(data) {
         smmAllServices = data;
-        status.innerHTML = `<span style="color:#4ade80;">✅ Đã tải ${data.length} dịch vụ từ smmviet.com</span>`;
+        var status = document.getElementById('smm-status');
+        status.innerHTML = '<span style="color:#4ade80;">✅ Đã tải ' + data.length + ' dịch vụ từ smmviet.com</span>';
 
-        const cats = [...new Set(data.map(s => s.category).filter(Boolean))].sort();
-        const sel = document.getElementById('smm-cat-filter');
+        var cats = [];
+        data.forEach(function(s) { if (s.category && cats.indexOf(s.category) === -1) cats.push(s.category); });
+        cats.sort();
+        var sel = document.getElementById('smm-cat-filter');
         sel.innerHTML = '<option value="">Tất cả danh mục</option>' +
-          cats.map(c => `<option value="${c}">${c}</option>`).join('');
+          cats.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
 
         renderSmmTable(data);
       }
 
       function renderSmmTable(services) {
-        const tbody = document.getElementById('smm-tbody');
+        var tbody = document.getElementById('smm-tbody');
         document.getElementById('smm-count').textContent = services.length + ' dịch vụ';
         document.getElementById('smm-table').style.display = 'table';
 
-        tbody.innerHTML = services.map(s => {
-          const rate1k = (parseFloat(s.rate) * 1000).toLocaleString('vi-VN', {maximumFractionDigits:0});
-          // Find which chichi id is currently mapped to this panel service
-          const mappedChichi = Object.entries(smmMap).find(([k,v]) => String(v) === String(s.service));
-          const selectedId = mappedChichi ? mappedChichi[0] : '';
+        var rows = '';
+        for (var i = 0; i < services.length; i++) {
+          var s = services[i];
+          var rate = parseFloat(s.rate) || 0;
+          var rate1k = Math.round(rate * 1000).toLocaleString('vi-VN');
+          var name = (s.name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          var type = (s.type || '').replace(/</g,'&lt;');
+          var cat  = (s.category || '—').replace(/</g,'&lt;');
+          var sid  = String(s.service);
 
-          return `<tr>
-            <td style="font-family:monospace;color:#a78bfa;font-weight:700;">${s.service}</td>
-            <td style="max-width:260px;"><div style="font-weight:500;font-size:12px;">${s.name}</div><div style="font-size:11px;color:#6b698a;">${s.type||''}</div></td>
-            <td><span class="badge badge-purple" style="font-size:10px;">${s.category||'—'}</span></td>
-            <td style="color:#4ade80;font-weight:600;white-space:nowrap;">${rate1k}đ/1k</td>
-            <td style="color:#6b698a;">${s.min||0}</td>
-            <td style="color:#6b698a;">${Number(s.max||0).toLocaleString()}</td>
-            <td>${s.refill ? '<span class="badge badge-green">✓</span>' : '<span class="badge badge-red">✗</span>'}</td>
-            <td>
-              <select onchange="setSmmMap('${s.service}', this.value)"
-                style="width:100%;padding:5px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:11px;font-family:inherit;outline:none;">
-                <option value="">— chưa map —</option>
-                ${CHICHI_SVCS.map(c => `<option value="${c.id}" ${selectedId===c.id?'selected':''}>${c.label}</option>`).join('')}
-              </select>
-            </td>
-          </tr>`;
-        }).join('');
+          var mappedKey = '';
+          var mapKeys = Object.keys(smmMap);
+          for (var k = 0; k < mapKeys.length; k++) {
+            if (String(smmMap[mapKeys[k]]) === sid) { mappedKey = mapKeys[k]; break; }
+          }
+
+          var opts = '<option value="">— chưa map —</option>';
+          for (var j = 0; j < CHICHI_SVCS.length; j++) {
+            var c = CHICHI_SVCS[j];
+            opts += '<option value="' + c.id + '"' + (mappedKey === c.id ? ' selected' : '') + '>' + c.label + '</option>';
+          }
+
+          rows += '<tr>' +
+            '<td style="font-family:monospace;color:#a78bfa;font-weight:700;">' + sid + '</td>' +
+            '<td style="max-width:220px;"><div style="font-size:12px;font-weight:500;">' + name + '</div><div style="font-size:11px;color:#6b698a;">' + type + '</div></td>' +
+            '<td><span class="badge badge-purple" style="font-size:10px;">' + cat + '</span></td>' +
+            '<td style="color:#4ade80;font-weight:600;white-space:nowrap;">' + rate1k + 'đ/1k</td>' +
+            '<td style="color:#6b698a;">' + (s.min || 0) + '</td>' +
+            '<td style="color:#6b698a;">' + Number(s.max || 0).toLocaleString() + '</td>' +
+            '<td>' + (s.refill ? '<span class="badge badge-green">✓</span>' : '<span class="badge badge-red">✗</span>') + '</td>' +
+            '<td><select data-sid="' + sid + '" onchange="setSmmMap(this.dataset.sid,this.value)" style="width:100%;padding:5px 8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:11px;font-family:inherit;outline:none;">' + opts + '</select></td>' +
+            '</tr>';
+        }
+        tbody.innerHTML = rows;
       }
 
       function setSmmMap(panelId, chichiId) {
-        // Remove old mapping for this chichi id
-        Object.keys(smmMap).forEach(k => { if (smmMap[k] === String(panelId)) delete smmMap[k]; });
+        Object.keys(smmMap).forEach(function(k) { if (smmMap[k] === String(panelId)) delete smmMap[k]; });
         if (chichiId) smmMap[chichiId] = String(panelId);
       }
 
       function filterSmm() {
-        const q   = document.getElementById('smm-search').value.toLowerCase();
-        const cat = document.getElementById('smm-cat-filter').value;
-        const filtered = smmAllServices.filter(s =>
-          (!cat || s.category === cat) &&
-          (!q   || s.name.toLowerCase().includes(q) || String(s.service).includes(q))
-        );
+        var q   = document.getElementById('smm-search').value.toLowerCase();
+        var cat = document.getElementById('smm-cat-filter').value;
+        var filtered = smmAllServices.filter(function(s) {
+          return (!cat || s.category === cat) &&
+                 (!q   || (s.name || '').toLowerCase().indexOf(q) !== -1 || String(s.service).indexOf(q) !== -1);
+        });
         renderSmmTable(filtered);
       }
 
       function saveSmmMap() {
         localStorage.setItem('admin_smm_map', JSON.stringify(smmMap));
-        // Build env var instructions
-        const lines = Object.entries(smmMap).map(([chiId, panelId]) => `SVC_${chiId.toUpperCase().replace(/-/g,'_')} = ${panelId}`);
-        const txt = lines.join('\n');
-        const modal = document.createElement('div');
-        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
-        modal.innerHTML = `
-          <div style="background:#0e0b1f;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:600px;width:100%;">
-            <h3 style="margin-bottom:8px;">💾 Mapping đã lưu!</h3>
-            <p style="color:#9490b0;font-size:13px;margin-bottom:16px;">Copy các dòng dưới vào <b>Vercel → Settings → Environment Variables</b>:</p>
-            <textarea readonly style="width:100%;height:200px;background:#060412;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#4ade80;font-family:monospace;font-size:12px;resize:none;box-sizing:border-box;">${txt || '(Chưa có mapping nào)'}</textarea>
-            <div style="display:flex;gap:10px;margin-top:16px;">
-              <button onclick="navigator.clipboard.writeText(\`${txt.replace(/`/g,"'")}\`);this.textContent='✓ Đã copy!'" style="flex:1;padding:10px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">📋 Copy</button>
-              <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#9490b0;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">Đóng</button>
-            </div>
-          </div>`;
+        var lines = Object.keys(smmMap).map(function(k) {
+          return 'SVC_' + k.toUpperCase().replace(/-/g,'_') + ' = ' + smmMap[k];
+        });
+        var txt = lines.join('\n') || '(Chưa có mapping nào)';
+
+        var modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        var ta = document.createElement('textarea');
+        ta.readOnly = true;
+        ta.value = txt;
+        ta.style.cssText = 'width:100%;height:200px;background:#060412;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#4ade80;font-family:monospace;font-size:12px;resize:none;box-sizing:border-box;margin-bottom:12px;';
+
+        var inner = document.createElement('div');
+        inner.style.cssText = 'background:#0e0b1f;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:600px;width:100%;';
+        inner.innerHTML = '<h3 style="margin-bottom:8px;">💾 Mapping đã lưu!</h3><p style="color:#9490b0;font-size:13px;margin-bottom:12px;">Copy vào <b>Vercel → Settings → Environment Variables</b>:</p>';
+        inner.appendChild(ta);
+
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:10px;';
+        var btnCopy = document.createElement('button');
+        btnCopy.textContent = '📋 Copy';
+        btnCopy.style.cssText = 'flex:1;padding:10px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;';
+        btnCopy.onclick = function() { navigator.clipboard.writeText(txt).then(function(){ btnCopy.textContent='✓ Đã copy!'; }); };
+        var btnClose = document.createElement('button');
+        btnClose.textContent = 'Đóng';
+        btnClose.style.cssText = 'flex:1;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#9490b0;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;';
+        btnClose.onclick = function() { modal.remove(); };
+        btnRow.appendChild(btnCopy);
+        btnRow.appendChild(btnClose);
+        inner.appendChild(btnRow);
+        modal.appendChild(inner);
         document.body.appendChild(modal);
-        modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
-      }
-
-      async function testSmmApi() {
-        const status = document.getElementById('smm-status');
-        const results = [];
-        const body = new URLSearchParams({ key: SMM_KEY, action: 'services' }).toString();
-
-        // Test Vercel
-        try {
-          const r = await fetch('/api/smm-services', { signal: AbortSignal.timeout(5000) });
-          results.push(`Vercel /api: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
-        } catch(e) { results.push(`Vercel /api: ❌ ${e.message}`); }
-
-        // Test direct
-        try {
-          const r = await fetch(SMM_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, signal: AbortSignal.timeout(8000) });
-          results.push(`Direct smmviet: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
-        } catch(e) { results.push(`Direct smmviet: ❌ ${e.message}`); }
-
-        // Test CORS proxy
-        try {
-          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(SMM_URL), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, signal: AbortSignal.timeout(10000) });
-          results.push(`corsproxy.io: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
-        } catch(e) { results.push(`corsproxy.io: ❌ ${e.message}`); }
-
-        status.innerHTML = `<pre style="background:rgba(0,0,0,.5);padding:12px;border-radius:8px;font-size:11px;color:#4ade80;overflow-x:auto;white-space:pre-wrap;">${results.join('\n\n')}</pre>`;
+        modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
       }
 
       // Init
