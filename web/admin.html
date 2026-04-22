@@ -633,7 +633,10 @@
           const resp = await fetch('/api/smm-services');
           const data = await resp.json();
 
-          if (data.error) { status.textContent = '❌ ' + data.error; return; }
+          if (data.error) {
+            status.innerHTML = `❌ ${data.error}<br><span style="color:#fbbf24;font-size:12px;">👉 Vào <b>Vercel → Settings → Environment Variables</b>, thêm <b>SMM_PANEL_URL</b> và <b>SMM_PANEL_KEY</b> rồi Redeploy.</span>`;
+            return;
+          }
           if (!Array.isArray(data)) { status.textContent = '❌ Dữ liệu không hợp lệ từ panel.'; return; }
 
           smmAllServices = data;
@@ -647,7 +650,7 @@
 
           renderSmmTable(data);
         } catch (e) {
-          status.textContent = '❌ Không thể kết nối. Kiểm tra SMM_PANEL_URL và SMM_PANEL_KEY trong Vercel.';
+          status.innerHTML = `❌ Không thể kết nối API.<br><span style="color:#fbbf24;font-size:12px;">👉 Vào <b>Vercel → Settings → Environment Variables</b>, thêm:<br><code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">SMM_PANEL_URL = https://smmviet.com/api/v2</code><br><code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">SMM_PANEL_KEY = 6f72ef46afcea6eb0c0ee31016dc4277</code><br>Sau đó bấm <b>Redeploy</b>.</span>`;
         }
       }
 
@@ -718,17 +721,12 @@
         modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
       }
 
-      // Auto-load SMM services when section scrolled into view
-      const smmObserver = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && smmAllServices.length === 0) loadSmmServices();
-      }, { threshold: 0.1 });
-      smmObserver.observe(document.getElementById('smm-section'));
-
       // Init
       loadStats();
       renderUsers();
       renderTxLog();
       populateAdjDatalist();
+      loadSmmServices();
     </script>
   </body>
 </html>
