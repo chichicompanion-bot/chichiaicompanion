@@ -625,54 +625,83 @@
       let smmAllServices = [];
       let smmMap = JSON.parse(localStorage.getItem('admin_smm_map') || '{}');
 
+      const SMM_KEY = '6f72ef46afcea6eb0c0ee31016dc4277';
+      const SMM_URL = 'https://smmviet.com/api/v2';
+
+      async function tryFetchServices(url, options) {
+        const resp = await fetch(url, { ...options, signal: AbortSignal.timeout(12000) });
+        const text = await resp.text();
+        const data = JSON.parse(text);
+        if (Array.isArray(data) && data.length > 0) return data;
+        return null;
+      }
+
       async function loadSmmServices() {
         const status = document.getElementById('smm-status');
-        status.innerHTML = '⏳ Đang kết nối tới smmviet.com...';
+        status.innerHTML = '⏳ Đang kết nối smmviet.com...';
         document.getElementById('smm-table').style.display = 'none';
 
-        try {
-          const resp = await fetch('/api/smm-services');
-          let data;
+        const body = new URLSearchParams({ key: SMM_KEY, action: 'services' }).toString();
+        const postOpts = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
+
+        let data = null;
+
+        // Cách 1: Vercel serverless (nếu site đang trên Vercel)
+        if (!data) {
           try {
-            data = await resp.json();
-          } catch(_) {
-            status.innerHTML = `❌ API route <code>/api/smm-services</code> không tồn tại.<br><span style="color:#fbbf24;font-size:12px;">Kiểm tra Vercel đã deploy đúng project chưa (project phải chứa folder <b>api/</b>).</span>`;
-            return;
-          }
-
-          if (data.error === 'ENV_MISSING') {
-            status.innerHTML = `❌ Chưa set Environment Variables trong Vercel.<br>
-              <div style="margin-top:10px;background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;font-family:monospace;font-size:12px;color:#4ade80;">
-                SMM_PANEL_URL = https://smmviet.com/api/v2<br>
-                SMM_PANEL_KEY = 6f72ef46afcea6eb0c0ee31016dc4277
-              </div>
-              <span style="color:#fbbf24;font-size:12px;">👉 Vào Vercel → Settings → Environment Variables → thêm 2 dòng trên → Redeploy</span>`;
-            return;
-          }
-
-          if (data.error) {
-            status.innerHTML = `❌ Lỗi: <b>${data.error}</b> — ${data.message || ''}<br><span style="color:#6b698a;font-size:11px;">${data.raw || ''}</span>`;
-            return;
-          }
-
-          if (!Array.isArray(data)) {
-            status.innerHTML = `❌ Dữ liệu không hợp lệ: <code style="font-size:11px;">${JSON.stringify(data).slice(0,200)}</code>`;
-            return;
-          }
-
-          smmAllServices = data;
-          status.textContent = '';
-
-          // Populate category filter
-          const cats = [...new Set(data.map(s => s.category).filter(Boolean))].sort();
-          const sel = document.getElementById('smm-cat-filter');
-          sel.innerHTML = '<option value="">Tất cả danh mục</option>' +
-            cats.map(c => `<option value="${c}">${c}</option>`).join('');
-
-          renderSmmTable(data);
-        } catch (e) {
-          status.innerHTML = `❌ Fetch lỗi: ${e.message}`;
+            status.innerHTML = '⏳ Thử qua Vercel API...';
+            const resp = await fetch('/api/smm-services', { signal: AbortSignal.timeout(8000) });
+            if (resp.ok) {
+              const d = await resp.json();
+              if (Array.isArray(d) && d.length > 0) data = d;
+            }
+          } catch(_) {}
         }
+
+        // Cách 2: Gọi trực tiếp smmviet (nếu họ cho phép CORS)
+        if (!data) {
+          try {
+            status.innerHTML = '⏳ Gọi trực tiếp smmviet.com...';
+            data = await tryFetchServices(SMM_URL, postOpts);
+          } catch(_) {}
+        }
+
+        // Cách 3: Qua CORS proxy corsproxy.io
+        if (!data) {
+          try {
+            status.innerHTML = '⏳ Thử qua CORS proxy...';
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(SMM_URL);
+            data = await tryFetchServices(proxyUrl, postOpts);
+          } catch(_) {}
+        }
+
+        // Cách 4: Proxy dự phòng allorigins
+        if (!data) {
+          try {
+            status.innerHTML = '⏳ Thử proxy dự phòng...';
+            const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SMM_URL + '?' + body);
+            const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+            const text = await resp.text();
+            const d = JSON.parse(text);
+            if (Array.isArray(d) && d.length > 0) data = d;
+          } catch(_) {}
+        }
+
+        if (!data) {
+          status.innerHTML = `❌ Không thể kết nối smmviet.com qua bất kỳ phương thức nào.<br>
+            <span style="color:#fbbf24;font-size:12px;">Kiểm tra API key còn hợp lệ không tại <a href="https://smmviet.com/apidoc" target="_blank" style="color:#a78bfa;">smmviet.com/apidoc</a></span>`;
+          return;
+        }
+
+        smmAllServices = data;
+        status.innerHTML = `<span style="color:#4ade80;">✅ Đã tải ${data.length} dịch vụ từ smmviet.com</span>`;
+
+        const cats = [...new Set(data.map(s => s.category).filter(Boolean))].sort();
+        const sel = document.getElementById('smm-cat-filter');
+        sel.innerHTML = '<option value="">Tất cả danh mục</option>' +
+          cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+        renderSmmTable(data);
       }
 
       function renderSmmTable(services) {
@@ -744,14 +773,28 @@
 
       async function testSmmApi() {
         const status = document.getElementById('smm-status');
-        status.innerHTML = '🔍 Đang test...';
+        const results = [];
+        const body = new URLSearchParams({ key: SMM_KEY, action: 'services' }).toString();
+
+        // Test Vercel
         try {
-          const resp = await fetch('/api/smm-services');
-          const text = await resp.text();
-          status.innerHTML = `<b>HTTP ${resp.status}</b><br><pre style="background:rgba(0,0,0,.4);padding:10px;border-radius:8px;font-size:11px;overflow-x:auto;max-height:200px;color:#4ade80;">${text.slice(0,1000)}</pre>`;
-        } catch(e) {
-          status.innerHTML = `❌ Không fetch được /api/smm-services: ${e.message}<br><span style="color:#fbbf24;font-size:12px;">Có thể web đang chạy trên GitHub Pages thay vì Vercel — /api/ sẽ không hoạt động.</span>`;
-        }
+          const r = await fetch('/api/smm-services', { signal: AbortSignal.timeout(5000) });
+          results.push(`Vercel /api: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
+        } catch(e) { results.push(`Vercel /api: ❌ ${e.message}`); }
+
+        // Test direct
+        try {
+          const r = await fetch(SMM_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, signal: AbortSignal.timeout(8000) });
+          results.push(`Direct smmviet: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
+        } catch(e) { results.push(`Direct smmviet: ❌ ${e.message}`); }
+
+        // Test CORS proxy
+        try {
+          const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(SMM_URL), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body, signal: AbortSignal.timeout(10000) });
+          results.push(`corsproxy.io: HTTP ${r.status} — ${(await r.text()).slice(0,120)}`);
+        } catch(e) { results.push(`corsproxy.io: ❌ ${e.message}`); }
+
+        status.innerHTML = `<pre style="background:rgba(0,0,0,.5);padding:12px;border-radius:8px;font-size:11px;color:#4ade80;overflow-x:auto;white-space:pre-wrap;">${results.join('\n\n')}</pre>`;
       }
 
       // Init
