@@ -414,43 +414,99 @@
       box.style.display = 'block';
     }
 
-    function placeOrder() {
+    async function placeOrder() {
       if (!selectedSvc) return;
-      const svc  = SERVICES[currentCat].find(s=>s.id===selectedSvc);
-      const url  = document.getElementById('input-url').value.trim();
-      const qty  = parseInt(document.getElementById('input-qty').value)||0;
+      const svc   = SERVICES[currentCat].find(s=>s.id===selectedSvc);
+      const url   = document.getElementById('input-url').value.trim();
+      const qty   = parseInt(document.getElementById('input-qty').value)||0;
       const total = qty * svc.price;
       const bal   = getBalance();
 
-      if (!url)                    return showResult('error','⚠️ Vui lòng nhập link / URL.');
-      if (qty < svc.min)           return showResult('error',`⚠️ Số lượng tối thiểu là ${fmoney(svc.min)}.`);
-      if (qty > svc.max)           return showResult('error',`⚠️ Số lượng tối đa là ${fmoney(svc.max)}.`);
-      if (bal < total)             return showResult('error',`⚠️ Số dư không đủ. Cần ${fmoney(total)} đ, bạn có ${fmoney(bal)} đ.`);
+      if (!url)          return showResult('error','⚠️ Vui lòng nhập link / URL.');
+      if (qty < svc.min) return showResult('error',`⚠️ Số lượng tối thiểu là ${fmoney(svc.min)} ${svc.unit}.`);
+      if (qty > svc.max) return showResult('error',`⚠️ Số lượng tối đa là ${fmoney(svc.max)} ${svc.unit}.`);
+      if (bal < total)   return showResult('error',`⚠️ Số dư không đủ. Cần ${fmoney(total)} đ, bạn có ${fmoney(bal)} đ.`);
 
-      setBalance(bal - total);
-      refreshBalance();
+      const btn = document.getElementById('btn-order');
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang gửi đơn...';
 
-      const order = {
-        id:      'ORD' + Date.now(),
-        cat:     currentCat,
-        svcId:   svc.id,
-        svcName: svc.name,
-        url,
-        qty,
-        total,
-        status:  'processing',
-        time:    new Date().toLocaleString('vi-VN'),
-      };
+      try {
+        const resp = await fetch('/api/order', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ svcId: svc.id, link: url, qty }),
+        });
+        const data = await resp.json();
+
+        if (data.status !== 'ok') {
+          showResult('error', '⚠️ ' + (data.message || 'Lỗi khi đặt đơn.'));
+          btn.disabled = false;
+          btn.textContent = '🚀 Đặt đơn ngay';
+          return;
+        }
+
+        // Trừ số dư & lưu đơn kèm panelOrderId thật
+        setBalance(bal - total);
+        refreshBalance();
+
+        const order = {
+          id:           'ORD' + Date.now(),
+          panelOrderId: data.panelOrderId,
+          cat:          currentCat,
+          svcId:        svc.id,
+          svcName:      svc.name,
+          unit:         svc.unit,
+          url,
+          qty,
+          total,
+          status:       'processing',
+          time:         new Date().toLocaleString('vi-VN'),
+        };
+        const orders = JSON.parse(localStorage.getItem('cc_orders_'+session.email)||'[]');
+        orders.unshift(order);
+        localStorage.setItem('cc_orders_'+session.email, JSON.stringify(orders));
+
+        showResult('success', `✅ Đặt hàng thành công! Mã panel: #${data.panelOrderId}. Đã trừ ${fmoney(total)} đ.`);
+        document.getElementById('input-url').value = '';
+        document.getElementById('input-qty').value = '';
+        document.getElementById('order-summary').style.display = 'none';
+        renderOrders();
+      } catch (err) {
+        showResult('error', '⚠️ Không thể kết nối server. Thử lại sau.');
+      }
+
+      btn.disabled = false;
+      btn.textContent = '🚀 Đặt đơn ngay';
+    }
+
+    // Tự động refresh trạng thái đơn đang xử lý
+    async function refreshOrderStatus() {
       const orders = JSON.parse(localStorage.getItem('cc_orders_'+session.email)||'[]');
-      orders.unshift(order);
-      localStorage.setItem('cc_orders_'+session.email, JSON.stringify(orders));
+      const pending = orders.filter(o => o.status === 'processing' && o.panelOrderId);
+      if (!pending.length) return;
 
-      showResult('success', `✅ Đặt hàng thành công! Mã đơn: ${order.id}. Đã trừ ${fmoney(total)} đ. Đơn hàng đang được xử lý.`);
-      document.getElementById('input-url').value  = '';
-      document.getElementById('input-qty').value  = '';
-      document.getElementById('order-summary').style.display = 'none';
+      for (const order of pending) {
+        try {
+          const resp = await fetch('/api/order-status', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ panelOrderId: order.panelOrderId }),
+          });
+          const data = await resp.json();
+          if (data.status && data.status !== 'processing') {
+            order.status  = data.status;
+            order.remains = data.remains;
+          }
+        } catch (_) {}
+      }
+
+      localStorage.setItem('cc_orders_'+session.email, JSON.stringify(orders));
       renderOrders();
     }
+
+    // Refresh trạng thái mỗi 30 giây
+    setInterval(refreshOrderStatus, 30000);
 
     function renderOrders() {
       const orders = JSON.parse(localStorage.getItem('cc_orders_'+session.email)||'[]');
@@ -458,7 +514,7 @@
       document.getElementById('orders-count').textContent = orders.length + ' đơn';
       if (!orders.length) { body.innerHTML='<div class="empty-orders">Chưa có đơn hàng nào</div>'; return; }
       body.innerHTML = `<table>
-        <thead><tr><th>Mã đơn</th><th>Dịch vụ</th><th>Link</th><th>SL</th><th>Tiền</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+        <thead><tr><th>Mã đơn</th><th>Dịch vụ</th><th>Link</th><th>SL</th><th>Tiền</th><th>Trạng thái</th><th>Panel #</th><th>Thời gian</th></tr></thead>
         <tbody>
           ${orders.map(o=>`<tr>
             <td style="font-size:11px;color:#6b698a;font-family:monospace;">${o.id}</td>
@@ -466,7 +522,8 @@
             <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="${o.url}" target="_blank" style="color:#a78bfa;text-decoration:none;">${o.url}</a></td>
             <td>${fmoney(o.qty)}</td>
             <td style="color:#4ade80;font-weight:600;">${fmoney(o.total)} đ</td>
-            <td><span class="status-badge status-${o.status}">${o.status==='processing'?'⏳ Đang xử lý':o.status==='done'?'✅ Hoàn thành':'❌ Thất bại'}</span></td>
+            <td><span class="status-badge status-${o.status==='partial'?'processing':o.status}">${o.status==='processing'?'⏳ Đang xử lý':o.status==='done'?'✅ Hoàn thành':o.status==='partial'?`⚡ Một phần (còn ${fmoney(o.remains||0)})`:o.status==='failed'?'❌ Thất bại':'⏳ Đang xử lý'}</span></td>
+            <td style="font-size:11px;color:#6b698a;font-family:monospace;">${o.panelOrderId ? '#'+o.panelOrderId : '—'}</td>
             <td style="font-size:11px;color:#6b698a;">${o.time}</td>
           </tr>`).join('')}
         </tbody>
