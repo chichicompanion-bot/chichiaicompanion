@@ -212,7 +212,15 @@
       document.getElementById('nav-admin').style.display = 'inline-block';
     }
 
-    function getBalance() { return (JSON.parse(localStorage.getItem('cc_balances')||'{}'))[session.email]||0; }
+    const ADMIN_EMAIL_BAL = 'nguyenngoctri2910@gmail.com';
+    function getBalance() {
+      const d = JSON.parse(localStorage.getItem('cc_balances')||'{}');
+      if (!(session.email in d) && session.email.toLowerCase() === ADMIN_EMAIL_BAL) {
+        d[session.email] = 1000000;
+        localStorage.setItem('cc_balances', JSON.stringify(d));
+      }
+      return d[session.email] || 0;
+    }
     function setBalance(v){ const d=JSON.parse(localStorage.getItem('cc_balances')||'{}'); d[session.email]=Math.max(0,v); localStorage.setItem('cc_balances',JSON.stringify(d)); }
     function fmoney(n){ return Number(n).toLocaleString('vi-VN'); }
 
