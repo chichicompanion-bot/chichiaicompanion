@@ -275,6 +275,7 @@
                 <option value="">Tất cả danh mục</option>
               </select>
               <button onclick="loadSmmServices()" style="padding:7px 16px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.35);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Tải lại</button>
+              <button onclick="testSmmApi()" style="padding:7px 16px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:8px;color:#fbbf24;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">🔍 Test API</button>
             </div>
           </div>
           <div id="smm-status" style="padding:16px 20px;font-size:13px;color:#6b698a;"></div>
@@ -626,18 +627,38 @@
 
       async function loadSmmServices() {
         const status = document.getElementById('smm-status');
-        status.textContent = '⏳ Đang tải danh sách dịch vụ từ panel...';
+        status.innerHTML = '⏳ Đang kết nối tới smmviet.com...';
         document.getElementById('smm-table').style.display = 'none';
 
         try {
           const resp = await fetch('/api/smm-services');
-          const data = await resp.json();
-
-          if (data.error) {
-            status.innerHTML = `❌ ${data.error}<br><span style="color:#fbbf24;font-size:12px;">👉 Vào <b>Vercel → Settings → Environment Variables</b>, thêm <b>SMM_PANEL_URL</b> và <b>SMM_PANEL_KEY</b> rồi Redeploy.</span>`;
+          let data;
+          try {
+            data = await resp.json();
+          } catch(_) {
+            status.innerHTML = `❌ API route <code>/api/smm-services</code> không tồn tại.<br><span style="color:#fbbf24;font-size:12px;">Kiểm tra Vercel đã deploy đúng project chưa (project phải chứa folder <b>api/</b>).</span>`;
             return;
           }
-          if (!Array.isArray(data)) { status.textContent = '❌ Dữ liệu không hợp lệ từ panel.'; return; }
+
+          if (data.error === 'ENV_MISSING') {
+            status.innerHTML = `❌ Chưa set Environment Variables trong Vercel.<br>
+              <div style="margin-top:10px;background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;font-family:monospace;font-size:12px;color:#4ade80;">
+                SMM_PANEL_URL = https://smmviet.com/api/v2<br>
+                SMM_PANEL_KEY = 6f72ef46afcea6eb0c0ee31016dc4277
+              </div>
+              <span style="color:#fbbf24;font-size:12px;">👉 Vào Vercel → Settings → Environment Variables → thêm 2 dòng trên → Redeploy</span>`;
+            return;
+          }
+
+          if (data.error) {
+            status.innerHTML = `❌ Lỗi: <b>${data.error}</b> — ${data.message || ''}<br><span style="color:#6b698a;font-size:11px;">${data.raw || ''}</span>`;
+            return;
+          }
+
+          if (!Array.isArray(data)) {
+            status.innerHTML = `❌ Dữ liệu không hợp lệ: <code style="font-size:11px;">${JSON.stringify(data).slice(0,200)}</code>`;
+            return;
+          }
 
           smmAllServices = data;
           status.textContent = '';
@@ -650,7 +671,7 @@
 
           renderSmmTable(data);
         } catch (e) {
-          status.innerHTML = `❌ Không thể kết nối API.<br><span style="color:#fbbf24;font-size:12px;">👉 Vào <b>Vercel → Settings → Environment Variables</b>, thêm:<br><code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">SMM_PANEL_URL = https://smmviet.com/api/v2</code><br><code style="background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;">SMM_PANEL_KEY = 6f72ef46afcea6eb0c0ee31016dc4277</code><br>Sau đó bấm <b>Redeploy</b>.</span>`;
+          status.innerHTML = `❌ Fetch lỗi: ${e.message}`;
         }
       }
 
@@ -719,6 +740,18 @@
           </div>`;
         document.body.appendChild(modal);
         modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+      }
+
+      async function testSmmApi() {
+        const status = document.getElementById('smm-status');
+        status.innerHTML = '🔍 Đang test...';
+        try {
+          const resp = await fetch('/api/smm-services');
+          const text = await resp.text();
+          status.innerHTML = `<b>HTTP ${resp.status}</b><br><pre style="background:rgba(0,0,0,.4);padding:10px;border-radius:8px;font-size:11px;overflow-x:auto;max-height:200px;color:#4ade80;">${text.slice(0,1000)}</pre>`;
+        } catch(e) {
+          status.innerHTML = `❌ Không fetch được /api/smm-services: ${e.message}<br><span style="color:#fbbf24;font-size:12px;">Có thể web đang chạy trên GitHub Pages thay vì Vercel — /api/ sẽ không hoạt động.</span>`;
+        }
       }
 
       // Init
