@@ -152,17 +152,16 @@
               <div class="warning-box">
                 <div class="warning-box-title">⚠ Lưu ý trước khi rút</div>
                 <ul>
-                  <li>Số tiền rút tối thiểu: <strong>50.000 đ</strong></li>
+                  <li>Số tiền rút tối thiểu: <strong>20.000 đ</strong></li>
                   <li>Yêu cầu rút tiền sẽ được xử lý trong vòng <strong>24 giờ</strong></li>
                   <li>Nhập đúng số tài khoản — sai thông tin mất tiền admin không chịu trách nhiệm</li>
-                  <li>Liên hệ admin @ngtr_AI_bot nếu chưa nhận tiền sau 24 giờ</li>
                 </ul>
               </div>
 
               <!-- Số tiền -->
               <div class="field-group">
                 <label>Số tiền rút (đ)</label>
-                <input id="inp-amount" type="number" placeholder="Nhập số tiền muốn rút" min="50000" step="1000" oninput="syncAmountBtn(this.value)" />
+                <input id="inp-amount" type="number" placeholder="Nhập số tiền muốn rút" min="20000" step="1000" oninput="syncAmountBtn(this.value)" />
               </div>
               <div class="amount-quick">
                 <button class="amount-btn" data-value="50000"  onclick="selectAmount(this)">50K</button>
@@ -259,20 +258,10 @@
             <div class="side-card">
               <div class="side-card-title">Thông tin rút tiền</div>
               <ul class="notice-list">
-                <li>Rút tối thiểu <strong>50.000 đ</strong> mỗi lần</li>
+                <li>Rút tối thiểu <strong>20.000 đ</strong> mỗi lần</li>
                 <li>Xử lý trong <strong>24 giờ</strong> làm việc</li>
                 <li>Không giới hạn số lần rút mỗi ngày</li>
                 <li>Kiểm tra lại số tài khoản trước khi gửi</li>
-                <li>Mọi thắc mắc liên hệ @ngtr_AI_bot</li>
-              </ul>
-            </div>
-
-            <div class="side-card">
-              <div class="side-card-title">Trạng thái</div>
-              <ul class="notice-list">
-                <li style="color:#fbbf24">⏳ Chờ xử lý — Admin chưa duyệt</li>
-                <li style="color:#22c55e">✓ Hoàn thành — Đã chuyển tiền</li>
-                <li style="color:#f87171">✗ Từ chối — Thông tin sai hoặc lỗi</li>
               </ul>
             </div>
           </div>
@@ -391,8 +380,8 @@
         const name   = document.getElementById('inp-name').value.trim().toUpperCase();
         const bal    = getBalance(session.email);
 
-        if (!amount || amount < 50000) {
-          showResult('error', '✗ Số tiền không hợp lệ', 'Số tiền rút tối thiểu là 50.000 đ.'); return;
+        if (!amount || amount < 20000) {
+          showResult('error', '✗ Số tiền không hợp lệ', 'Số tiền rút tối thiểu là 20.000 đ.'); return;
         }
         if (amount > bal) {
           showResult('error', '✗ Không đủ số dư', `Số dư hiện tại của bạn là ${formatMoney(bal)} đ.`); return;
