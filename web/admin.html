@@ -277,7 +277,7 @@
               <button onclick="loadSmmServices()" style="padding:7px 16px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.35);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Tải lại</button>
             </div>
           </div>
-          <div id="smm-status" style="padding:16px 20px;font-size:13px;color:#6b698a;"></div>
+          <div id="smm-status" style="padding:16px 20px;font-size:13px;color:#6b698a;">⏳ Đang kết nối SMM Panel...</div>
           <div style="overflow-x:auto;">
             <table id="smm-table" style="display:none;">
               <thead>
@@ -639,17 +639,25 @@
 
       function loadSmmServices() {
         var status = document.getElementById('smm-status');
-        status.innerHTML = '⏳ Đang tải dịch vụ từ smmviet.com...';
+        status.innerHTML = '⏳ Đang tải dịch vụ từ SMM Panel...';
         document.getElementById('smm-table').style.display = 'none';
 
         smmFetch('/api/smm-services', {})
           .then(function(r) { return r.json(); })
           .then(function(data) {
-            if (!Array.isArray(data) || data.length === 0) throw new Error('not array');
+            if (data && data.error) {
+              status.innerHTML = '❌ Lỗi: <b>' + data.error + '</b> — ' + (data.message || '') +
+                (data.error === 'ENV_MISSING' ? '<br><span style="color:#fbbf24;">👉 Vào Vercel → Settings → Environment Variables → thêm SMM_PANEL_URL và SMM_PANEL_KEY</span>' : '');
+              return;
+            }
+            if (!Array.isArray(data) || data.length === 0) {
+              status.innerHTML = '❌ Panel trả về dữ liệu không hợp lệ: <code style="color:#fbbf24;">' + JSON.stringify(data).slice(0,200) + '</code>';
+              return;
+            }
             smmLoaded(data);
           })
-          .catch(function() {
-            status.innerHTML = '❌ Không tải được dịch vụ. Kiểm tra Vercel env vars đã set chưa.';
+          .catch(function(e) {
+            status.innerHTML = '❌ Không kết nối được API: <b>' + (e && e.message ? e.message : String(e)) + '</b>';
           });
       }
 
