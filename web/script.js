@@ -144,174 +144,60 @@
     ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
   }
 
-  // ── Golden Dragon ──────────────────────────────────────────
+  // ── Golden Dragon (PNG/SVG image sprite) ──────────────────
+  const dragonImg = new Image();
+  let dragonReady = false;
+  dragonImg.onload = () => { dragonReady = true; };
+  dragonImg.src = 'images/dragon.svg';
+
   function drawDragon(t) {
+    if (!dragonReady) return;
+
     const cx = W / 2, cy = H / 2;
-    const orbitR  = Math.min(W, H) * 0.36;
-    const bRatio  = 0.52;
-    const oa      = t * 0.20;                         // orbit angle (clockwise)
+    const orbitR = Math.min(W, H) * 0.38;
+    const bRatio = 0.50;                     // ellipse flatten ratio
+    const speed  = 0.18;                     // rad/s — slow, majestic
+    const oa     = t * speed;                // clockwise orbit angle
 
-    const dx      = cx + orbitR * Math.cos(oa);
-    const dy      = cy + orbitR * bRatio * Math.sin(oa);
+    // Position on elliptical orbit
+    const dx = cx + orbitR * Math.cos(oa);
+    const dy = cy + orbitR * bRatio * Math.sin(oa);
 
-    // Tangent velocity for facing direction
-    const tvx     = -orbitR * 0.20 * Math.sin(oa);
-    const tvy     =  orbitR * bRatio * 0.20 * Math.cos(oa);
-    const facing  = Math.atan2(tvy, tvx);
+    // Tangent direction (velocity) → dragon facing direction
+    const tvx    = -orbitR * speed * Math.sin(oa);
+    const tvy    =  orbitR * bRatio * speed * Math.cos(oa);
+    const facing = Math.atan2(tvy, tvx);
 
-    const S = Math.min(1.45, Math.max(0.52, Math.min(W, H) / 940));
+    // Render size: dragon SVG is 750×280, scale to ~40% of shorter screen side
+    const dw = Math.min(W, H) * 0.44;
+    const dh = dw * (280 / 750);
+
+    // Gentle vertical bob while flying
+    const bob = Math.sin(t * 2.8) * 7;
+
+    // Flip dragon horizontally when travelling leftward (so it never flies backwards)
+    const goingLeft = Math.cos(facing) < 0;
 
     ctx.save();
-    ctx.translate(dx, dy);
-    ctx.rotate(facing);
+    ctx.translate(dx, dy + bob);
 
-    // Build spine with undulation
-    const N  = 20;
-    const BL = 215 * S;
-    const spine = [];
-    for (let i = 0; i <= N; i++) {
-      const p = i / N;
-      spine.push({
-        x: -BL / 2 + p * BL,
-        y: Math.sin(t * 2.7 - p * Math.PI * 2.25) * 23 * S * Math.sin(p * Math.PI),
-      });
+    if (goingLeft) {
+      // Mirror + adjust angle so head still faces direction of travel
+      ctx.rotate(facing + Math.PI);
+      ctx.scale(-1, 1);
+    } else {
+      ctx.rotate(facing);
     }
 
-    // ── Wings (behind body) ──
-    const wi     = Math.floor(N * 0.62);
-    const wp     = spine[wi];
-    const wSpan  = 88 * S;
-    const wBeat  = Math.sin(t * 5.4) * 0.28;
-    const wAngle = Math.atan2(spine[wi+1].y - spine[wi-1].y, spine[wi+1].x - spine[wi-1].x);
+    // Golden glow halo under the dragon
+    ctx.shadowColor = 'rgba(255,195,40,0.55)';
+    ctx.shadowBlur  = 30;
 
-    function wing(sign) {
-      ctx.save();
-      ctx.translate(wp.x, wp.y);
-      ctx.rotate(wAngle + sign * wBeat);
-      ctx.beginPath();
-      ctx.moveTo(0, sign * 9 * S);
-      ctx.bezierCurveTo(-18*S, sign*wSpan*0.44, 24*S, sign*wSpan, 56*S, sign*wSpan*0.82);
-      ctx.bezierCurveTo(70*S,  sign*wSpan*0.48, 60*S, sign*12*S,  34*S, sign*9*S);
-      ctx.closePath();
-      ctx.fillStyle   = 'rgba(255,150,16,0.40)';
-      ctx.strokeStyle = 'rgba(255,205,55,0.60)';
-      ctx.lineWidth = 1.3; ctx.fill(); ctx.stroke();
-      // vein
-      ctx.beginPath();
-      ctx.moveTo(0, sign*9*S);
-      ctx.quadraticCurveTo(20*S, sign*wSpan*0.56, 56*S, sign*wSpan*0.82);
-      ctx.strokeStyle = 'rgba(255,222,78,0.35)'; ctx.lineWidth = 0.9; ctx.stroke();
-      ctx.restore();
-    }
-    wing(-1); wing(1);
+    // Draw the dragon image centred on its orbit position
+    ctx.drawImage(dragonImg, -dw / 2, -dh / 2, dw, dh);
 
-    // ── Body ──
-    ctx.shadowColor = 'rgba(255,175,18,0.62)';
-    ctx.shadowBlur  = 18 * S;
-    for (let i = 0; i < N; i++) {
-      const p     = i / N;
-      const thick = (0.14 + Math.pow(p, 0.68) * 0.86) * 19 * S;
-      ctx.beginPath();
-      ctx.moveTo(spine[i].x,   spine[i].y);
-      ctx.lineTo(spine[i+1].x, spine[i+1].y);
-      ctx.lineWidth   = thick;
-      ctx.lineCap     = 'round';
-      ctx.strokeStyle = `rgba(255,${Math.round(142+p*65)},${Math.round(14+p*16)},${0.80+p*0.17})`;
-      ctx.stroke();
-    }
     ctx.shadowBlur = 0;
-
-    // Scale diamonds
-    for (let i = 2; i < N - 1; i += 2) {
-      const p  = i / N;
-      const sp = spine[i];
-      const tk = (0.14 + Math.pow(p, 0.68) * 0.86) * 17 * S;
-      if (tk < 4) continue;
-      const sa = Math.atan2(spine[i+1].y - spine[i-1].y, spine[i+1].x - spine[i-1].x);
-      ctx.save();
-      ctx.translate(sp.x, sp.y); ctx.rotate(sa);
-      ctx.beginPath();
-      ctx.moveTo(0, -tk*0.72); ctx.lineTo(tk*0.36, 0);
-      ctx.lineTo(0,  tk*0.72); ctx.lineTo(-tk*0.36, 0);
-      ctx.closePath();
-      ctx.fillStyle   = `rgba(255,${192+i*3},48,0.20)`;
-      ctx.strokeStyle = `rgba(255,212,58,0.30)`;
-      ctx.lineWidth = 0.6; ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-
-    // ── Head ──
-    const hs = spine[N];
-    const ha = Math.atan2(spine[N].y - spine[N-1].y, spine[N].x - spine[N-1].x);
-    ctx.save();
-    ctx.translate(hs.x, hs.y); ctx.rotate(ha);
-
-    // Lower jaw
-    ctx.beginPath();
-    ctx.moveTo(0, 5*S);
-    ctx.quadraticCurveTo(20*S, 9*S,  41*S, 5*S);
-    ctx.quadraticCurveTo(45*S, 2*S,  41*S, -1*S);
-    ctx.quadraticCurveTo(20*S, 2*S,  0,    2*S);
-    ctx.fillStyle = 'rgba(212,140,16,0.92)'; ctx.fill();
-
-    // Upper skull
-    ctx.beginPath();
-    ctx.moveTo(-5*S, -5*S);
-    ctx.bezierCurveTo(6*S, -16*S, 27*S, -14*S, 43*S, -8*S);
-    ctx.bezierCurveTo(47*S, -4*S,  45*S,  4*S,  41*S,  5*S);
-    ctx.bezierCurveTo(27*S,  3*S,   6*S,  7*S,  -5*S,  4*S);
-    ctx.closePath();
-    ctx.fillStyle   = 'rgba(255,186,26,0.96)';
-    ctx.strokeStyle = 'rgba(255,222,72,0.52)';
-    ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
-
-    // Eye
-    ctx.beginPath(); ctx.arc(24*S, -7*S, 4.5*S, 0, Math.PI*2);
-    ctx.fillStyle = '#cc3300'; ctx.fill();
-    ctx.beginPath(); ctx.arc(24*S, -7*S, 2.2*S, 0, Math.PI*2);
-    ctx.fillStyle = '#ffdd00'; ctx.fill();
-    ctx.shadowColor = '#ff5500'; ctx.shadowBlur = 9;
-    ctx.beginPath(); ctx.arc(24*S, -7*S, 1*S, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Main horn
-    ctx.beginPath();
-    ctx.moveTo(10*S, -13*S); ctx.lineTo(8*S, -33*S); ctx.lineTo(18*S, -12*S);
-    ctx.fillStyle = 'rgba(255,218,52,0.92)'; ctx.fill();
-    // Back horn
-    ctx.beginPath();
-    ctx.moveTo(-1*S, -10*S); ctx.lineTo(-5*S, -23*S); ctx.lineTo(5*S, -10*S);
-    ctx.fillStyle = 'rgba(255,200,42,0.72)'; ctx.fill();
-
-    // Nostril
-    ctx.beginPath(); ctx.arc(38*S, -2*S, 2.2*S, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(155,65,0,0.62)'; ctx.fill();
-
-    // Subtle fire breath flicker
-    if (Math.sin(t * 3.8) > 0.6) {
-      const fg = ctx.createRadialGradient(48*S, 0, 0, 48*S, 0, 28*S);
-      fg.addColorStop(0,   'rgba(255,210,50,0.45)');
-      fg.addColorStop(0.4, 'rgba(255,110,0,0.20)');
-      fg.addColorStop(1,   'transparent');
-      ctx.fillStyle = fg;
-      ctx.beginPath(); ctx.arc(52*S, 0, 24*S, 0, Math.PI*2); ctx.fill();
-    }
-    ctx.restore(); // head
-
-    // ── Tail tip ──
-    const tail  = spine[0];
-    const tailA = Math.atan2(spine[1].y - spine[0].y, spine[1].x - spine[0].x) + Math.PI;
-    ctx.save();
-    ctx.translate(tail.x, tail.y); ctx.rotate(tailA);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(16*S, -22*S, 32*S, -12*S, 30*S, 9*S);
-    ctx.strokeStyle = 'rgba(255,168,18,0.68)';
-    ctx.lineWidth = 3*S; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.restore(); // tail
-
-    ctx.restore(); // main dragon
+    ctx.restore();
   }
 
   // ── Main render loop ───────────────────────────────────────

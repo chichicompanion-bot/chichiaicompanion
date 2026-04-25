@@ -1,0 +1,289 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 280" width="750" height="280">
+  <defs>
+    <linearGradient id="G1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#FFE566"/>
+      <stop offset="50%" stop-color="#FFA800"/>
+      <stop offset="100%" stop-color="#B06000"/>
+    </linearGradient>
+    <linearGradient id="G2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#FFD040"/>
+      <stop offset="100%" stop-color="#AA6600"/>
+    </linearGradient>
+    <radialGradient id="EG" cx="38%" cy="38%">
+      <stop offset="0%"   stop-color="#FFFF88"/>
+      <stop offset="45%"  stop-color="#FF8800"/>
+      <stop offset="100%" stop-color="#550000"/>
+    </radialGradient>
+    <filter id="GL" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="EGL" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ═══ AMBIENT GLOW ═══ -->
+  <path d="M65,222 C130,192 185,145 285,132 C370,121 435,155 512,145 C556,138 590,118 622,96"
+        stroke="#FFB000" stroke-width="75" fill="none" stroke-linecap="round" opacity="0.13" filter="url(#GL)"/>
+
+  <!-- ═══ BODY SHADOW ═══ -->
+  <path d="M65,222 C130,192 185,145 285,132 C370,121 435,155 512,145 C556,138 590,118 622,96"
+        stroke="#6A3800" stroke-width="54" fill="none" stroke-linecap="round"/>
+
+  <!-- ═══ BODY MAIN ═══ -->
+  <path d="M65,222 C130,192 185,145 285,132 C370,121 435,155 512,145 C556,138 590,118 622,96"
+        stroke="url(#G1)" stroke-width="46" fill="none" stroke-linecap="round"/>
+
+  <!-- ═══ BELLY ═══ -->
+  <path d="M65,229 C130,200 186,153 286,140 C371,129 436,163 513,153 C557,146 591,126 623,104"
+        stroke="#FFE8A0" stroke-width="22" fill="none" opacity="0.70" stroke-linecap="round"/>
+
+  <!-- ═══ TOP HIGHLIGHT ═══ -->
+  <path d="M65,215 C130,185 184,138 284,125 C369,114 434,148 511,138 C555,131 589,111 621,89"
+        stroke="#FFE566" stroke-width="14" fill="none" opacity="0.60" stroke-linecap="round"/>
+
+  <!-- ═══ BACK MANE / SPINES ═══ -->
+  <g fill="#FF8C00" stroke="#7A3C00" stroke-width="1.2" stroke-linejoin="round">
+    <polygon points="108,209 96,175 122,202"/>
+    <polygon points="143,194 131,159 157,187"/>
+    <polygon points="178,180 167,144 193,173"/>
+    <polygon points="214,166 204,130 230,160"/>
+    <polygon points="251,153 242,117 268,148"/>
+    <polygon points="288,143 280,107 306,139"/>
+    <polygon points="325,136 318,100 344,132"/>
+    <polygon points="361,138 355,102 381,135"/>
+    <polygon points="397,144 392,108 418,142"/>
+    <polygon points="432,149 428,113 454,147"/>
+    <polygon points="465,147 462,111 487,145"/>
+    <polygon points="497,141 495,105 519,139"/>
+    <polygon points="525,133 524,97 548,131"/>
+    <polygon points="551,122 551,87 573,120"/>
+    <polygon points="574,111 576,76 596,110"/>
+    <polygon points="595,100 598,65 617,99"/>
+    <polygon points="613,89 618,54 635,88"/>
+  </g>
+
+  <!-- ═══ SCALES ROW 1 ═══ -->
+  <g opacity="0.68" fill="#CC7800" stroke="#8B4E00" stroke-width="0.8">
+    <path d="M98,217  a10,8  0 0,1 20,0 Z" transform="rotate(-36,108,217)"/>
+    <path d="M124,203 a11,8  0 0,1 22,0 Z" transform="rotate(-31,135,203)"/>
+    <path d="M152,189 a12,9  0 0,1 24,0 Z" transform="rotate(-26,164,189)"/>
+    <path d="M182,175 a13,9  0 0,1 26,0 Z" transform="rotate(-21,195,175)"/>
+    <path d="M213,163 a14,10 0 0,1 28,0 Z" transform="rotate(-16,227,163)"/>
+    <path d="M246,152 a15,10 0 0,1 30,0 Z" transform="rotate(-11,261,152)"/>
+    <path d="M280,144 a16,11 0 0,1 32,0 Z" transform="rotate(-6,296,144)"/>
+    <path d="M315,139 a16,11 0 0,1 32,0 Z" transform="rotate(-1,331,139)"/>
+    <path d="M350,140 a15,11 0 0,1 30,0 Z" transform="rotate(4,365,140)"/>
+    <path d="M384,146 a14,10 0 0,1 28,0 Z" transform="rotate(8,398,146)"/>
+    <path d="M416,153 a13,10 0 0,1 26,0 Z" transform="rotate(10,429,153)"/>
+    <path d="M447,155 a13,9  0 0,1 26,0 Z" transform="rotate(9,460,155)"/>
+    <path d="M477,150 a12,9  0 0,1 24,0 Z" transform="rotate(6,489,150)"/>
+    <path d="M504,142 a11,8  0 0,1 22,0 Z" transform="rotate(3,515,142)"/>
+    <path d="M528,132 a10,8  0 0,1 20,0 Z" transform="rotate(-2,538,132)"/>
+    <path d="M550,121 a9,7   0 0,1 18,0 Z" transform="rotate(-7,559,121)"/>
+    <path d="M569,108 a8,7   0 0,1 16,0 Z" transform="rotate(-13,577,108)"/>
+    <path d="M586,96  a7,6   0 0,1 14,0 Z" transform="rotate(-17,593,96)"/>
+    <path d="M600,84  a6,5   0 0,1 12,0 Z" transform="rotate(-21,606,84)"/>
+  </g>
+
+  <!-- ═══ SCALES ROW 2 (offset) ═══ -->
+  <g opacity="0.45" fill="#AA6400" stroke="#7A3C00" stroke-width="0.7">
+    <path d="M110,212 a9,7  0 0,1 18,0 Z" transform="rotate(-33,119,212)"/>
+    <path d="M138,198 a10,8 0 0,1 20,0 Z" transform="rotate(-28,148,198)"/>
+    <path d="M167,184 a11,8 0 0,1 22,0 Z" transform="rotate(-23,178,184)"/>
+    <path d="M198,171 a12,9 0 0,1 24,0 Z" transform="rotate(-18,210,171)"/>
+    <path d="M230,158 a13,9 0 0,1 26,0 Z" transform="rotate(-13,243,158)"/>
+    <path d="M263,148 a14,10 0 0,1 28,0 Z" transform="rotate(-8,277,148)"/>
+    <path d="M298,141 a15,10 0 0,1 30,0 Z" transform="rotate(-3,313,141)"/>
+    <path d="M333,139 a14,10 0 0,1 28,0 Z" transform="rotate(2,347,139)"/>
+    <path d="M367,143 a13,9 0 0,1 26,0 Z" transform="rotate(6,380,143)"/>
+    <path d="M399,149 a12,9 0 0,1 24,0 Z" transform="rotate(9,411,149)"/>
+    <path d="M430,154 a11,8 0 0,1 22,0 Z" transform="rotate(10,441,154)"/>
+    <path d="M462,153 a11,8 0 0,1 22,0 Z" transform="rotate(8,473,153)"/>
+    <path d="M491,147 a10,7 0 0,1 20,0 Z" transform="rotate(5,501,147)"/>
+    <path d="M517,137 a9,7  0 0,1 18,0 Z" transform="rotate(1,526,137)"/>
+    <path d="M540,126 a8,6  0 0,1 16,0 Z" transform="rotate(-4,548,126)"/>
+    <path d="M560,114 a7,6  0 0,1 14,0 Z" transform="rotate(-9,567,114)"/>
+    <path d="M578,102 a7,5  0 0,1 14,0 Z" transform="rotate(-14,585,102)"/>
+    <path d="M593,90  a6,5  0 0,1 12,0 Z" transform="rotate(-19,599,90)"/>
+  </g>
+
+  <!-- ═══ BACK LEGS (2 legs near middle-back) ═══ -->
+  <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Back left leg -->
+    <path d="M305,142 L295,168 L287,190 L280,212" stroke="#6A3800" stroke-width="13"/>
+    <path d="M305,142 L295,168 L287,190 L280,212" stroke="#FFA800" stroke-width="9"/>
+    <path d="M280,212 L268,226 M280,212 L278,228 M280,212 L289,226 M280,212 L293,222"
+          stroke="#6A3800" stroke-width="2.5"/>
+    <path d="M280,212 L268,226 M280,212 L278,228 M280,212 L289,226 M280,212 L293,222"
+          stroke="#FFD700" stroke-width="1.5"/>
+    <!-- Back right leg (behind body, slightly different) -->
+    <path d="M322,147 L312,174 L305,196 L298,218" stroke="#6A3800" stroke-width="10"/>
+    <path d="M322,147 L312,174 L305,196 L298,218" stroke="#CC8800" stroke-width="7"/>
+    <path d="M298,218 L287,231 M298,218 L296,234 M298,218 L306,231 M298,218 L310,227"
+          stroke="#6A3800" stroke-width="2"/>
+    <path d="M298,218 L287,231 M298,218 L296,234 M298,218 L306,231 M298,218 L310,227"
+          stroke="#FFD066" stroke-width="1.2"/>
+  </g>
+
+  <!-- ═══ FRONT LEGS (2 legs near neck) ═══ -->
+  <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Front left leg -->
+    <path d="M538,150 L528,176 L520,198 L512,220" stroke="#6A3800" stroke-width="13"/>
+    <path d="M538,150 L528,176 L520,198 L512,220" stroke="#FFA800" stroke-width="9"/>
+    <path d="M512,220 L500,234 M512,220 L510,236 M512,220 L521,234 M512,220 L525,230"
+          stroke="#6A3800" stroke-width="2.5"/>
+    <path d="M512,220 L500,234 M512,220 L510,236 M512,220 L521,234 M512,220 L525,230"
+          stroke="#FFD700" stroke-width="1.5"/>
+    <!-- Front right leg -->
+    <path d="M555,147 L545,174 L538,196 L530,218" stroke="#6A3800" stroke-width="10"/>
+    <path d="M555,147 L545,174 L538,196 L530,218" stroke="#CC8800" stroke-width="7"/>
+    <path d="M530,218 L519,231 M530,218 L528,234 M530,218 L538,231 M530,218 L542,228"
+          stroke="#6A3800" stroke-width="2"/>
+    <path d="M530,218 L519,231 M530,218 L528,234 M530,218 L538,231 M530,218 L542,228"
+          stroke="#FFD066" stroke-width="1.2"/>
+  </g>
+
+  <!-- ═══ HEAD ═══ -->
+  <!-- Neck base -->
+  <ellipse cx="636" cy="106" rx="32" ry="23" fill="#8B5000" stroke="#6A3800" stroke-width="1.5"/>
+  <ellipse cx="636" cy="106" rx="28" ry="19" fill="#FFA800"/>
+
+  <!-- Head scales on neck -->
+  <g fill="#CC7800" stroke="#8B4E00" stroke-width="0.8" opacity="0.7">
+    <path d="M615,115 Q623,106 632,111 Q634,119 625,123 Z"/>
+    <path d="M628,110 Q636,101 645,106 Q647,114 638,118 Z"/>
+    <path d="M641,106 Q649,97 658,102 Q660,110 651,114 Z"/>
+  </g>
+
+  <!-- Head skull -->
+  <path d="M622,118 C624,86 641,68 662,70 C683,72 700,82 706,94 C712,106 706,120 692,126 C678,132 660,131 645,126 Z"
+        fill="#8B5000" stroke="#6A3800" stroke-width="2"/>
+  <path d="M622,118 C624,86 641,68 662,70 C683,72 700,82 706,94 C712,106 706,120 692,126 C678,132 660,131 645,126 Z"
+        fill="#FFA800"/>
+
+  <!-- Forehead ridge bump -->
+  <path d="M633,99 C641,88 654,81 666,79 C678,77 692,83 698,91"
+        stroke="#CC7800" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+  <path d="M633,99 C641,88 654,81 666,79 C678,77 692,83 698,91"
+        stroke="#FFD040" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+
+  <!-- Cheek scales -->
+  <g fill="#CC7800" stroke="#8B4E00" stroke-width="1">
+    <path d="M643,116 Q652,107 661,112 Q663,121 653,124 Z"/>
+    <path d="M658,113 Q667,104 675,109 Q677,118 667,121 Z"/>
+    <path d="M673,110 Q681,102 688,107 Q689,116 680,118 Z"/>
+  </g>
+
+  <!-- Upper jaw / snout -->
+  <path d="M700,90 Q720,87 734,80 Q742,75 740,70 Q732,64 718,66 Q704,68 700,78 Z"
+        fill="#FFA800" stroke="#6A3800" stroke-width="1.5"/>
+  <!-- Snout ridge detail -->
+  <path d="M703,80 Q718,76 732,72" stroke="#FFD040" stroke-width="2" fill="none" opacity="0.7"/>
+
+  <!-- Lower jaw -->
+  <path d="M702,98 Q722,100 736,93 Q743,89 740,84 Q731,87 716,90 Q702,92 702,98 Z"
+        fill="#CC7800" stroke="#6A3800" stroke-width="1.5"/>
+
+  <!-- Upper teeth (fangs) -->
+  <g fill="ivory" stroke="#884400" stroke-width="0.9">
+    <path d="M706,86 L703,76 L710,86"/>
+    <path d="M715,84 L713,73 L720,84"/>
+    <path d="M724,82 L722,71 L729,82"/>
+  </g>
+  <!-- Lower teeth -->
+  <g fill="ivory" stroke="#884400" stroke-width="0.9">
+    <path d="M708,91 L705,101 L712,91"/>
+    <path d="M717,89 L715,100 L722,89"/>
+    <path d="M725,88 L724,98 L730,88"/>
+  </g>
+
+  <!-- Nostril -->
+  <ellipse cx="736" cy="74" rx="5.5" ry="4" fill="#7A2000" stroke="#5C1500" stroke-width="1"/>
+  <ellipse cx="736" cy="74" rx="3.2" ry="2.3" fill="#3C0000"/>
+
+  <!-- EYE GLOW halo -->
+  <circle cx="666" cy="80" r="16" fill="rgba(255,140,0,0.25)" filter="url(#EGL)"/>
+  <!-- Eye white -->
+  <circle cx="666" cy="80" r="12" fill="#660000" stroke="#8B2000" stroke-width="1.5"/>
+  <!-- Eye iris -->
+  <circle cx="666" cy="80" r="10" fill="url(#EG)"/>
+  <!-- Pupil (vertical slit) -->
+  <ellipse cx="666" cy="80" rx="4.5" ry="7" fill="#0A0000"/>
+  <!-- Eye shine -->
+  <circle cx="663" cy="76" r="2.8" fill="rgba(255,255,200,0.9)"/>
+  <circle cx="669" cy="83" r="1.4" fill="rgba(255,220,160,0.5)"/>
+  <!-- Eyelid/brow ridge -->
+  <path d="M655,71 Q666,63 679,68" stroke="#BB6600" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+  <!-- ═══ ANTLER HORNS ═══ -->
+  <g fill="#DDAA00" stroke="#7A4000" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Left antler: main trunk -->
+    <path d="M638,70 L633,47 L637,49 L630,27 L636,32 L633,12 L641,33 L637,32 L643,52 Z"/>
+    <!-- Left antler: forward branch -->
+    <path d="M634,34 L620,20 L627,26 L617,12 L622,18 L618,8 L626,20 L622,19 L631,34 Z"/>
+    <!-- Left antler: back branch -->
+    <path d="M637,42 L647,28 L644,32 L652,20 L648,26 L653,16 L647,27 L650,25 L641,40 Z"/>
+
+    <!-- Right antler: main trunk -->
+    <path d="M665,70 L670,47 L666,49 L673,27 L667,32 L670,12 L662,33 L666,32 L660,52 Z"/>
+    <!-- Right antler: forward branch -->
+    <path d="M669,34 L683,20 L676,26 L686,12 L681,18 L685,8 L677,20 L681,19 L672,34 Z"/>
+    <!-- Right antler: back branch -->
+    <path d="M666,42 L656,28 L659,32 L651,20 L655,26 L650,16 L656,27 L653,25 L662,40 Z"/>
+  </g>
+  <!-- Antler highlight -->
+  <g fill="none" stroke="#FFE566" stroke-width="1" opacity="0.5">
+    <path d="M638,70 L633,47 L630,27 L633,12"/>
+    <path d="M665,70 L670,47 L673,27 L670,12"/>
+  </g>
+
+  <!-- ═══ EAR FINS (behind antlers) ═══ -->
+  <g fill="#FF8C00" stroke="#7A3C00" stroke-width="1.2">
+    <path d="M628,72 Q618,60 622,48 Q630,55 630,70 Z"/>
+    <path d="M676,72 Q686,60 682,48 Q674,55 674,70 Z"/>
+  </g>
+
+  <!-- ═══ MANE AROUND NECK ═══ -->
+  <g fill="#FF9000" stroke="#7A4000" stroke-width="1.2" opacity="0.85">
+    <path d="M626,98 Q614,86 620,74 Q628,82 626,96 Z"/>
+    <path d="M630,84 Q620,70 628,60 Q635,70 632,83 Z"/>
+    <path d="M638,74 Q632,59 642,52 Q646,64 641,73 Z"/>
+    <path d="M688,104 Q700,92 696,80 Q688,88 688,102 Z"/>
+    <path d="M695,92 Q708,82 703,68 Q695,77 695,90 Z"/>
+  </g>
+
+  <!-- ═══ WHISKERS / BEARD ═══ -->
+  <!-- Long forward whisker (go along upper jaw direction) -->
+  <g fill="none" stroke="#FFE088" stroke-linecap="round">
+    <path d="M738,72 C750,66 758,58 761,48 C763,40 758,34 752,38" stroke-width="3"/>
+    <path d="M738,77 C752,72 762,65 766,55 C769,47 764,41 757,46" stroke-width="2.2"/>
+    <!-- Chin/beard whiskers hanging down -->
+    <path d="M706,104 C712,124 708,146 699,166 C692,183 688,200 691,218" stroke-width="3"/>
+    <path d="M716,103 C724,123 722,147 712,167 C703,185 700,202 705,220" stroke-width="2.8"/>
+    <path d="M724,100 C734,120 734,144 723,164 C714,180 712,196 717,213" stroke-width="2.4"/>
+    <path d="M732,96  C742,114 744,138 733,157 C724,173 724,188 730,204" stroke-width="2"/>
+  </g>
+  <!-- Whisker inner highlight -->
+  <g fill="none" stroke="rgba(255,248,200,0.55)" stroke-linecap="round">
+    <path d="M738,72 C750,66 758,58 761,48 C763,40 758,34 752,38" stroke-width="1.5"/>
+    <path d="M706,104 C712,124 708,146 699,166 C692,183 688,200 691,218" stroke-width="1.4"/>
+    <path d="M716,103 C724,123 722,147 712,167 C703,185 700,202 705,220" stroke-width="1.2"/>
+    <path d="M724,100 C734,120 734,144 723,164 C714,180 712,196 717,213" stroke-width="1"/>
+  </g>
+
+  <!-- ═══ TAIL TIP ═══ -->
+  <g fill="#FFA800" stroke="#7A4000" stroke-width="1.5">
+    <path d="M65,222 Q50,242 42,258 Q44,268 54,260 Q64,246 67,230"/>
+    <path d="M68,230 Q56,253 52,268 Q58,275 65,265 Q70,250 72,236"/>
+    <!-- Tail flame/flare tips -->
+    <path d="M42,258 Q33,270 40,278 Q47,271 46,260 Z" fill="#FF9500" stroke="#7A4000" stroke-width="1"/>
+    <path d="M52,268 Q45,280 52,286 Q59,279 56,268 Z" fill="#FF9500" stroke="#7A4000" stroke-width="1"/>
+  </g>
+
+  <!-- ═══ BODY FINAL GLOW OVERLAY ═══ -->
+  <path d="M65,222 C130,192 185,145 285,132 C370,121 435,155 512,145 C556,138 590,118 622,96"
+        stroke="rgba(255,228,80,0.10)" stroke-width="48" fill="none" stroke-linecap="round"/>
+</svg>
