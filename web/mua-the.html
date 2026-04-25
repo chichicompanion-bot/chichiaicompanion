@@ -221,12 +221,12 @@
               <!-- Denomination -->
               <div class="section-label">💵 Chọn mệnh giá</div>
               <div class="denom-grid">
-                <button class="denom-btn" data-value="10000"  onclick="selectDenom(this)">10.000 đ<small id="fee-10000"></small></button>
-                <button class="denom-btn" data-value="20000"  onclick="selectDenom(this)">20.000 đ<small id="fee-20000"></small></button>
-                <button class="denom-btn" data-value="50000"  onclick="selectDenom(this)">50.000 đ<small id="fee-50000"></small></button>
-                <button class="denom-btn" data-value="100000" onclick="selectDenom(this)">100.000 đ<small id="fee-100000"></small></button>
-                <button class="denom-btn" data-value="200000" onclick="selectDenom(this)">200.000 đ<small id="fee-200000"></small></button>
-                <button class="denom-btn" data-value="500000" onclick="selectDenom(this)">500.000 đ<small id="fee-500000"></small></button>
+                <button class="denom-btn" data-value="10000"  onclick="selectDenom(this)">10.000 đ</button>
+                <button class="denom-btn" data-value="20000"  onclick="selectDenom(this)">20.000 đ</button>
+                <button class="denom-btn" data-value="50000"  onclick="selectDenom(this)">50.000 đ</button>
+                <button class="denom-btn" data-value="100000" onclick="selectDenom(this)">100.000 đ</button>
+                <button class="denom-btn" data-value="200000" onclick="selectDenom(this)">200.000 đ</button>
+                <button class="denom-btn" data-value="500000" onclick="selectDenom(this)">500.000 đ</button>
               </div>
 
               <!-- Quantity -->
@@ -241,7 +241,6 @@
                 <div class="summary-row"><span class="s-label">Loại thẻ</span><span class="s-value" id="s-type">—</span></div>
                 <div class="summary-row"><span class="s-label">Mệnh giá</span><span class="s-value" id="s-denom">—</span></div>
                 <div class="summary-row"><span class="s-label">Số lượng</span><span class="s-value" id="s-qty">—</span></div>
-                <div class="summary-row"><span class="s-label">Phí dịch vụ</span><span class="s-value" style="color:#f87171" id="s-fee">—</span></div>
                 <div class="summary-row total"><span class="s-label">Tổng thanh toán</span><span class="s-value" id="s-total">—</span></div>
               </div>
 
@@ -274,15 +273,6 @@
             </div>
 
             <div class="side-card">
-              <div class="side-card-title">Phí dịch vụ</div>
-              <table class="price-table">
-                <tr><td>Thẻ di động</td><td>+5%</td></tr>
-                <tr><td>Garena / Game</td><td>+8%</td></tr>
-              </table>
-              <p style="font-size:11px;color:#4a4860;margin-top:10px;">Phí tính trên mệnh giá thẻ. Số tiền trừ = mệnh giá + phí.</p>
-            </div>
-
-            <div class="side-card">
               <div class="side-card-title">Lưu ý</div>
               <ul class="notice-list">
                 <li>Mã thẻ hiển thị ngay sau khi mua</li>
@@ -305,8 +295,6 @@
       document.getElementById('sidebar-email').textContent = session.email;
 
       const TELCO_NAMES = { viettel:'Viettel', mobifone:'Mobifone', vinaphone:'Vinaphone', vietnamobile:'Vietnamobile', garena:'Garena', vcoin:'Vcoin', zing:'Zing', gmobile:'Gmobile' };
-      const GAME_TELCOS = ['garena', 'vcoin', 'zing'];
-      const FEE_RATE    = { mobile: 0.05, game: 0.08 };
 
       let selectedTelco = null, selectedDenom = null;
 
@@ -314,8 +302,7 @@
       function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = val; localStorage.setItem('cc_balances', JSON.stringify(d)); }
       function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
 
-      function getFeeRate(telco) { return GAME_TELCOS.includes(telco) ? FEE_RATE.game : FEE_RATE.mobile; }
-      function getCost(denom, telco) { return Math.round(denom * (1 + getFeeRate(telco))); }
+      function getCost(denom) { return denom; }
 
       function refreshBalance() {
         const bal = getBalance(session.email);
@@ -327,11 +314,6 @@
         document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
         selectedTelco = el.dataset.telco;
-        // Update fee labels
-        [10000,20000,50000,100000,200000,500000].forEach(d => {
-          const el2 = document.getElementById('fee-' + d);
-          if (el2) el2.textContent = 'Phí: ' + formatMoney(getCost(d, selectedTelco) - d) + ' đ';
-        });
         updateSummary();
       }
 
@@ -346,12 +328,10 @@
         const box = document.getElementById('summary-box');
         if (!selectedTelco || !selectedDenom) { box.classList.remove('show'); return; }
         const qty   = Math.max(1, Math.min(10, parseInt(document.getElementById('inp-qty').value) || 1));
-        const fee   = getCost(selectedDenom, selectedTelco) - selectedDenom;
-        const total = getCost(selectedDenom, selectedTelco) * qty;
+        const total = getCost(selectedDenom) * qty;
         document.getElementById('s-type').textContent  = TELCO_NAMES[selectedTelco];
         document.getElementById('s-denom').textContent = formatMoney(selectedDenom) + ' đ';
         document.getElementById('s-qty').textContent   = qty + ' thẻ';
-        document.getElementById('s-fee').textContent   = '+' + formatMoney(fee * qty) + ' đ (' + (getFeeRate(selectedTelco)*100) + '%)';
         document.getElementById('s-total').textContent = formatMoney(total) + ' đ';
         box.classList.add('show');
       }
@@ -412,7 +392,7 @@
         if (!selectedDenom) { showResult('error', '✗ Chưa chọn mệnh giá', 'Vui lòng chọn mệnh giá.'); return; }
 
         const qty     = Math.max(1, Math.min(10, parseInt(document.getElementById('inp-qty').value) || 1));
-        const total   = getCost(selectedDenom, selectedTelco) * qty;
+        const total   = getCost(selectedDenom) * qty;
         const balance = getBalance(session.email);
 
         if (total > balance) {
