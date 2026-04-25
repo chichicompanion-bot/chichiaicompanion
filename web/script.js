@@ -144,61 +144,6 @@
     ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
   }
 
-  // ── Golden Dragon (PNG/SVG image sprite) ──────────────────
-  const dragonImg = new Image();
-  let dragonReady = false;
-  dragonImg.onload = () => { dragonReady = true; };
-  dragonImg.src = 'images/dragon.svg';
-
-  function drawDragon(t) {
-    if (!dragonReady) return;
-
-    const cx = W / 2, cy = H / 2;
-    const orbitR = Math.min(W, H) * 0.38;
-    const bRatio = 0.50;                     // ellipse flatten ratio
-    const speed  = 0.18;                     // rad/s — slow, majestic
-    const oa     = t * speed;                // clockwise orbit angle
-
-    // Position on elliptical orbit
-    const dx = cx + orbitR * Math.cos(oa);
-    const dy = cy + orbitR * bRatio * Math.sin(oa);
-
-    // Tangent direction (velocity) → dragon facing direction
-    const tvx    = -orbitR * speed * Math.sin(oa);
-    const tvy    =  orbitR * bRatio * speed * Math.cos(oa);
-    const facing = Math.atan2(tvy, tvx);
-
-    // Render size: dragon SVG is 750×280, scale to ~40% of shorter screen side
-    const dw = Math.min(W, H) * 0.44;
-    const dh = dw * (280 / 750);
-
-    // Gentle vertical bob while flying
-    const bob = Math.sin(t * 2.8) * 7;
-
-    // Flip dragon horizontally when travelling leftward (so it never flies backwards)
-    const goingLeft = Math.cos(facing) < 0;
-
-    ctx.save();
-    ctx.translate(dx, dy + bob);
-
-    if (goingLeft) {
-      // Mirror + adjust angle so head still faces direction of travel
-      ctx.rotate(facing + Math.PI);
-      ctx.scale(-1, 1);
-    } else {
-      ctx.rotate(facing);
-    }
-
-    // Golden glow halo under the dragon
-    ctx.shadowColor = 'rgba(255,195,40,0.55)';
-    ctx.shadowBlur  = 30;
-
-    // Draw the dragon image centred on its orbit position
-    ctx.drawImage(dragonImg, -dw / 2, -dh / 2, dw, dh);
-
-    ctx.shadowBlur = 0;
-    ctx.restore();
-  }
 
   // ── Main render loop ───────────────────────────────────────
   let lastTs = 0, t = 0;
@@ -241,7 +186,6 @@
     });
 
     drawGalaxy(t);
-    drawDragon(t);
 
     // Vignette
     const vig = ctx.createRadialGradient(W/2,H/2, H*0.08, W/2,H/2, H*0.93);
