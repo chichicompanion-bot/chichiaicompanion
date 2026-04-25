@@ -231,7 +231,8 @@ function showStatus(id, msg, type) {
   el.className = `status-msg show ${type}`;
 }
 
-document.getElementById('reg-password').addEventListener('input', function () {
+const _regPwd = document.getElementById('reg-password');
+if (_regPwd) _regPwd.addEventListener('input', function () {
   const v = this.value, fill = document.getElementById('strength-fill');
   let score = 0;
   if (v.length >= 6)          score++;
@@ -260,7 +261,8 @@ function saveAccount(name, email, password) {
   }
 })();
 
-document.getElementById('login-form').addEventListener('submit', function (e) {
+const _loginForm = document.getElementById('login-form');
+if (_loginForm) _loginForm.addEventListener('submit', function (e) {
   e.preventDefault();
   clearErrors('login-email-err', 'login-pass-err');
   const email    = document.getElementById('login-email').value.trim().toLowerCase();
@@ -279,7 +281,8 @@ document.getElementById('login-form').addEventListener('submit', function (e) {
   }
 });
 
-document.getElementById('register-form').addEventListener('submit', function (e) {
+const _regForm = document.getElementById('register-form');
+if (_regForm) _regForm.addEventListener('submit', function (e) {
   e.preventDefault();
   clearErrors('reg-name-err', 'reg-email-err', 'reg-pass-err', 'reg-confirm-err', 'reg-terms-err');
   const name     = document.getElementById('reg-name').value.trim();
