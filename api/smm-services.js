@@ -18,12 +18,19 @@ module.exports = async (req, res) => {
 
   try {
     const params = new URLSearchParams({ key: PANEL_KEY, action: 'services' });
-    const response = await fetch(PANEL_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    params.toString(),
-      signal:  AbortSignal.timeout(15000),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = await fetch(PANEL_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    params.toString(),
+        signal:  controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const raw = await response.text();
 
