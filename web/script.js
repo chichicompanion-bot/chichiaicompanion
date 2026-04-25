@@ -1,4 +1,63 @@
 // ═══════════════════════════════════════════════════════════
+//  TELEGRAM FLOATING BUTTON
+// ═══════════════════════════════════════════════════════════
+(function () {
+  const style = document.createElement('style');
+  style.textContent = `
+    .tg-float {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #2AABEE, #229ED9);
+      box-shadow: 0 4px 20px rgba(42,171,238,0.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      animation: tg-pulse 2.5s infinite;
+    }
+    .tg-float:hover {
+      transform: scale(1.12);
+      box-shadow: 0 6px 28px rgba(42,171,238,0.7);
+    }
+    .tg-float svg { width: 30px; height: 30px; fill: #fff; }
+    .tg-tooltip {
+      position: fixed; bottom: 90px; right: 24px; z-index: 9998;
+      background: rgba(14,11,31,0.95); border: 1px solid rgba(42,171,238,0.3);
+      color: #fff; font-size: 13px; font-weight: 500; font-family: Inter, sans-serif;
+      padding: 8px 14px; border-radius: 10px; white-space: nowrap;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity .2s, transform .2s; pointer-events: none;
+    }
+    .tg-float:hover + .tg-tooltip,
+    .tg-tooltip.show { opacity: 1; transform: translateY(0); }
+    @keyframes tg-pulse {
+      0%,100% { box-shadow: 0 4px 20px rgba(42,171,238,0.5); }
+      50%      { box-shadow: 0 4px 30px rgba(42,171,238,0.85); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const btn = document.createElement('a');
+  btn.className = 'tg-float';
+  btn.href = 'https://t.me/ngtr_AI_bot';
+  btn.target = '_blank';
+  btn.rel = 'noopener';
+  btn.title = 'Chat với ChiChi AI';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.327 13.99l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.821.569z"/>
+  </svg>`;
+
+  const tip = document.createElement('div');
+  tip.className = 'tg-tooltip';
+  tip.textContent = '💬 Chat hỗ trợ Telegram';
+
+  document.body.appendChild(btn);
+  document.body.appendChild(tip);
+
+  btn.addEventListener('mouseenter', () => tip.classList.add('show'));
+  btn.addEventListener('mouseleave', () => tip.classList.remove('show'));
+})();
+
+// ═══════════════════════════════════════════════════════════
 //  SPACE BACKGROUND ENGINE
 // ═══════════════════════════════════════════════════════════
 (function () {
