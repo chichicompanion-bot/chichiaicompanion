@@ -219,15 +219,9 @@
                 <input id="inp-stk" type="text" placeholder="Nhập số tài khoản ngân hàng" maxlength="20" />
               </div>
 
-              <!-- Tên chủ tài khoản -->
-              <div class="field-group">
-                <label>Tên chủ tài khoản</label>
-                <input id="inp-name" type="text" placeholder="Nhập tên chủ tài khoản (viết hoa không dấu)" style="text-transform:uppercase" />
-              </div>
-
               <button class="submit-btn" id="submit-btn" onclick="submitWithdraw()">
                 <div class="spinner" id="spinner"></div>
-                <span id="btn-text">💸 Gửi yêu cầu rút tiền</span>
+                <span id="btn-text">Rút Tiền</span>
               </button>
 
               <div class="result-box" id="result-box">
@@ -355,7 +349,7 @@
             <div class="tx-left">
               <div class="tx-icon">🏦</div>
               <div class="tx-info">
-                <div class="tx-carrier">${tx.bank} — ${tx.stk}</div>
+                <div class="tx-carrier">${tx.bank} · ${tx.stk}</div>
                 <div class="tx-time">${tx.time}</div>
               </div>
             </div>
@@ -377,7 +371,6 @@
         const amount = parseInt(document.getElementById('inp-amount').value) || 0;
         const bank   = document.getElementById('inp-bank').value;
         const stk    = document.getElementById('inp-stk').value.trim();
-        const name   = document.getElementById('inp-name').value.trim().toUpperCase();
         const bal    = getBalance(session.email);
 
         if (!amount || amount < 20000) {
@@ -392,16 +385,13 @@
         if (!stk || stk.length < 6) {
           showResult('error', '✗ Số tài khoản không hợp lệ', 'Vui lòng nhập số tài khoản hợp lệ (ít nhất 6 chữ số).'); return;
         }
-        if (!name) {
-          showResult('error', '✗ Thiếu tên chủ tài khoản', 'Vui lòng nhập tên chủ tài khoản.'); return;
-        }
 
         setLoading(true);
         await new Promise(r => setTimeout(r, 1200));
 
         deductBalance(session.email, amount);
         saveWithdraw({
-          amount, bank, stk, name,
+          amount, bank, stk,
           status: 'pending',
           time: new Date().toLocaleString('vi-VN'),
         });
@@ -410,15 +400,14 @@
         refreshBalance();
         renderHistory();
 
-        showResult('pending',
-          '⏳ Yêu cầu đã được ghi nhận',
-          `Rút ${formatMoney(amount)} đ về ${bank} — ${stk} (${name}). Admin sẽ xử lý trong 24 giờ.`
+        showResult('success',
+          '✓ Rút tiền thành công',
+          'Vui lòng đợi 5-10 phút để nhận tiền về tài khoản của bạn.'
         );
 
         document.getElementById('inp-amount').value = '';
         document.getElementById('inp-bank').value   = '';
         document.getElementById('inp-stk').value    = '';
-        document.getElementById('inp-name').value   = '';
         document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
         selectedAmount = null;
       }
