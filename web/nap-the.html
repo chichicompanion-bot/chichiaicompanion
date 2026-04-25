@@ -113,6 +113,30 @@
       .tx-status.error   { color: #f87171; }
       .tx-empty { text-align: center; color: #4a4860; font-size: 13px; padding: 24px; }
 
+      /* Tabs */
+      .tab-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+      .tab-btn { padding: 9px 20px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #9490b0; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; }
+      .tab-btn:hover { border-color: rgba(124,58,237,.4); color: #fff; }
+      .tab-btn.active { border-color: #7c3aed; background: rgba(124,58,237,.18); color: #fff; box-shadow: 0 0 14px rgba(124,58,237,.25); }
+      .tab-panel { display: none; }
+      .tab-panel.active { display: block; }
+
+      /* Bank transfer */
+      .bank-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+      .bank-qr-wrap { background: #fff; border-radius: 14px; padding: 14px; display: inline-block; box-shadow: 0 0 30px rgba(124,58,237,.2); }
+      .bank-qr-wrap img { display: block; width: 220px; height: 220px; object-fit: contain; }
+      .bank-info-box { width: 100%; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+      .bank-info-row { display: flex; justify-content: space-between; align-items: center; }
+      .bank-info-label { font-size: 13px; color: #9490b0; }
+      .bank-info-value { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .5px; }
+      .bank-copy-btn { background: rgba(124,58,237,.3); border: none; color: #a78bfa; font-size: 12px; font-weight: 600; font-family: inherit; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: background .2s; }
+      .bank-copy-btn:hover { background: rgba(124,58,237,.5); }
+      .bank-notice { width: 100%; background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); border-radius: 10px; padding: 14px 16px; }
+      .bank-notice-title { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+      .bank-notice ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+      .bank-notice ul li { font-size: 12.5px; color: #d4c57a; display: flex; gap: 8px; }
+      .bank-notice ul li::before { content: '⚠'; flex-shrink: 0; }
+
       @media (max-width: 768px) {
         .main-grid { grid-template-columns: 1fr; }
         .topbar { padding: 14px 16px; }
@@ -120,6 +144,7 @@
         .page-content { padding: 24px 16px; }
         .carrier-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
         .denom-grid { grid-template-columns: repeat(3, 1fr); }
+        .bank-qr-wrap img { width: 180px; height: 180px; }
       }
     </style>
   </head>
@@ -152,12 +177,20 @@
       </header>
 
       <main class="page-content">
-        <h1 class="page-title">Nạp thẻ cào</h1>
-        <p class="page-sub">Nhập thông tin thẻ — hệ thống tự động xử lý và cộng tiền vào tài khoản</p>
+        <h1 class="page-title">Nạp tiền</h1>
+        <p class="page-sub">Chọn phương thức nạp tiền phù hợp với bạn</p>
+
+        <!-- Tab buttons -->
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('card')">📱 Nạp thẻ cào</button>
+          <button class="tab-btn" onclick="switchTab('bank')">🏦 Chuyển khoản ngân hàng</button>
+        </div>
 
         <div class="main-grid">
           <!-- Form -->
           <div>
+            <!-- Tab: Nạp thẻ cào -->
+            <div id="tab-card" class="tab-panel active">
             <div class="form-card">
               <div class="form-card-title">📱 Chọn nhà mạng</div>
               <div class="carrier-grid">
@@ -220,6 +253,47 @@
                 <div class="tx-empty">Chưa có giao dịch nào</div>
               </div>
             </div>
+            </div><!-- end tab-card -->
+
+            <!-- Tab: Chuyển khoản -->
+            <div id="tab-bank" class="tab-panel">
+              <div class="bank-card">
+                <div class="bank-qr-wrap">
+                  <img src="./images/qr-ngan-hang.png" alt="QR chuyển khoản" />
+                </div>
+
+                <div class="bank-info-box">
+                  <div class="bank-info-row">
+                    <span class="bank-info-label">Ngân hàng</span>
+                    <span class="bank-info-value">AB Bank</span>
+                  </div>
+                  <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
+                  <div class="bank-info-row">
+                    <span class="bank-info-label">Số tài khoản</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span class="bank-info-value" id="stk-display">0903722295</span>
+                      <button class="bank-copy-btn" onclick="copySTK()">Sao chép</button>
+                    </div>
+                  </div>
+                  <div style="height:1px;background:rgba(255,255,255,0.06)"></div>
+                  <div class="bank-info-row">
+                    <span class="bank-info-label">Nội dung CK</span>
+                    <span class="bank-info-value" style="font-size:13px;color:#a78bfa">Email đăng ký tài khoản</span>
+                  </div>
+                </div>
+
+                <div class="bank-notice">
+                  <div class="bank-notice-title">⚠ Lưu ý quan trọng</div>
+                  <ul>
+                    <li>Nội dung chuyển khoản phải là <strong>Gmail đăng ký tài khoản</strong> của bạn</li>
+                    <li>Sai nội dung mất tiền — admin không chịu trách nhiệm</li>
+                    <li>Sau khi chuyển khoản, liên hệ admin để xác nhận nạp tiền</li>
+                    <li>Số tiền tối thiểu mỗi lần nạp: <strong>10.000 đ</strong></li>
+                  </ul>
+                </div>
+              </div>
+            </div><!-- end tab-bank -->
+
           </div>
 
           <!-- Sidebar -->
@@ -267,6 +341,20 @@
 
       let selectedCarrier = null;
       let selectedDenom   = null;
+
+      function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (tab === 'card' && i === 0) || (tab === 'bank' && i === 1)));
+        document.getElementById('tab-card').classList.toggle('active', tab === 'card');
+        document.getElementById('tab-bank').classList.toggle('active', tab === 'bank');
+      }
+
+      function copySTK() {
+        navigator.clipboard.writeText('0903722295').then(() => {
+          const btn = document.querySelector('.bank-copy-btn');
+          btn.textContent = 'Đã sao chép!';
+          setTimeout(() => { btn.textContent = 'Sao chép'; }, 2000);
+        });
+      }
 
       // Init UI
       document.getElementById('user-avatar').textContent = session.name.charAt(0).toUpperCase();
