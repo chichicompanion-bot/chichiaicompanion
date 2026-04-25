@@ -316,6 +316,113 @@ function saveAccount(name, email, password) {
   localStorage.setItem('cc_accounts', JSON.stringify(list));
 }
 
+const LOCAL_PENDING_ORDERS_KEY = 'cc_pending_admin_orders';
+const DISMISSED_PENDING_ORDERS_KEY = 'cc_pending_admin_dismissed';
+function getPendingAdminOrders() {
+  return JSON.parse(localStorage.getItem(LOCAL_PENDING_ORDERS_KEY) || '[]');
+}
+function savePendingAdminOrders(list) {
+  localStorage.setItem(LOCAL_PENDING_ORDERS_KEY, JSON.stringify(list));
+}
+function getDismissedPendingOrders() {
+  return JSON.parse(localStorage.getItem(DISMISSED_PENDING_ORDERS_KEY) || '[]');
+}
+function saveDismissedPendingOrders(list) {
+  localStorage.setItem(DISMISSED_PENDING_ORDERS_KEY, JSON.stringify(list));
+}
+function normalizeOrderIdPart(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+function buildPendingOrderId(data) {
+  if (data.id) return String(data.id);
+  return [
+    data.type || 'order',
+    data.email,
+    data.amount,
+    data.bank,
+    data.stk,
+    data.time,
+    data.note,
+  ].map(normalizeOrderIdPart).filter(Boolean).join('_');
+}
+function parseViDateTime(text) {
+  const match = String(text || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!match) return 0;
+  return new Date(
+    Number(match[6]),
+    Number(match[5]) - 1,
+    Number(match[4]),
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3] || 0)
+  ).getTime();
+}
+function createPendingOrder(data) {
+  return {
+    id: buildPendingOrderId(data),
+    type: data.type,
+    email: data.email,
+    amount: Number(data.amount || 0),
+    bank: data.bank || null,
+    stk: data.stk || null,
+    note: data.note || null,
+    ts: Number(data.ts) || parseViDateTime(data.time) || Date.now(),
+    time: data.time || new Date().toLocaleString('vi-VN'),
+  };
+}
+function queuePendingOrder(order) {
+  const next = createPendingOrder(order);
+  const list = getPendingAdminOrders().filter(function(item) { return item.id !== next.id; });
+  list.unshift(next);
+  savePendingAdminOrders(list);
+  return next;
+}
+function removePendingOrder(id) {
+  savePendingAdminOrders(getPendingAdminOrders().filter(function(item) { return item.id !== id; }));
+}
+function dismissPendingOrder(id) {
+  removePendingOrder(id);
+  const list = getDismissedPendingOrders().filter(function(item) { return item !== id; });
+  list.push(id);
+  saveDismissedPendingOrders(list);
+}
+function getBackfilledPendingOrders() {
+  const orders = [];
+  getAccounts().forEach(function(account) {
+    const withdrawals = JSON.parse(localStorage.getItem('cc_withdrawals_' + account.email) || '[]');
+    withdrawals.forEach(function(tx) {
+      if (!tx || tx.status !== 'pending') return;
+      orders.push(createPendingOrder({
+        id: tx.orderId,
+        type: 'withdrawal',
+        email: account.email,
+        amount: tx.amount,
+        bank: tx.bank,
+        stk: tx.stk,
+        time: tx.time,
+      }));
+    });
+  });
+  return orders;
+}
+function mergePendingOrders(remoteOrders) {
+  const byId = new Map();
+  const dismissed = new Set(getDismissedPendingOrders());
+  []
+    .concat(Array.isArray(remoteOrders) ? remoteOrders : [])
+    .concat(getPendingAdminOrders())
+    .concat(getBackfilledPendingOrders())
+    .forEach(function(order) {
+      if (!order || !order.id) return;
+      if (dismissed.has(order.id)) return;
+      byId.set(order.id, order);
+    });
+  return Array.from(byId.values()).sort(function(a, b) { return Number(b.ts || 0) - Number(a.ts || 0); });
+}
+
 function createAdminNavLink(nav, id, href, label) {
   const link = document.createElement('a');
   const template = nav.querySelector('.nav-link');

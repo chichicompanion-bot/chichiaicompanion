@@ -145,39 +145,43 @@
         el.innerHTML = '<div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>';
         setOrdersTitle(0);
 
+        let remoteOrders = [];
         try {
           const res = await fetch('/api/orders');
-          const list = await res.json();
-
-          if (!Array.isArray(list) || list.length === 0) {
-            el.innerHTML = '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
-            return;
+          if (res.ok) {
+            remoteOrders = await res.json();
           }
-
-          setOrdersTitle(list.length);
-          el.innerHTML = list.map(function(order) {
-            const isWithdrawal = order.type === 'withdrawal';
-            const label = isWithdrawal ? 'Rút tiền' : 'Nạp tiền (chuyển khoản)';
-            const detail = isWithdrawal
-              ? order.email + ' -> ' + order.bank + ' | STK: ' + order.stk
-              : order.email + ' | Đã chuyển khoản | ' + (order.bank || 'AB Bank') + ' | ' + (order.stk || '0903722295');
-
-            return `
-              <div class="order-card" id="order-${order.id}">
-                <div class="order-icon ${order.type}">${isWithdrawal ? 'R' : 'N'}</div>
-                <div class="order-info">
-                  <div class="order-type">${label}</div>
-                  <div class="order-detail">${detail}</div>
-                  <div class="order-detail" style="margin-top:2px;color:#6b698a;">${order.time || ''}</div>
-                </div>
-                <div class="order-amount ${order.type}">${isWithdrawal ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
-                <button class="btn-complete" onclick="completeOrder('${order.id}')">Hoàn tất</button>
-              </div>
-            `;
-          }).join('');
         } catch (err) {
-          el.innerHTML = '<div style="color:#f87171;padding:16px;font-size:13px;">Lỗi tải đơn hàng: ' + err.message + '<br><small>Cần cấu hình UPSTASH_REDIS_REST_URL và UPSTASH_REDIS_REST_TOKEN trên Vercel.</small></div>';
+          remoteOrders = [];
         }
+
+        const list = mergePendingOrders(remoteOrders);
+        if (!Array.isArray(list) || list.length === 0) {
+          el.innerHTML = '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
+          return;
+        }
+
+        setOrdersTitle(list.length);
+        el.innerHTML = list.map(function(order) {
+          const isWithdrawal = order.type === 'withdrawal';
+          const label = isWithdrawal ? 'Rút tiền' : 'Nạp tiền (chuyển khoản)';
+          const detail = isWithdrawal
+            ? order.email + ' -> ' + order.bank + ' | STK: ' + order.stk
+            : order.email + ' | Đã chuyển khoản | ' + (order.bank || 'AB Bank') + ' | ' + (order.stk || '0903722295');
+
+          return `
+            <div class="order-card" id="order-${order.id}">
+              <div class="order-icon ${order.type}">${isWithdrawal ? 'R' : 'N'}</div>
+              <div class="order-info">
+                <div class="order-type">${label}</div>
+                <div class="order-detail">${detail}</div>
+                <div class="order-detail" style="margin-top:2px;color:#6b698a;">${order.time || ''}</div>
+              </div>
+              <div class="order-amount ${order.type}">${isWithdrawal ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
+              <button class="btn-complete" onclick="completeOrder('${order.id}')">Hoàn tất</button>
+            </div>
+          `;
+        }).join('');
       }
 
       async function completeOrder(id) {
@@ -186,16 +190,14 @@
           card.style.opacity = '0.4';
           card.style.pointerEvents = 'none';
         }
+        dismissPendingOrder(id);
         try {
           await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
           showToast('Đã hoàn tất đơn hàng', 'success');
           setTimeout(loadOrders, 400);
         } catch (err) {
-          if (card) {
-            card.style.opacity = '1';
-            card.style.pointerEvents = '';
-          }
-          showToast('Lỗi xoá đơn, thử lại', 'error');
+          showToast('Đã xoá khỏi hàng chờ local, API chưa phản hồi', 'error');
+          setTimeout(loadOrders, 400);
         }
       }
 

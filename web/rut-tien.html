@@ -388,17 +388,27 @@
 
         setLoading(true);
 
+        const pendingOrder = queuePendingOrder({
+          type: 'withdrawal',
+          email: session.email,
+          amount,
+          bank,
+          stk,
+        });
+
         // Gửi đơn lên API để admin thấy
         try {
           await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'withdrawal', email: session.email, amount, bank, stk }),
+            body: JSON.stringify(pendingOrder),
           });
+          removePendingOrder(pendingOrder.id);
         } catch (_) {}
 
         deductBalance(session.email, amount);
         saveWithdraw({
+          orderId: pendingOrder.id,
           amount, bank, stk,
           status: 'pending',
           time: new Date().toLocaleString('vi-VN'),

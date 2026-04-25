@@ -47,15 +47,15 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Thiếu thông tin đơn hàng.' });
       }
       const order = {
-        id:     `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id:     b.id || `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         type:   b.type,    // 'withdrawal' | 'bank_transfer'
         email:  b.email,
         amount: Number(b.amount),
         bank:   b.bank  || null,
         stk:    b.stk   || null,
         note:   b.note  || null,
-        ts:     Date.now(),
-        time:   new Date().toLocaleString('vi-VN'),
+        ts:     Number(b.ts) || Date.now(),
+        time:   b.time || new Date().toLocaleString('vi-VN'),
       };
       await redis(URL, TOKEN, 'hset', KEY, order.id, JSON.stringify(order));
       return res.json({ ok: true, id: order.id });

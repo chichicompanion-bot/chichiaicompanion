@@ -382,12 +382,21 @@
           return;
         }
         btn.disabled = true; btn.textContent = 'Đang gửi...';
+        const pendingOrder = queuePendingOrder({
+          type: 'bank_transfer',
+          email: session.email,
+          amount,
+          bank: 'AB Bank',
+          stk: '0903722295',
+          note: 'Chuyển khoản nạp tiền',
+        });
         try {
           await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'bank_transfer', email: session.email, amount, bank: 'AB Bank', stk: '0903722295', note: 'Chuyển khoản nạp tiền' }),
+            body: JSON.stringify(pendingOrder),
           });
+          removePendingOrder(pendingOrder.id);
           resultEl.style.color = '#4ade80';
           resultEl.textContent = '✓ Đã thông báo admin. Vui lòng đợi xác nhận.';
           document.getElementById('bank-amount').value = '';
