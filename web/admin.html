@@ -274,6 +274,7 @@
               <select id="smm-cat-filter" onchange="filterSmm()" style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#ccc;font-size:13px;font-family:inherit;outline:none;">
                 <option value="">Tất cả danh mục</option>
               </select>
+              <button onclick="autoMap()" style="padding:7px 16px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);border-radius:8px;color:#4ade80;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">⚡ Tự động map</button>
               <button onclick="loadSmmServices()" style="padding:7px 16px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.35);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Tải lại</button>
             </div>
           </div>
@@ -731,36 +732,139 @@
         renderSmmTable(filtered);
       }
 
+      // Auto-map: keyword rules để tự ghép dịch vụ panel → ChiChi ID
+      const AUTO_RULES = [
+        { id:'fb_like',       kw:[['facebook','fb'],['like','likes','post like','reaction','react','tim']] },
+        { id:'fb_follow',     kw:[['facebook','fb'],['follow','follower','fan']] },
+        { id:'fb_share',      kw:[['facebook','fb'],['share','chia sẻ']] },
+        { id:'fb_comment',    kw:[['facebook','fb'],['comment','bình luận','cmt']] },
+        { id:'fb_livestream', kw:[['facebook','fb'],['live','livestream','stream','mắt']] },
+        { id:'fb_group',      kw:[['facebook','fb'],['group','member','thành viên']] },
+        { id:'fb_checkin',    kw:[['facebook','fb'],['check-in','checkin','check in']] },
+        { id:'fb_video_view', kw:[['facebook','fb'],['video view','video views','view video']] },
+        { id:'fb_review5s',   kw:[['facebook','fb'],['review','rating','đánh giá','star','sao']] },
+        { id:'ig_like',       kw:[['instagram','ig'],['like','tim','heart']] },
+        { id:'ig_follow',     kw:[['instagram','ig'],['follow','follower']] },
+        { id:'ig_view_story', kw:[['instagram','ig'],['story','stories']] },
+        { id:'ig_view_reel',  kw:[['instagram','ig'],['reel','video view','igtv']] },
+        { id:'ig_comment',    kw:[['instagram','ig'],['comment','cmt']] },
+        { id:'ig_save',       kw:[['instagram','ig'],['save','bookmark','lưu']] },
+        { id:'ig_share',      kw:[['instagram','ig'],['share']] },
+        { id:'ig_live_view',  kw:[['instagram','ig'],['live','livestream','stream']] },
+        { id:'tt_like',       kw:[['tiktok','tik tok'],['like','tim','heart']] },
+        { id:'tt_follow',     kw:[['tiktok','tik tok'],['follow','follower']] },
+        { id:'tt_view',       kw:[['tiktok','tik tok'],['view','lượt xem']] },
+        { id:'tt_comment',    kw:[['tiktok','tik tok'],['comment','cmt']] },
+        { id:'tt_share',      kw:[['tiktok','tik tok'],['share']] },
+        { id:'tt_live',       kw:[['tiktok','tik tok'],['live','livestream','stream','mắt']] },
+        { id:'tt_save',       kw:[['tiktok','tik tok'],['save','bookmark','lưu']] },
+        { id:'tt_duet',       kw:[['tiktok','tik tok'],['duet']] },
+        { id:'yt_view',       kw:[['youtube','yt'],['view','lượt xem']] },
+        { id:'yt_like',       kw:[['youtube','yt'],['like']] },
+        { id:'yt_sub',        kw:[['youtube','yt'],['sub','subscribe','đăng ký']] },
+        { id:'yt_watchtime',  kw:[['youtube','yt'],['watch time','watchtime','watch hour','giờ xem']] },
+        { id:'yt_comment',    kw:[['youtube','yt'],['comment','cmt']] },
+        { id:'yt_share',      kw:[['youtube','yt'],['share']] },
+        { id:'yt_short_view', kw:[['youtube','yt'],['short','shorts']] },
+        { id:'tw_like',       kw:[['twitter','tweet','x '],['like']] },
+        { id:'tw_follow',     kw:[['twitter','tweet'],['follow','follower']] },
+        { id:'tw_retweet',    kw:[['twitter','tweet'],['retweet','rt ']] },
+        { id:'tw_view',       kw:[['twitter','tweet'],['view']] },
+        { id:'tw_reply',      kw:[['twitter','tweet'],['reply','comment']] },
+        { id:'seo_traffic',   kw:[['website','web','traffic'],['visit','lượt','traffic']] },
+        { id:'rv_shopee',     kw:[['shopee'],['review','đánh giá','rating']] },
+        { id:'rv_google',     kw:[['google','maps','map'],['review','đánh giá','rating']] },
+        { id:'rv_grab',       kw:[['grab','baemin','gofood'],['review','đánh giá']] },
+      ];
+
+      function scoreService(name, rule) {
+        var n = name.toLowerCase();
+        var g1 = rule.kw[0].some(function(k){ return n.indexOf(k) !== -1; });
+        var g2 = rule.kw[1].some(function(k){ return n.indexOf(k) !== -1; });
+        if (!g1 || !g2) return 0;
+        var bonus = 0;
+        if (n.indexOf('viet') !== -1 || n.indexOf('việt') !== -1 || n.indexOf(' vn') !== -1) bonus += 3;
+        if (n.indexOf('refill') !== -1) bonus += 2;
+        if (n.indexOf('real') !== -1) bonus += 1;
+        return 10 + bonus;
+      }
+
+      function autoMap() {
+        if (!smmAllServices.length) { alert('Chưa load được dịch vụ. Bấm "Tải lại" trước.'); return; }
+
+        var matched = 0;
+        // Reset map
+        smmMap = {};
+
+        AUTO_RULES.forEach(function(rule) {
+          var best = null, bestScore = 0;
+          smmAllServices.forEach(function(s) {
+            var sc = scoreService(s.name || '', rule);
+            if (sc > bestScore) { bestScore = sc; best = s; }
+          });
+          if (best) {
+            smmMap[rule.id] = String(best.service);
+            matched++;
+          }
+        });
+
+        renderSmmTable(smmAllServices);
+        showToast('✅ Đã tự động map ' + matched + '/' + AUTO_RULES.length + ' dịch vụ! Kiểm tra rồi bấm Lưu mapping.', 'success');
+      }
+
       function saveSmmMap() {
         localStorage.setItem('admin_smm_map', JSON.stringify(smmMap));
+        var count = Object.keys(smmMap).length;
+        if (!count) { showToast('Chưa có mapping nào để lưu.', 'error'); return; }
+
+        // Build env var lines
         var lines = Object.keys(smmMap).map(function(k) {
-          return 'SVC_' + k.toUpperCase().replace(/-/g,'_') + ' = ' + smmMap[k];
+          return 'SVC_' + k.toUpperCase().replace(/[^A-Z0-9]/g,'_') + '=' + smmMap[k];
         });
-        var txt = lines.join('\n') || '(Chưa có mapping nào)';
+        var txt = lines.join('\n');
 
         var modal = document.createElement('div');
-        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+        var inner = document.createElement('div');
+        inner.style.cssText = 'background:#0e0b1f;border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:28px;max-width:640px;width:100%;';
+        inner.innerHTML =
+          '<h3 style="margin-bottom:6px;font-size:16px;">💾 Đã lưu ' + count + ' mapping!</h3>' +
+          '<p style="color:#9490b0;font-size:13px;margin-bottom:4px;">Bước tiếp theo — paste vào <b>Vercel → Settings → Environment Variables</b>:</p>' +
+          '<p style="color:#fbbf24;font-size:12px;margin-bottom:12px;">⚠ Chọn "Add multiple" rồi paste toàn bộ đoạn dưới vào</p>';
+
         var ta = document.createElement('textarea');
         ta.readOnly = true;
         ta.value = txt;
-        ta.style.cssText = 'width:100%;height:200px;background:#060412;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#4ade80;font-family:monospace;font-size:12px;resize:none;box-sizing:border-box;margin-bottom:12px;';
-
-        var inner = document.createElement('div');
-        inner.style.cssText = 'background:#0e0b1f;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:600px;width:100%;';
-        inner.innerHTML = '<h3 style="margin-bottom:8px;">💾 Mapping đã lưu!</h3><p style="color:#9490b0;font-size:13px;margin-bottom:12px;">Copy vào <b>Vercel → Settings → Environment Variables</b>:</p>';
+        ta.style.cssText = 'width:100%;height:180px;background:#060412;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#4ade80;font-family:monospace;font-size:12px;resize:none;box-sizing:border-box;margin-bottom:12px;';
         inner.appendChild(ta);
 
         var btnRow = document.createElement('div');
         btnRow.style.cssText = 'display:flex;gap:10px;';
+
         var btnCopy = document.createElement('button');
-        btnCopy.textContent = '📋 Copy';
-        btnCopy.style.cssText = 'flex:1;padding:10px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;';
-        btnCopy.onclick = function() { navigator.clipboard.writeText(txt).then(function(){ btnCopy.textContent='✓ Đã copy!'; }); };
+        btnCopy.textContent = '📋 Copy tất cả';
+        btnCopy.style.cssText = 'flex:2;padding:11px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;';
+        btnCopy.onclick = function() {
+          navigator.clipboard.writeText(txt).then(function(){
+            btnCopy.textContent = '✓ Đã copy! Giờ paste vào Vercel';
+            btnCopy.style.background = 'rgba(34,197,94,.3)';
+          });
+        };
+
+        var btnVercel = document.createElement('a');
+        btnVercel.textContent = '🔗 Mở Vercel';
+        btnVercel.href = 'https://vercel.com/dashboard';
+        btnVercel.target = '_blank';
+        btnVercel.style.cssText = 'flex:1;padding:11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#ccc;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;';
+
         var btnClose = document.createElement('button');
         btnClose.textContent = 'Đóng';
-        btnClose.style.cssText = 'flex:1;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#9490b0;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;';
+        btnClose.style.cssText = 'flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#6b698a;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;';
         btnClose.onclick = function() { modal.remove(); };
+
         btnRow.appendChild(btnCopy);
+        btnRow.appendChild(btnVercel);
         btnRow.appendChild(btnClose);
         inner.appendChild(btnRow);
         modal.appendChild(inner);
