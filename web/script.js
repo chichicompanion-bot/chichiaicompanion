@@ -265,6 +265,12 @@
 //  AUTH LOGIC
 // ═══════════════════════════════════════════════════════════
 const ADMIN_EMAIL = 'nguyenngoctri2910@gmail.com';
+function isAdminEmail(email) {
+  return String(email || '').trim().toLowerCase() === ADMIN_EMAIL;
+}
+function isAdminSession(session) {
+  return !!(session && isAdminEmail(session.email));
+}
 function getRedirectUrl(email) {
   return './dashboard.html';
 }
@@ -310,6 +316,52 @@ function saveAccount(name, email, password) {
   localStorage.setItem('cc_accounts', JSON.stringify(list));
 }
 
+function createAdminNavLink(nav, id, href, label) {
+  const link = document.createElement('a');
+  const template = nav.querySelector('.nav-link');
+  link.id = id;
+  link.href = href;
+  link.textContent = label;
+  if (template) {
+    link.className = template.className;
+  } else {
+    link.style.cssText = 'padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;display:inline-block;';
+  }
+  return link;
+}
+
+function applyAdminNavigation(session) {
+  if (!isAdminSession(session)) return;
+  const nav = document.querySelector('.topbar-nav, header.topbar nav, header nav');
+  if (!nav) return;
+
+  const currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
+  let adminLink = document.getElementById('nav-admin') || nav.querySelector('a[href="./admin.html"]');
+  if (!adminLink) {
+    adminLink = createAdminNavLink(nav, 'nav-admin', './admin.html', '⚙️ Điều hành');
+    nav.appendChild(adminLink);
+  }
+  if (!adminLink.id) adminLink.id = 'nav-admin';
+
+  let ordersLink = document.getElementById('nav-orders') || nav.querySelector('a[href="./orders.html"]');
+  if (!ordersLink) {
+    ordersLink = createAdminNavLink(nav, 'nav-orders', './orders.html', '📋 Đơn hàng');
+    if (adminLink.nextSibling) nav.insertBefore(ordersLink, adminLink.nextSibling);
+    else nav.appendChild(ordersLink);
+  }
+  if (!ordersLink.id) ordersLink.id = 'nav-orders';
+
+  adminLink.style.display = 'inline-block';
+  ordersLink.style.display = 'inline-block';
+
+  if (adminLink.classList.contains('nav-link')) {
+    adminLink.classList.toggle('active', currentPage === 'admin.html');
+  }
+  if (ordersLink.classList.contains('nav-link')) {
+    ordersLink.classList.toggle('active', currentPage === 'orders.html');
+  }
+}
+
 // Pre-seed admin account if not exists
 (function seedAdmin() {
   const adminEmail = ADMIN_EMAIL;
@@ -318,6 +370,11 @@ function saveAccount(name, email, password) {
     accounts.push({ name: 'Admin', email: adminEmail, password: 'shsajaks' });
     localStorage.setItem('cc_accounts', JSON.stringify(accounts));
   }
+})();
+
+(function initAdminNavigation() {
+  const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+  applyAdminNavigation(session);
 })();
 
 const _loginForm = document.getElementById('login-form');

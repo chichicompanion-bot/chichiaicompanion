@@ -177,6 +177,7 @@
           <a href="./chuyen-diem.html" style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Chuyển tiền</a>
           <a href="./dich-vu.html"     style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Dịch vụ</a>
           <a href="./admin.html"       style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.15);text-decoration:none;">⚙️ Điều hành</a>
+          <a href="./orders.html" id="nav-orders" style="padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#9490b0;text-decoration:none;">Đơn hàng</a>
         </nav>
         <div class="topbar-right">
           <div style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:#a78bfa;">💰 <span id="nav-balance">0</span> đ</div>
@@ -213,17 +214,6 @@
             <div class="stat-label">Tổng thu nhập</div>
             <div class="stat-value" id="st-income">0 đ</div>
             <div class="stat-sub">Lợi nhuận từ phí dịch vụ</div>
-          </div>
-        </div>
-
-        <!-- Orders -->
-        <div class="section" style="margin-bottom:24px;" id="orders-section">
-          <div class="section-head">
-            <h3>📋 Đơn hàng chờ xử lý</h3>
-            <button onclick="loadOrders()" style="padding:6px 14px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Làm mới</button>
-          </div>
-          <div id="orders-list" style="padding:12px 16px;">
-            <div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Đang tải đơn hàng...</div>
           </div>
         </div>
 
@@ -912,64 +902,7 @@
       renderTxLog();
       populateAdjDatalist();
       loadSmmServices();
-      loadOrders();
 
-      // ── Đơn hàng ──────────────────────────────────────────────
-      async function loadOrders() {
-        const el = document.getElementById('orders-list');
-        el.innerHTML = '<div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>';
-        try {
-          const res  = await fetch('/api/orders');
-          const list = await res.json();
-
-          if (!Array.isArray(list) || list.length === 0) {
-            el.innerHTML = '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
-            return;
-          }
-
-          el.innerHTML = list.map(o => {
-            const isWd  = o.type === 'withdrawal';
-            const label = isWd ? '💸 Rút tiền' : '💰 Nạp tiền (CK ngân hàng)';
-            const detail = isWd
-              ? `${o.email} → ${o.bank} · STK: ${o.stk}`
-              : `${o.email} · Đã chuyển khoản · ${o.bank || 'AB Bank'} · ${o.stk || '0903722295'}`;
-            return `
-              <div class="order-card" id="order-${o.id}">
-                <div class="order-icon ${o.type}">${isWd ? '💸' : '💰'}</div>
-                <div class="order-info">
-                  <div class="order-type">${label}</div>
-                  <div class="order-detail">${detail}</div>
-                  <div class="order-detail" style="margin-top:2px;color:#6b698a;">${o.time}</div>
-                </div>
-                <div class="order-amount ${o.type}">${isWd ? '-' : '+'}${Number(o.amount).toLocaleString('vi-VN')} đ</div>
-                <button class="btn-complete" onclick="completeOrder('${o.id}')">✓ Hoàn tất</button>
-              </div>`;
-          }).join('');
-
-          // Hiện số đơn ở tiêu đề
-          document.querySelector('#orders-section .section-head h3').textContent =
-            `📋 Đơn hàng chờ xử lý (${list.length})`;
-
-        } catch (err) {
-          el.innerHTML = `<div style="color:#f87171;padding:16px;font-size:13px;">Lỗi tải đơn hàng: ${err.message}<br><small>Cần cài đặt UPSTASH_REDIS_REST_URL và UPSTASH_REDIS_REST_TOKEN trong Vercel.</small></div>`;
-        }
-      }
-
-      async function completeOrder(id) {
-        const card = document.getElementById('order-' + id);
-        if (card) {
-          card.style.opacity = '0.4';
-          card.style.pointerEvents = 'none';
-        }
-        try {
-          await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
-          showToast('success', '✓ Đơn hoàn tất');
-          setTimeout(loadOrders, 400);
-        } catch (_) {
-          if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
-          showToast('error', 'Lỗi xoá đơn, thử lại');
-        }
-      }
     </script>
   </body>
 </html>

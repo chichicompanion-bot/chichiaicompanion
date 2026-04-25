@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đơn Hàng | Trungtammxh</title>
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="apple-touch-icon" href="images/logo.png">
+    <meta property="og:image" content="https://chichiaicompanion.com/images/logo.png">
+    <meta property="og:title" content="Trungtammxh">
+    <meta property="og:description" content="Dịch vụ mạng xã hội - SMM Panel">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      body { overflow: auto; }
+      .orders-wrap { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 36px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(4,2,14,0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 50; }
+      .topbar-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+      .topbar-right { display: flex; align-items: center; gap: 16px; }
+      .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #6366f1); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; box-shadow: 0 0 16px rgba(124,58,237,.5); }
+      .user-name { font-size: 14px; font-weight: 500; color: #ddd; }
+      .btn-logout { padding: 7px 16px; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: background .2s; }
+      .btn-logout:hover { background: rgba(248,113,113,0.22); }
+      .admin-nav { display:flex; gap:4px; }
+      .admin-nav a { padding:7px 14px; border-radius:8px; font-size:13px; font-weight:500; color:#9490b0; text-decoration:none; }
+      .admin-nav a.active { color:#fff; background:rgba(124,58,237,0.25); }
+      .orders-content { max-width: 1100px; margin: 0 auto; width: 100%; padding: 32px 24px; }
+      .page-head { margin-bottom: 18px; }
+      .page-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 8px; }
+      .page-head p { color: #7a7890; font-size: 14px; }
+      .section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; }
+      .section-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .section-head h3 { font-size: 14px; font-weight: 600; }
+      .section-head span { font-size: 12px; color: #6b698a; }
+      .btn-refresh { padding: 6px 14px; background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3); border-radius: 8px; color: #a78bfa; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; }
+      .orders-list { padding: 12px 16px; }
+      .order-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+      .order-card:last-child { margin-bottom: 0; }
+      .order-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+      .order-icon.withdrawal { background: rgba(248,113,113,.15); }
+      .order-icon.bank_transfer { background: rgba(34,197,94,.12); }
+      .order-info { flex: 1; }
+      .order-type { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+      .order-detail { font-size: 12px; color: #9490b0; }
+      .order-amount { font-size: 18px; font-weight: 700; color: #fff; text-align: right; margin-right: 16px; white-space: nowrap; }
+      .order-amount.withdrawal { color: #f87171; }
+      .order-amount.bank_transfer { color: #4ade80; }
+      .btn-complete { padding: 8px 18px; background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); border-radius: 8px; color: #4ade80; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; white-space: nowrap; }
+      .btn-complete:hover { background: rgba(34,197,94,.28); }
+      .toast { position: fixed; bottom: 32px; right: 32px; z-index: 999; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
+      .toast.show { transform: translateY(0); opacity: 1; }
+      .toast.success { background: rgba(22,163,74,0.95); border: 1px solid rgba(34,197,94,0.4); color: #fff; }
+      .toast.error { background: rgba(185,28,28,0.95); border: 1px solid rgba(248,113,113,0.4); color: #fff; }
+      @media (max-width: 768px) {
+        .topbar { padding: 12px 16px; }
+        .orders-content { padding: 20px 14px; }
+        .order-card { flex-wrap: wrap; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="orbs"></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="orders-wrap">
+      <header class="topbar">
+        <div class="topbar-logo">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="18" fill="url(#g1)"/>
+            <path d="M11 18c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" fill="white" opacity=".3"/>
+            <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+          </svg>
+          Trungtammxh
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./rut-tien.html">Rút tiền</a>
+          <a href="./nap-the.html">Nạp tiền</a>
+          <a href="./mua-the.html">Mua thẻ</a>
+          <a href="./chuyen-diem.html">Chuyển tiền</a>
+          <a href="./dich-vu.html">Dịch vụ</a>
+          <a href="./admin.html" id="nav-admin">Điều hành</a>
+          <a href="./orders.html" id="nav-orders" class="active">Đơn hàng</a>
+        </nav>
+        <div class="topbar-right">
+          <div style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:#a78bfa;">Số dư <span id="nav-balance">0</span> đ</div>
+          <div class="avatar" id="user-avatar">?</div>
+          <span class="user-name" id="user-name-display">...</span>
+          <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+        </div>
+      </header>
+
+      <main class="orders-content">
+        <div class="page-head">
+          <h1>Hệ thống đơn hàng</h1>
+          <p>Tách riêng khỏi trang điều hành và chỉ hiển thị cho tài khoản admin.</p>
+        </div>
+
+        <div class="section" id="orders-section">
+          <div class="section-head">
+            <div>
+              <h3 id="orders-title">Đơn hàng chờ xử lý</h3>
+              <span>Các yêu cầu rút tiền và thông báo chuyển khoản đang chờ xác nhận.</span>
+            </div>
+            <button class="btn-refresh" onclick="loadOrders()">Làm mới</button>
+          </div>
+          <div class="orders-list" id="orders-list">
+            <div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+    <script>
+      const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+      if (!isAdminSession(session)) {
+        window.location.href = './index.html';
+      }
+
+      document.getElementById('user-name-display').textContent = session.name || session.email;
+      document.getElementById('user-avatar').textContent = (session.name || session.email)[0].toUpperCase();
+
+      function refreshBalance() {
+        const bal = (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[session.email] || 0;
+        document.getElementById('nav-balance').textContent = Number(bal).toLocaleString('vi-VN');
+      }
+      refreshBalance();
+      window.addEventListener('storage', refreshBalance);
+
+      let toastTimer;
+      function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast ' + type + ' show';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+      }
+
+      function setOrdersTitle(count) {
+        document.getElementById('orders-title').textContent = count > 0
+          ? 'Đơn hàng chờ xử lý (' + count + ')'
+          : 'Đơn hàng chờ xử lý';
+      }
+
+      async function loadOrders() {
+        const el = document.getElementById('orders-list');
+        el.innerHTML = '<div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>';
+        setOrdersTitle(0);
+
+        try {
+          const res = await fetch('/api/orders');
+          const list = await res.json();
+
+          if (!Array.isArray(list) || list.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
+            return;
+          }
+
+          setOrdersTitle(list.length);
+          el.innerHTML = list.map(function(order) {
+            const isWithdrawal = order.type === 'withdrawal';
+            const label = isWithdrawal ? 'Rút tiền' : 'Nạp tiền (chuyển khoản)';
+            const detail = isWithdrawal
+              ? order.email + ' -> ' + order.bank + ' | STK: ' + order.stk
+              : order.email + ' | Đã chuyển khoản | ' + (order.bank || 'AB Bank') + ' | ' + (order.stk || '0903722295');
+
+            return `
+              <div class="order-card" id="order-${order.id}">
+                <div class="order-icon ${order.type}">${isWithdrawal ? 'R' : 'N'}</div>
+                <div class="order-info">
+                  <div class="order-type">${label}</div>
+                  <div class="order-detail">${detail}</div>
+                  <div class="order-detail" style="margin-top:2px;color:#6b698a;">${order.time || ''}</div>
+                </div>
+                <div class="order-amount ${order.type}">${isWithdrawal ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
+                <button class="btn-complete" onclick="completeOrder('${order.id}')">Hoàn tất</button>
+              </div>
+            `;
+          }).join('');
+        } catch (err) {
+          el.innerHTML = '<div style="color:#f87171;padding:16px;font-size:13px;">Lỗi tải đơn hàng: ' + err.message + '<br><small>Cần cấu hình UPSTASH_REDIS_REST_URL và UPSTASH_REDIS_REST_TOKEN trên Vercel.</small></div>';
+        }
+      }
+
+      async function completeOrder(id) {
+        const card = document.getElementById('order-' + id);
+        if (card) {
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+        }
+        try {
+          await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
+          showToast('Đã hoàn tất đơn hàng', 'success');
+          setTimeout(loadOrders, 400);
+        } catch (err) {
+          if (card) {
+            card.style.opacity = '1';
+            card.style.pointerEvents = '';
+          }
+          showToast('Lỗi xoá đơn, thử lại', 'error');
+        }
+      }
+
+      function logout() {
+        sessionStorage.removeItem('cc_session');
+        window.location.href = './index.html';
+      }
+
+      loadOrders();
+    </script>
+  </body>
+</html>
