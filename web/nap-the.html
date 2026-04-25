@@ -294,8 +294,18 @@
                   <ul>
                     <li>Nội dung chuyển khoản phải là <strong>Gmail đăng ký tài khoản</strong> của bạn</li>
                     <li>Sai nội dung mất tiền — admin không chịu trách nhiệm</li>
-<li>Số tiền tối thiểu mỗi lần nạp: <strong>10.000 đ</strong></li>
+                    <li>Số tiền tối thiểu mỗi lần nạp: <strong>10.000 đ</strong></li>
                   </ul>
+                </div>
+
+                <!-- Thông báo đã chuyển khoản -->
+                <div style="width:100%;">
+                  <div style="font-size:13px;color:#9490b0;margin-bottom:8px;">Nhập số tiền đã chuyển để thông báo admin:</div>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <input id="bank-amount" type="number" placeholder="Số tiền đã chuyển (đ)" min="10000" style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:14px;font-family:inherit;outline:none;" />
+                    <button onclick="notifyBankTransfer()" id="bank-notify-btn" style="padding:10px 18px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;">📨 Thông báo admin</button>
+                  </div>
+                  <div id="bank-notify-result" style="margin-top:10px;font-size:13px;min-height:18px;"></div>
                 </div>
               </div>
             </div><!-- end tab-bank -->
@@ -360,6 +370,32 @@
           btn.textContent = 'Đã sao chép!';
           setTimeout(() => { btn.textContent = 'Sao chép'; }, 2000);
         });
+      }
+
+      async function notifyBankTransfer() {
+        const amount = parseInt(document.getElementById('bank-amount').value) || 0;
+        const resultEl = document.getElementById('bank-notify-result');
+        const btn = document.getElementById('bank-notify-btn');
+        if (!amount || amount < 10000) {
+          resultEl.style.color = '#f87171';
+          resultEl.textContent = 'Vui lòng nhập số tiền đã chuyển (tối thiểu 10.000 đ).';
+          return;
+        }
+        btn.disabled = true; btn.textContent = 'Đang gửi...';
+        try {
+          await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'bank_transfer', email: session.email, amount, bank: 'AB Bank', stk: '0903722295', note: 'Chuyển khoản nạp tiền' }),
+          });
+          resultEl.style.color = '#4ade80';
+          resultEl.textContent = '✓ Đã thông báo admin. Vui lòng đợi xác nhận.';
+          document.getElementById('bank-amount').value = '';
+        } catch (_) {
+          resultEl.style.color = '#f87171';
+          resultEl.textContent = 'Lỗi kết nối, vui lòng thử lại.';
+        }
+        btn.disabled = false; btn.textContent = '📨 Thông báo admin';
       }
 
       // Init UI

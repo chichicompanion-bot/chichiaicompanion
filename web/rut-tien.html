@@ -321,7 +321,7 @@
 
       function setLoading(on) {
         document.getElementById('spinner').style.display = on ? 'block' : 'none';
-        document.getElementById('btn-text').textContent  = on ? 'Đang gửi...' : '💸 Gửi yêu cầu rút tiền';
+        document.getElementById('btn-text').textContent  = on ? 'Đang gửi...' : 'Rút Tiền';
         document.getElementById('submit-btn').disabled   = on;
       }
 
@@ -387,7 +387,15 @@
         }
 
         setLoading(true);
-        await new Promise(r => setTimeout(r, 1200));
+
+        // Gửi đơn lên API để admin thấy
+        try {
+          await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'withdrawal', email: session.email, amount, bank, stk }),
+          });
+        } catch (_) {}
 
         deductBalance(session.email, amount);
         saveWithdraw({

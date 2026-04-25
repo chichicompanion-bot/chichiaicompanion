@@ -100,6 +100,21 @@
       .toast.success { background: rgba(22,163,74,0.95); border: 1px solid rgba(34,197,94,0.4); color: #fff; }
       .toast.error   { background: rgba(185,28,28,0.95);  border: 1px solid rgba(248,113,113,0.4); color: #fff; }
 
+      /* Order cards */
+      .order-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+      .order-card:last-child { margin-bottom: 0; }
+      .order-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+      .order-icon.withdrawal { background: rgba(248,113,113,.15); }
+      .order-icon.bank_transfer { background: rgba(34,197,94,.12); }
+      .order-info { flex: 1; }
+      .order-type { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+      .order-detail { font-size: 12px; color: #9490b0; }
+      .order-amount { font-size: 18px; font-weight: 700; color: #fff; text-align: right; margin-right: 16px; white-space: nowrap; }
+      .order-amount.withdrawal { color: #f87171; }
+      .order-amount.bank_transfer { color: #4ade80; }
+      .btn-complete { padding: 8px 18px; background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); border-radius: 8px; color: #4ade80; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; white-space: nowrap; }
+      .btn-complete:hover { background: rgba(34,197,94,.28); }
+
       @media (max-width: 900px) {
         .stats-row { grid-template-columns: repeat(3, 1fr); }
       }
@@ -107,6 +122,7 @@
         .stats-row { grid-template-columns: repeat(2, 1fr); }
         .topbar { padding: 12px 16px; }
         .admin-content { padding: 20px 14px; }
+        .order-card { flex-wrap: wrap; }
       }
     </style>
   </head>
@@ -197,6 +213,17 @@
             <div class="stat-label">Tổng thu nhập</div>
             <div class="stat-value" id="st-income">0 đ</div>
             <div class="stat-sub">Lợi nhuận từ phí dịch vụ</div>
+          </div>
+        </div>
+
+        <!-- Orders -->
+        <div class="section" style="margin-bottom:24px;" id="orders-section">
+          <div class="section-head">
+            <h3>📋 Đơn hàng chờ xử lý</h3>
+            <button onclick="loadOrders()" style="padding:6px 14px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">↻ Làm mới</button>
+          </div>
+          <div id="orders-list" style="padding:12px 16px;">
+            <div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Đang tải đơn hàng...</div>
           </div>
         </div>
 
@@ -885,6 +912,64 @@
       renderTxLog();
       populateAdjDatalist();
       loadSmmServices();
+      loadOrders();
+
+      // ── Đơn hàng ──────────────────────────────────────────────
+      async function loadOrders() {
+        const el = document.getElementById('orders-list');
+        el.innerHTML = '<div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>';
+        try {
+          const res  = await fetch('/api/orders');
+          const list = await res.json();
+
+          if (!Array.isArray(list) || list.length === 0) {
+            el.innerHTML = '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
+            return;
+          }
+
+          el.innerHTML = list.map(o => {
+            const isWd  = o.type === 'withdrawal';
+            const label = isWd ? '💸 Rút tiền' : '💰 Nạp tiền (CK ngân hàng)';
+            const detail = isWd
+              ? `${o.email} → ${o.bank} · STK: ${o.stk}`
+              : `${o.email} · Đã chuyển khoản · ${o.bank || 'AB Bank'} · ${o.stk || '0903722295'}`;
+            return `
+              <div class="order-card" id="order-${o.id}">
+                <div class="order-icon ${o.type}">${isWd ? '💸' : '💰'}</div>
+                <div class="order-info">
+                  <div class="order-type">${label}</div>
+                  <div class="order-detail">${detail}</div>
+                  <div class="order-detail" style="margin-top:2px;color:#6b698a;">${o.time}</div>
+                </div>
+                <div class="order-amount ${o.type}">${isWd ? '-' : '+'}${Number(o.amount).toLocaleString('vi-VN')} đ</div>
+                <button class="btn-complete" onclick="completeOrder('${o.id}')">✓ Hoàn tất</button>
+              </div>`;
+          }).join('');
+
+          // Hiện số đơn ở tiêu đề
+          document.querySelector('#orders-section .section-head h3').textContent =
+            `📋 Đơn hàng chờ xử lý (${list.length})`;
+
+        } catch (err) {
+          el.innerHTML = `<div style="color:#f87171;padding:16px;font-size:13px;">Lỗi tải đơn hàng: ${err.message}<br><small>Cần cài đặt UPSTASH_REDIS_REST_URL và UPSTASH_REDIS_REST_TOKEN trong Vercel.</small></div>`;
+        }
+      }
+
+      async function completeOrder(id) {
+        const card = document.getElementById('order-' + id);
+        if (card) {
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+        }
+        try {
+          await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
+          showToast('success', '✓ Đơn hoàn tất');
+          setTimeout(loadOrders, 400);
+        } catch (_) {
+          if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+          showToast('error', 'Lỗi xoá đơn, thử lại');
+        }
+      }
     </script>
   </body>
 </html>
