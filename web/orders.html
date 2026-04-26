@@ -189,7 +189,7 @@
                 <div class="order-detail">${detail}</div>
                 <div class="order-detail" style="margin-top:2px;color:#6b698a;">${order.time || ''}</div>
               </div>
-              <div class="order-amount ${order.type}">${isW ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
+              <div class="order-amount" style="color:#4ade80;">${Number(order.amount).toLocaleString('vi-VN')} đ</div>
               <div class="order-actions">
                 <button class="btn-complete" onclick="approveOrder('${order.id}')">${approveLabel}</button>
                 <button class="btn-reject"   onclick="rejectOrder('${order.id}')">✗ Từ chối</button>
