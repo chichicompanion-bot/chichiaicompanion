@@ -145,6 +145,9 @@
         <button class="cat-btn" onclick="setCategory('tiktok',this)"><span class="cat-icon">🎵</span> TikTok</button>
         <button class="cat-btn" onclick="setCategory('youtube',this)"><span class="cat-icon">▶️</span> YouTube</button>
         <button class="cat-btn" onclick="setCategory('twitter',this)"><span class="cat-icon">🐦</span> Twitter / X</button>
+        <button class="cat-btn" onclick="setCategory('telegram',this)"><span class="cat-icon">✈️</span> Telegram</button>
+        <button class="cat-btn" onclick="setCategory('spotify',this)"><span class="cat-icon">🎧</span> Spotify</button>
+        <button class="cat-btn" onclick="setCategory('zalo',this)"><span class="cat-icon">💬</span> Zalo</button>
         <div class="cat-title" style="margin-top:20px;">Đặc biệt</div>
         <button class="cat-btn" onclick="setCategory('tickxanh',this)"><span class="cat-icon">✅</span> Tick xanh</button>
         <button class="cat-btn" onclick="setCategory('seo',this)"><span class="cat-icon">🔍</span> SEO / Traffic</button>
@@ -163,6 +166,17 @@
         <!-- Service list -->
         <div class="order-card">
           <h3 id="cat-title">📘 Dịch vụ Facebook</h3>
+
+          <!-- Search bar -->
+          <div style="margin-bottom:18px;position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
+            <input id="search-input" type="text" placeholder="Tìm dịch vụ... (facebook, follow, like, youtube...)"
+              oninput="handleSearch(this.value)"
+              style="width:100%;padding:11px 38px 11px 40px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s;"
+              onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+            <button id="search-clear" onclick="clearSearch()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#6b698a;cursor:pointer;font-size:15px;line-height:1;">✕</button>
+          </div>
+
           <div class="service-grid" id="service-grid"></div>
 
           <!-- Order form (shown after selecting service) -->
@@ -238,87 +252,129 @@
     function logout() { sessionStorage.removeItem('cc_session'); window.location.href='./index.html'; }
 
     // ── Service catalogue ──────────────────────────────────
-    // price = đ per unit (internal calc). Display shows price×1000 per 1.000 unit.
+    // price = đ per unit. Display shows price×1000 per 1.000 unit.
     const SERVICES = {
       facebook: [
-        { id:'fb_like',      name:'Like bài viết',         price:15,   min:50,   max:100000, badge:'hot',  unit:'like',       desc:'Tăng lượt thích bài viết, page, ảnh — tài khoản thật' },
-        { id:'fb_follow',    name:'Follow trang / Profile', price:22,   min:100,  max:50000,  badge:'hot',  unit:'follow',     desc:'Tăng người theo dõi trang hoặc tài khoản cá nhân' },
-        { id:'fb_share',     name:'Share bài viết',         price:28,   min:50,   max:10000,  badge:null,   unit:'share',      desc:'Chia sẻ bài viết viral từ tài khoản thật' },
-        { id:'fb_comment',   name:'Comment bài viết',       price:85,   min:10,   max:2000,   badge:'new',  unit:'comment',    desc:'Bình luận ngẫu nhiên từ tài khoản Việt thật' },
-        { id:'fb_livestream',name:'Mắt Livestream',         price:50,   min:100,  max:20000,  badge:'hot',  unit:'mắt',        desc:'Tăng người xem live ổn định theo thời gian thực' },
-        { id:'fb_group',     name:'Thành viên Group',       price:35,   min:100,  max:20000,  badge:null,   unit:'thành viên', desc:'Tăng thành viên vào nhóm Facebook' },
-        { id:'fb_checkin',   name:'Check-in địa điểm',      price:65,   min:20,   max:5000,   badge:null,   unit:'check-in',   desc:'Tăng lượt check-in fanpage địa điểm' },
-        { id:'fb_react',     name:'React cảm xúc',          price:18,   min:50,   max:50000,  badge:'new',  unit:'react',      desc:'Like, Love, Haha, Wow, Sad, Angry theo yêu cầu' },
-        { id:'fb_review5s',  name:'Review 5 sao',           price:160,  min:5,    max:1000,   badge:'vip',  unit:'đánh giá',   desc:'Đánh giá 5 sao có nội dung cho trang doanh nghiệp' },
-        { id:'fb_video_view',name:'View video',             price:5,    min:500,  max:500000, badge:null,   unit:'lượt xem',   desc:'Tăng lượt xem video Facebook tự nhiên' },
+        { id:'fb_like',       name:'Like bài viết',          price:15,  min:50,   max:100000, badge:'hot',  unit:'like',          desc:'Tăng lượt thích bài viết, page, ảnh — tài khoản Việt thật' },
+        { id:'fb_follow',     name:'Follow trang / Profile',  price:22,  min:100,  max:50000,  badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi trang hoặc tài khoản cá nhân' },
+        { id:'fb_react',      name:'React cảm xúc',           price:18,  min:50,   max:50000,  badge:'new',  unit:'react',         desc:'Like, Love, Haha, Wow, Sad, Angry theo yêu cầu — VN thật' },
+        { id:'fb_share',      name:'Share bài viết',          price:28,  min:50,   max:10000,  badge:null,   unit:'share',         desc:'Chia sẻ bài viết viral từ tài khoản thật' },
+        { id:'fb_comment',    name:'Comment bài viết',        price:85,  min:10,   max:2000,   badge:'new',  unit:'comment',       desc:'Bình luận ngẫu nhiên từ tài khoản Việt thật' },
+        { id:'fb_video_view', name:'View video',              price:5,   min:500,  max:500000, badge:null,   unit:'lượt xem',      desc:'Tăng lượt xem video Facebook tự nhiên' },
+        { id:'fb_story_view', name:'View Story',              price:8,   min:500,  max:200000, badge:'new',  unit:'lượt xem',      desc:'Tăng lượt xem story Facebook — xử lý trong 30 phút' },
+        { id:'fb_livestream', name:'Mắt Livestream',          price:50,  min:100,  max:20000,  badge:'hot',  unit:'mắt',           desc:'Tăng người xem live ổn định theo thời gian thực' },
+        { id:'fb_group',      name:'Thành viên Group',        price:35,  min:100,  max:20000,  badge:null,   unit:'thành viên',    desc:'Tăng thành viên vào nhóm Facebook' },
+        { id:'fb_page_like',  name:'Like trang (Page Like)',  price:20,  min:100,  max:100000, badge:null,   unit:'like trang',    desc:'Tăng lượt thích trang Facebook (Page Like / Follow)' },
+        { id:'fb_event',      name:'Tham gia sự kiện',        price:30,  min:50,   max:5000,   badge:'new',  unit:'tham gia',      desc:'Tăng lượt tham gia sự kiện Facebook Event' },
+        { id:'fb_checkin',    name:'Check-in địa điểm',       price:65,  min:20,   max:5000,   badge:null,   unit:'check-in',      desc:'Tăng lượt check-in fanpage địa điểm' },
+        { id:'fb_review5s',   name:'Review 5 sao',            price:160, min:5,    max:1000,   badge:'vip',  unit:'đánh giá',      desc:'Đánh giá 5 sao có nội dung cho trang doanh nghiệp' },
+        { id:'fb_save',       name:'Lưu bài viết',            price:12,  min:100,  max:50000,  badge:null,   unit:'lượt lưu',      desc:'Tăng lượt save bài viết Facebook tăng reach' },
       ],
       instagram: [
-        { id:'ig_like',      name:'Tim ảnh / Reel',         price:12,   min:50,   max:100000, badge:'hot',  unit:'tim',        desc:'Tăng tim cho ảnh, video, reel — tài khoản thật' },
-        { id:'ig_follow',    name:'Follow',                  price:20,   min:100,  max:50000,  badge:'hot',  unit:'follow',     desc:'Tăng người theo dõi tài khoản Instagram' },
-        { id:'ig_view_story',name:'View Story',              price:4,    min:200,  max:200000, badge:null,   unit:'lượt xem',   desc:'Tăng lượt xem story Instagram' },
-        { id:'ig_view_reel', name:'View Reel / Video',       price:5,    min:500,  max:500000, badge:'hot',  unit:'lượt xem',   desc:'Tăng lượt xem reel và video IGTV' },
-        { id:'ig_comment',   name:'Comment',                 price:90,   min:10,   max:1000,   badge:'new',  unit:'comment',    desc:'Bình luận từ tài khoản thật có avatar' },
-        { id:'ig_save',      name:'Lưu bài viết',           price:18,   min:100,  max:50000,  badge:null,   unit:'lượt lưu',   desc:'Tăng lượt save bài viết (tăng reach organic)' },
-        { id:'ig_share',     name:'Share / Repost',          price:25,   min:50,   max:10000,  badge:null,   unit:'share',      desc:'Chia sẻ bài viết Instagram' },
-        { id:'ig_live_view', name:'Mắt Livestream',          price:48,   min:100,  max:10000,  badge:'hot',  unit:'mắt',        desc:'Người xem live Instagram ổn định' },
+        { id:'ig_like',       name:'Tim ảnh / Reel',          price:12,  min:50,   max:100000, badge:'hot',  unit:'tim',           desc:'Tăng tim cho ảnh, video, reel — tài khoản thật' },
+        { id:'ig_follow',     name:'Follow',                   price:20,  min:100,  max:50000,  badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi tài khoản Instagram' },
+        { id:'ig_view_story', name:'View Story',               price:4,   min:200,  max:200000, badge:null,   unit:'lượt xem',      desc:'Tăng lượt xem story Instagram' },
+        { id:'ig_view_reel',  name:'View Reel / Video',        price:5,   min:500,  max:500000, badge:'hot',  unit:'lượt xem',      desc:'Tăng lượt xem reel và video IGTV' },
+        { id:'ig_comment',    name:'Comment',                  price:90,  min:10,   max:1000,   badge:'new',  unit:'comment',       desc:'Bình luận từ tài khoản thật có avatar' },
+        { id:'ig_save',       name:'Lưu bài viết',            price:18,  min:100,  max:50000,  badge:null,   unit:'lượt lưu',      desc:'Tăng lượt save bài viết (tăng reach organic)' },
+        { id:'ig_share',      name:'Share / Repost',           price:25,  min:50,   max:10000,  badge:null,   unit:'share',         desc:'Chia sẻ bài viết Instagram' },
+        { id:'ig_live_view',  name:'Mắt Livestream',           price:48,  min:100,  max:10000,  badge:'hot',  unit:'mắt',           desc:'Người xem live Instagram ổn định' },
+        { id:'ig_impression', name:'Impressions / Reach',      price:3,   min:1000, max:500000, badge:'new',  unit:'impression',    desc:'Tăng reach và lượt hiển thị bài đăng Instagram' },
+        { id:'ig_profile_visit',name:'Lượt xem trang cá nhân',price:2,   min:500,  max:200000, badge:null,   unit:'lượt xem',      desc:'Tăng lượt truy cập trang profile Instagram' },
       ],
       tiktok: [
-        { id:'tt_like',      name:'Tim video',              price:8,    min:100,  max:500000, badge:'hot',  unit:'tim',        desc:'Tăng lượt tim video TikTok — nhanh, thật' },
-        { id:'tt_follow',    name:'Follow',                 price:16,   min:100,  max:100000, badge:'hot',  unit:'follow',     desc:'Tăng người theo dõi TikTok tài khoản thật' },
-        { id:'tt_view',      name:'View video',             price:2,    min:1000, max:1000000,badge:'hot',  unit:'lượt xem',   desc:'Tăng lượt xem video nhanh, tăng reach' },
-        { id:'tt_comment',   name:'Comment',                price:80,   min:10,   max:2000,   badge:'new',  unit:'comment',    desc:'Bình luận thật dưới video TikTok' },
-        { id:'tt_share',     name:'Share video',            price:25,   min:100,  max:20000,  badge:null,   unit:'share',      desc:'Chia sẻ video TikTok lan rộng' },
-        { id:'tt_live',      name:'Mắt Livestream',         price:45,   min:100,  max:10000,  badge:'hot',  unit:'mắt',        desc:'Người xem live TikTok thời gian thực ổn định' },
-        { id:'tt_save',      name:'Lưu / Bookmark',         price:14,   min:100,  max:50000,  badge:null,   unit:'lượt lưu',   desc:'Tăng lượt lưu video TikTok' },
-        { id:'tt_duet',      name:'Duet video',             price:35,   min:50,   max:5000,   badge:'new',  unit:'duet',       desc:'Tăng lượt duet video trên TikTok' },
+        { id:'tt_like',       name:'Tim video',               price:8,   min:100,  max:500000, badge:'hot',  unit:'tim',           desc:'Tăng lượt tim video TikTok — nhanh, thật' },
+        { id:'tt_follow',     name:'Follow',                  price:28,  min:100,  max:100000, badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi TikTok tài khoản thật' },
+        { id:'tt_view',       name:'View video',              price:2,   min:1000, max:1000000,badge:'hot',  unit:'lượt xem',      desc:'Tăng lượt xem video nhanh, tăng reach FYP' },
+        { id:'tt_comment',    name:'Comment',                 price:120, min:10,   max:2000,   badge:'new',  unit:'comment',       desc:'Bình luận thật dưới video TikTok' },
+        { id:'tt_share',      name:'Share video',             price:25,  min:100,  max:20000,  badge:null,   unit:'share',         desc:'Chia sẻ video TikTok lan rộng' },
+        { id:'tt_live',       name:'Mắt Livestream',          price:45,  min:100,  max:10000,  badge:'hot',  unit:'mắt',           desc:'Người xem live TikTok thời gian thực ổn định' },
+        { id:'tt_save',       name:'Lưu / Bookmark',          price:14,  min:100,  max:50000,  badge:null,   unit:'lượt lưu',      desc:'Tăng lượt lưu video TikTok (tín hiệu thuật toán)' },
+        { id:'tt_duet',       name:'Duet video',              price:35,  min:50,   max:5000,   badge:'new',  unit:'duet',          desc:'Tăng lượt duet video trên TikTok' },
+        { id:'tt_profile_view',name:'Xem trang cá nhân',     price:2,   min:1000, max:500000, badge:null,   unit:'lượt xem',      desc:'Tăng lượt xem profile TikTok — tăng credibility' },
+        { id:'tt_favorite',   name:'Yêu thích (Favorite)',   price:12,  min:100,  max:100000, badge:'new',  unit:'yêu thích',     desc:'Tăng lượt favorite / bookmark video TikTok' },
       ],
       youtube: [
-        { id:'yt_view',      name:'View video',             price:4,    min:500,  max:1000000,badge:'hot',  unit:'lượt xem',   desc:'Tăng lượt xem video YouTube ổn định' },
-        { id:'yt_like',      name:'Like video',             price:22,   min:50,   max:50000,  badge:null,   unit:'like',       desc:'Tăng lượt thích video YouTube' },
-        { id:'yt_sub',       name:'Subscribe kênh',         price:30,   min:100,  max:50000,  badge:'hot',  unit:'sub',        desc:'Tăng lượt đăng ký kênh YouTube' },
-        { id:'yt_watchtime', name:'Watch Time',             price:180,  min:10,   max:4000,   badge:'vip',  unit:'giờ',        desc:'Tăng giờ xem để đủ điều kiện kiếm tiền YPP' },
-        { id:'yt_comment',   name:'Comment',                price:100,  min:5,    max:1000,   badge:'new',  unit:'comment',    desc:'Bình luận thật từ tài khoản có lịch sử' },
-        { id:'yt_share',     name:'Share video',            price:28,   min:50,   max:10000,  badge:null,   unit:'share',      desc:'Chia sẻ video YouTube lên các nền tảng' },
-        { id:'yt_short_view',name:'View Short',             price:3,    min:1000, max:500000, badge:'new',  unit:'lượt xem',   desc:'Tăng lượt xem YouTube Shorts' },
+        { id:'yt_view',       name:'View video',              price:30,  min:500,  max:500000, badge:'hot',  unit:'lượt xem',      desc:'Tăng lượt xem video YouTube ổn định — tài khoản thật' },
+        { id:'yt_like',       name:'Like video',              price:22,  min:50,   max:50000,  badge:null,   unit:'like',          desc:'Tăng lượt thích video YouTube' },
+        { id:'yt_sub',        name:'Subscribe kênh',          price:500, min:100,  max:10000,  badge:'hot',  unit:'sub',           desc:'Tăng lượt đăng ký kênh YouTube — tài khoản thật' },
+        { id:'yt_watchtime',  name:'Watch Time (4000H)',      price:280, min:10,   max:2000,   badge:'vip',  unit:'giờ',           desc:'Tăng giờ xem để đủ điều kiện kiếm tiền YPP 4000H' },
+        { id:'yt_comment',    name:'Comment',                 price:100, min:5,    max:1000,   badge:'new',  unit:'comment',       desc:'Bình luận thật từ tài khoản có lịch sử hoạt động' },
+        { id:'yt_share',      name:'Share video',             price:28,  min:50,   max:10000,  badge:null,   unit:'share',         desc:'Chia sẻ video YouTube lên các nền tảng' },
+        { id:'yt_short_view', name:'View Short',              price:40,  min:1000, max:500000, badge:'new',  unit:'lượt xem',      desc:'Tăng lượt xem YouTube Shorts — Google Ads chất lượng' },
+        { id:'yt_live_view',  name:'Mắt Livestream',          price:40,  min:50,   max:5000,   badge:'hot',  unit:'mắt',           desc:'Người xem YouTube Live ổn định theo thời gian thực' },
+        { id:'yt_like_comment',name:'Like bình luận',         price:15,  min:50,   max:10000,  badge:null,   unit:'like',          desc:'Tăng like cho bình luận YouTube tăng độ nổi bật' },
       ],
       twitter: [
-        { id:'tw_like',      name:'Like tweet',             price:15,   min:50,   max:50000,  badge:null,   unit:'like',       desc:'Tăng lượt thích tweet' },
-        { id:'tw_follow',    name:'Follow',                 price:20,   min:100,  max:50000,  badge:'hot',  unit:'follow',     desc:'Tăng người theo dõi Twitter / X' },
-        { id:'tw_retweet',   name:'Retweet',                price:25,   min:50,   max:20000,  badge:null,   unit:'retweet',    desc:'Chia sẻ lại tweet tăng reach' },
-        { id:'tw_view',      name:'View tweet / Video',     price:4,    min:500,  max:500000, badge:null,   unit:'lượt xem',   desc:'Tăng lượt xem tweet và video' },
-        { id:'tw_reply',     name:'Reply / Comment',        price:90,   min:10,   max:1000,   badge:'new',  unit:'reply',      desc:'Trả lời tweet từ tài khoản thật' },
-        { id:'tw_bookmark',  name:'Bookmark tweet',         price:18,   min:50,   max:20000,  badge:null,   unit:'bookmark',   desc:'Tăng lượt bookmark tweet' },
+        { id:'tw_like',       name:'Like tweet',              price:15,  min:50,   max:50000,  badge:null,   unit:'like',          desc:'Tăng lượt thích tweet' },
+        { id:'tw_follow',     name:'Follow',                  price:20,  min:100,  max:50000,  badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi Twitter / X' },
+        { id:'tw_retweet',    name:'Retweet',                 price:25,  min:50,   max:20000,  badge:null,   unit:'retweet',       desc:'Chia sẻ lại tweet tăng reach' },
+        { id:'tw_view',       name:'View tweet / Video',      price:4,   min:500,  max:500000, badge:'hot',  unit:'lượt xem',      desc:'Tăng lượt xem tweet và video — nhanh, ổn định' },
+        { id:'tw_reply',      name:'Reply / Comment',         price:90,  min:10,   max:1000,   badge:'new',  unit:'reply',         desc:'Trả lời tweet từ tài khoản thật' },
+        { id:'tw_bookmark',   name:'Bookmark tweet',          price:18,  min:50,   max:20000,  badge:null,   unit:'bookmark',      desc:'Tăng lượt bookmark tweet' },
+        { id:'tw_quote',      name:'Quote tweet',             price:30,  min:20,   max:5000,   badge:'new',  unit:'quote',         desc:'Chia sẻ tweet kèm bình luận — tăng viral' },
+        { id:'tw_poll',       name:'Bình chọn poll',          price:25,  min:50,   max:5000,   badge:'new',  unit:'vote',          desc:'Vote bình chọn trong poll Twitter / X' },
+      ],
+      telegram: [
+        { id:'tg_member',     name:'Thành viên channel/group',price:25,  min:100,  max:50000,  badge:'hot',  unit:'thành viên',    desc:'Thêm thành viên thật vào kênh hoặc nhóm Telegram — tốc độ 30k/ngày' },
+        { id:'tg_view',       name:'View bài đăng',           price:2,   min:500,  max:1000000,badge:'hot',  unit:'lượt xem',      desc:'Tăng lượt xem post trong kênh Telegram — xử lý ngay' },
+        { id:'tg_react',      name:'React emoji bài đăng',    price:5,   min:50,   max:50000,  badge:'new',  unit:'react',         desc:'Thêm emoji reaction vào bài đăng Telegram tăng tương tác' },
+        { id:'tg_share',      name:'Share bài đăng',          price:8,   min:50,   max:20000,  badge:null,   unit:'share',         desc:'Chia sẻ bài đăng Telegram lan rộng' },
+        { id:'tg_poll_vote',  name:'Vote bình chọn poll',     price:10,  min:50,   max:10000,  badge:'new',  unit:'vote',          desc:'Bỏ phiếu bình chọn trong poll Telegram' },
+        { id:'tg_online',     name:'Thành viên Online (30 ngày)',price:20,min:200, max:5000,   badge:'vip',  unit:'thành viên',    desc:'Thành viên online liên tục 30 ngày trong nhóm Telegram' },
+      ],
+      spotify: [
+        { id:'sp_stream',     name:'Lượt nghe (Streams)',     price:3,   min:1000, max:5000000,badge:'hot',  unit:'lượt nghe',     desc:'Tăng lượt nghe bài hát Spotify — ảnh hưởng bảng xếp hạng' },
+        { id:'sp_follow_artist',name:'Follow nghệ sĩ',        price:15,  min:100,  max:100000, badge:null,   unit:'follow',        desc:'Tăng lượt theo dõi tài khoản nghệ sĩ Spotify' },
+        { id:'sp_follow_playlist',name:'Follow playlist',     price:12,  min:100,  max:100000, badge:null,   unit:'follow',        desc:'Tăng follower cho playlist nhạc Spotify' },
+        { id:'sp_save',       name:'Lưu bài (Save / Like)',   price:20,  min:100,  max:50000,  badge:'new',  unit:'lượt lưu',      desc:'Tăng lượt lưu bài hát vào thư viện người dùng' },
+        { id:'sp_monthly',    name:'Monthly Listener',        price:8,   min:500,  max:500000, badge:'vip',  unit:'listener',      desc:'Tăng monthly listener — chỉ số quan trọng cho nghệ sĩ' },
+        { id:'sp_podcast',    name:'Lượt nghe Podcast',       price:5,   min:1000, max:1000000,badge:'new',  unit:'lượt nghe',     desc:'Tăng lượt nghe tập podcast Spotify' },
+      ],
+      zalo: [
+        { id:'zl_follow',     name:'Follow Zalo OA',          price:30,  min:100,  max:50000,  badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi Official Account Zalo — tài khoản Việt thật' },
+        { id:'zl_like',       name:'Like bài viết',           price:15,  min:50,   max:20000,  badge:null,   unit:'like',          desc:'Tăng lượt thích bài đăng Zalo OA' },
+        { id:'zl_comment',    name:'Comment bài viết',        price:80,  min:10,   max:1000,   badge:'new',  unit:'comment',       desc:'Bình luận bài viết Zalo từ tài khoản thật số điện thoại VN' },
+        { id:'zl_reaction',   name:'Reaction bài viết',       price:12,  min:50,   max:20000,  badge:null,   unit:'reaction',      desc:'Thêm biểu cảm reaction cho bài đăng Zalo OA' },
+        { id:'zl_group',      name:'Thành viên nhóm',         price:25,  min:100,  max:10000,  badge:null,   unit:'thành viên',    desc:'Thêm thành viên vào nhóm Zalo — số điện thoại VN thật' },
+        { id:'zl_view',       name:'View bài viết',           price:3,   min:500,  max:100000, badge:'new',  unit:'lượt xem',      desc:'Tăng lượt xem bài đăng Zalo OA' },
       ],
       tickxanh: [
-        { id:'tx_fb',        name:'Tick xanh Facebook',     price:2500000, min:1, max:1,      badge:'vip',  unit:'tài khoản',  desc:'Huy hiệu xác minh ✓ xanh Facebook cá nhân / trang — bảo hành 6 tháng' },
-        { id:'tx_ig',        name:'Tick xanh Instagram',    price:3200000, min:1, max:1,      badge:'vip',  unit:'tài khoản',  desc:'Huy hiệu xác minh ✓ xanh Instagram — yêu cầu 10K+ follower' },
-        { id:'tx_tt',        name:'Tick xanh TikTok',       price:2800000, min:1, max:1,      badge:'vip',  unit:'tài khoản',  desc:'Huy hiệu xác minh ✓ xanh TikTok — bảo hành 3 tháng' },
-        { id:'tx_yt_silver', name:'Nút bạc YouTube (100K)', price:800000,  min:1, max:1,      badge:'vip',  unit:'kênh',       desc:'Hỗ trợ đạt 100.000 sub để nhận nút bạc YouTube' },
-        { id:'tx_yt_gold',   name:'Nút vàng YouTube (1M)',  price:3500000, min:1, max:1,      badge:'vip',  unit:'kênh',       desc:'Hỗ trợ đạt 1.000.000 sub để nhận nút vàng YouTube' },
-        { id:'tx_tw',        name:'Tick xanh Twitter/X',    price:1200000, min:1, max:1,      badge:'vip',  unit:'tài khoản',  desc:'Đăng ký Twitter Blue X Premium — xác minh chính chủ' },
-        { id:'tx_zalo',      name:'Tick xanh Zalo OA',      price:1500000, min:1, max:1,      badge:'new',  unit:'tài khoản',  desc:'Xác minh Official Account Zalo — dành cho doanh nghiệp' },
+        { id:'tx_fb',         name:'Tick xanh Facebook',      price:2500000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Facebook cá nhân / trang — bảo hành 6 tháng' },
+        { id:'tx_ig',         name:'Tick xanh Instagram',     price:3200000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Instagram — yêu cầu 10K+ follower' },
+        { id:'tx_tt',         name:'Tick xanh TikTok',        price:2800000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh TikTok — bảo hành 3 tháng' },
+        { id:'tx_yt_silver',  name:'Nút bạc YouTube (100K)',  price:800000,  min:1, max:1,     badge:'vip',  unit:'kênh',          desc:'Hỗ trợ đạt 100.000 sub để nhận nút bạc YouTube' },
+        { id:'tx_yt_gold',    name:'Nút vàng YouTube (1M)',   price:3500000, min:1, max:1,     badge:'vip',  unit:'kênh',          desc:'Hỗ trợ đạt 1.000.000 sub để nhận nút vàng YouTube' },
+        { id:'tx_tw',         name:'Tick xanh Twitter/X',     price:1200000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Đăng ký Twitter Blue X Premium — xác minh chính chủ' },
+        { id:'tx_tg',         name:'Tick xanh Telegram',      price:1800000, min:1, max:1,     badge:'new',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Telegram — dành cho kênh lớn' },
+        { id:'tx_zalo',       name:'Tick xanh Zalo OA',       price:1500000, min:1, max:1,     badge:'new',  unit:'tài khoản',     desc:'Xác minh Official Account Zalo — dành cho doanh nghiệp' },
       ],
       seo: [
-        { id:'seo_traffic',  name:'Traffic website',        price:2,    min:1000, max:1000000,badge:'hot',  unit:'lượt truy cập', desc:'Lượt truy cập website từ IP Việt Nam thật' },
-        { id:'seo_google',   name:'Tìm kiếm Google',        price:15,   min:100,  max:20000,  badge:'new',  unit:'lượt',          desc:'Tìm kiếm từ khoá → click vào web tăng thứ hạng Google' },
-        { id:'seo_backlink', name:'Backlink chất lượng',    price:500,  min:1,    max:500,    badge:'vip',  unit:'backlink',       desc:'Backlink DA50+ từ website uy tín, tăng thứ hạng SEO' },
-        { id:'seo_gmaps',    name:'Google Maps Review',     price:180,  min:5,    max:1000,   badge:null,   unit:'đánh giá',       desc:'Đánh giá Google Maps 5 sao có nội dung thật' },
-        { id:'seo_youtube',  name:'YouTube SEO Traffic',    price:8,    min:500,  max:100000, badge:null,   unit:'lượt xem',       desc:'Traffic tìm kiếm vào kênh YouTube từ Google' },
+        { id:'seo_traffic',   name:'Traffic website',         price:2,   min:1000, max:1000000,badge:'hot',  unit:'lượt truy cập', desc:'Lượt truy cập website từ IP Việt Nam thật' },
+        { id:'seo_google',    name:'Tìm kiếm Google',         price:15,  min:100,  max:20000,  badge:'new',  unit:'lượt',          desc:'Tìm kiếm từ khoá → click vào web tăng thứ hạng Google' },
+        { id:'seo_backlink',  name:'Backlink chất lượng',     price:500, min:1,    max:500,    badge:'vip',  unit:'backlink',       desc:'Backlink DA50+ từ website uy tín, tăng thứ hạng SEO' },
+        { id:'seo_gmaps',     name:'Google Maps Review',      price:180, min:5,    max:1000,   badge:null,   unit:'đánh giá',       desc:'Đánh giá Google Maps 5 sao có nội dung thật' },
+        { id:'seo_youtube',   name:'YouTube SEO Traffic',     price:8,   min:500,  max:100000, badge:null,   unit:'lượt xem',       desc:'Traffic tìm kiếm vào kênh YouTube từ Google' },
+        { id:'seo_bing',      name:'Traffic Bing / Yahoo',    price:3,   min:1000, max:500000, badge:'new',  unit:'lượt truy cập', desc:'Lượt truy cập từ Bing và Yahoo — đa dạng nguồn traffic' },
       ],
       review: [
-        { id:'rv_shopee',    name:'Đánh giá Shopee',        price:120,  min:5,    max:1000,   badge:'hot',  unit:'đánh giá',   desc:'Review 5 sao có nội dung + ảnh, tài khoản mua hàng thật' },
-        { id:'rv_lazada',    name:'Đánh giá Lazada',        price:130,  min:5,    max:500,    badge:null,   unit:'đánh giá',   desc:'Review 5 sao sản phẩm Lazada có nội dung' },
-        { id:'rv_tiki',      name:'Đánh giá Tiki',          price:140,  min:5,    max:500,    badge:null,   unit:'đánh giá',   desc:'Review 5 sao sản phẩm Tiki có nội dung' },
-        { id:'rv_grab',      name:'Đánh giá Grab/Baemin',   price:160,  min:5,    max:500,    badge:'new',  unit:'đánh giá',   desc:'Đánh giá quán ăn, dịch vụ Grab / Baemin' },
-        { id:'rv_google',    name:'Google Business Review', price:180,  min:5,    max:500,    badge:'hot',  unit:'đánh giá',   desc:'Đánh giá 5 sao Google My Business kèm nội dung thật' },
-        { id:'rv_foody',     name:'Đánh giá Foody / Now',   price:150,  min:5,    max:300,    badge:null,   unit:'đánh giá',   desc:'Đánh giá nhà hàng trên Foody / Now' },
+        { id:'rv_shopee',     name:'Đánh giá Shopee',         price:120, min:5,    max:1000,   badge:'hot',  unit:'đánh giá',      desc:'Review 5 sao có nội dung + ảnh, tài khoản mua hàng thật' },
+        { id:'rv_lazada',     name:'Đánh giá Lazada',         price:130, min:5,    max:500,    badge:null,   unit:'đánh giá',      desc:'Review 5 sao sản phẩm Lazada có nội dung' },
+        { id:'rv_tiki',       name:'Đánh giá Tiki',           price:140, min:5,    max:500,    badge:null,   unit:'đánh giá',      desc:'Review 5 sao sản phẩm Tiki có nội dung' },
+        { id:'rv_grab',       name:'Đánh giá Grab/Baemin',    price:160, min:5,    max:500,    badge:'new',  unit:'đánh giá',      desc:'Đánh giá quán ăn, dịch vụ Grab / Baemin' },
+        { id:'rv_google',     name:'Google Business Review',  price:180, min:5,    max:500,    badge:'hot',  unit:'đánh giá',      desc:'Đánh giá 5 sao Google My Business kèm nội dung thật' },
+        { id:'rv_foody',      name:'Đánh giá Foody / Now',    price:150, min:5,    max:300,    badge:null,   unit:'đánh giá',      desc:'Đánh giá nhà hàng trên Foody / Now' },
+        { id:'rv_tiktok_shop',name:'Đánh giá TikTok Shop',    price:200, min:5,    max:500,    badge:'new',  unit:'đánh giá',      desc:'Review sản phẩm TikTok Shop có video + nội dung thật' },
+        { id:'rv_sendo',      name:'Đánh giá Sendo',          price:130, min:5,    max:300,    badge:null,   unit:'đánh giá',      desc:'Review 5 sao sản phẩm Sendo có nội dung' },
       ],
     };
 
     const CAT_TITLES = {
       facebook:'📘 Dịch vụ Facebook', instagram:'📸 Dịch vụ Instagram',
       tiktok:'🎵 Dịch vụ TikTok', youtube:'▶️ Dịch vụ YouTube',
-      twitter:'🐦 Dịch vụ Twitter / X', tickxanh:'✅ Tick xanh xác minh',
+      twitter:'🐦 Dịch vụ Twitter / X', telegram:'✈️ Dịch vụ Telegram',
+      spotify:'🎧 Dịch vụ Spotify', zalo:'💬 Dịch vụ Zalo',
+      tickxanh:'✅ Tick xanh xác minh',
       seo:'🔍 SEO & Traffic', review:'⭐ Dịch vụ đánh giá',
     };
 
@@ -333,6 +389,8 @@
       document.getElementById('cat-title').textContent = CAT_TITLES[cat];
       document.getElementById('order-form').style.display = 'none';
       document.getElementById('result-box').style.display = 'none';
+      const si = document.getElementById('search-input');
+      if (si) { si.value = ''; document.getElementById('search-clear').style.display='none'; }
       renderServices();
     }
 
@@ -364,6 +422,69 @@
       `).join('');
     }
 
+    // ── Search ────────────────────────────────────────────
+    const SEARCH_KEYWORDS = {
+      facebook:['fb','facebook','face'], instagram:['ig','instagram','insta'],
+      tiktok:['tt','tiktok','tik tok'], youtube:['yt','youtube','you tube'],
+      twitter:['tw','twitter','x'], telegram:['tg','telegram'],
+      spotify:['sp','spotify'], zalo:['zalo','zl'],
+      tickxanh:['tick','xanh','verified','blue'], seo:['seo','traffic','backlink'],
+      review:['review','danh gia','đánh giá','shopee','lazada','tiki','grab'],
+    };
+
+    function handleSearch(q) {
+      q = q.trim().toLowerCase();
+      document.getElementById('search-clear').style.display = q ? 'block' : 'none';
+      if (!q) { document.getElementById('cat-title').textContent = CAT_TITLES[currentCat]; renderServices(); return; }
+
+      const results = [];
+      for (const [cat, svcs] of Object.entries(SERVICES)) {
+        const catKeywords = SEARCH_KEYWORDS[cat] || [cat];
+        const catMatch = catKeywords.some(k => q.includes(k));
+        for (const svc of svcs) {
+          const text = [cat, svc.name, svc.desc, svc.id, svc.unit].join(' ').toLowerCase();
+          if (catMatch || text.includes(q)) results.push({ ...svc, _cat: cat });
+        }
+      }
+
+      document.getElementById('cat-title').textContent = `🔍 Kết quả cho "${q}" — ${results.length} dịch vụ`;
+      const grid = document.getElementById('service-grid');
+      if (!results.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:40px;color:#6b698a;font-size:13px;">Không tìm thấy dịch vụ nào phù hợp</div>';
+        document.getElementById('order-form').style.display = 'none';
+        return;
+      }
+      grid.innerHTML = results.map(s => `
+        <div class="svc-card${selectedSvc===s.id?' selected':''}" onclick="selectServiceDirect('${s._cat}','${s.id}')">
+          <div style="font-size:10px;color:#6b698a;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;">${CAT_TITLES[s._cat]||s._cat}</div>
+          ${s.badge ? `<div class="svc-badge badge-${s.badge}">${s.badge==='hot'?'🔥 Hot':s.badge==='new'?'✨ Mới':'💎 VIP'}</div>` : ''}
+          <div class="svc-name">${s.name}</div>
+          <div style="font-size:11px;color:#6b698a;margin-bottom:10px;">${s.desc}</div>
+          <div class="svc-meta">
+            ${priceLabel(s)}
+            ${s.min===1&&s.max===1?'<span class="svc-minmax">Gói dịch vụ</span>':`<span class="svc-minmax">Min: ${fmoney(s.min)} – Max: ${fmoney(s.max)}</span>`}
+          </div>
+        </div>`).join('');
+    }
+
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('search-clear').style.display = 'none';
+      document.getElementById('cat-title').textContent = CAT_TITLES[currentCat];
+      renderServices();
+    }
+
+    function selectServiceDirect(cat, id) {
+      currentCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        const oc = b.getAttribute('onclick') || '';
+        b.classList.toggle('active', oc.includes("'"+cat+"'"));
+      });
+      clearSearch();
+      selectService(id);
+    }
+
+    // ── Select & order ────────────────────────────────────
     function selectService(id) {
       selectedSvc = id;
       renderServices();
