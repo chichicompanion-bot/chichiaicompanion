@@ -364,18 +364,50 @@
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         const el   = document.getElementById('buy-history');
         if (!list.length) { el.innerHTML = '<div class="tx-empty">Chưa có giao dịch nào</div>'; return; }
-        el.innerHTML = list.map(tx => `
-          <div class="tx-item">
-            <div class="tx-left">
-              <div class="tx-icon">🎴</div>
-              <div class="tx-info">
-                <div class="tx-title">${TELCO_NAMES[tx.telco] || tx.telco} — ${formatMoney(tx.denom)} đ × ${tx.qty}</div>
-                <div class="tx-time">${tx.time}</div>
+        el.innerHTML = list.map((tx, idx) => {
+          const cardsHtml = (tx.cards && tx.cards.length) ? `
+            <div class="hist-cards" id="hc-${idx}" style="display:none;margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+              ${tx.cards.map((c, ci) => `
+                <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;">
+                  <div style="font-size:11px;color:#6b698a;margin-bottom:6px;font-weight:600;">THẺ #${ci+1} · ${TELCO_NAMES[tx.telco]||tx.telco} ${formatMoney(tx.denom)} đ</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div><div style="font-size:10px;color:#6b698a;">Serial</div><div style="font-size:13px;font-weight:700;font-family:monospace;letter-spacing:1px;">${c.serial}</div></div>
+                    <button class="copy-btn" onclick="copyText('${c.serial}',this)" style="font-size:11px;padding:4px 8px;">Copy</button>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><div style="font-size:10px;color:#6b698a;">Mã thẻ (PIN)</div><div style="font-size:13px;font-weight:700;font-family:monospace;letter-spacing:1.5px;color:#a78bfa;">${c.code}</div></div>
+                    <button class="copy-btn" onclick="copyText('${c.code}',this)" style="font-size:11px;padding:4px 8px;">Copy</button>
+                  </div>
+                </div>`).join('')}
+            </div>` : '';
+          const hasCards = tx.cards && tx.cards.length;
+          return `
+          <div class="tx-item" style="flex-direction:column;align-items:stretch;gap:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="tx-left">
+                <div class="tx-icon">🎴</div>
+                <div class="tx-info">
+                  <div class="tx-title">${TELCO_NAMES[tx.telco] || tx.telco} — ${formatMoney(tx.denom)} đ × ${tx.qty}</div>
+                  <div class="tx-time">${tx.time}</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="tx-amount">-${formatMoney(tx.total)} đ</div>
+                ${hasCards ? `<button onclick="toggleCards(${idx})" id="hc-btn-${idx}" style="padding:5px 12px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:6px;color:#a78bfa;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">Xem thẻ ▾</button>` : ''}
               </div>
             </div>
-            <div class="tx-amount">-${formatMoney(tx.total)} đ</div>
-          </div>
-        `).join('');
+            ${cardsHtml}
+          </div>`;
+        }).join('');
+      }
+
+      function toggleCards(idx) {
+        const el  = document.getElementById('hc-' + idx);
+        const btn = document.getElementById('hc-btn-' + idx);
+        if (!el) return;
+        const visible = el.style.display !== 'none';
+        el.style.display = visible ? 'none' : 'flex';
+        btn.textContent  = visible ? 'Xem thẻ ▾' : 'Ẩn thẻ ▴';
       }
 
       function genId() { return Date.now() + '_' + Math.random().toString(36).slice(2,8); }
@@ -416,7 +448,7 @@
         if (apiResult.status === 1 && apiResult.cards?.length) {
           // Trừ tiền
           setBalance(session.email, balance - total);
-          saveBuyHistory({ telco: selectedTelco, denom: selectedDenom, qty, total, time: new Date().toLocaleString('vi-VN') });
+          saveBuyHistory({ telco: selectedTelco, denom: selectedDenom, qty, total, cards: apiResult.cards, time: new Date().toLocaleString('vi-VN') });
           refreshBalance();
           renderHistory();
 
