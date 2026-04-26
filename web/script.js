@@ -175,12 +175,12 @@ async function syncFromSupabase() {
   const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
   if (session) {
     const bal = balances[session.email] || 0;
-    const navEl = document.getElementById('nav-balance');
-    if (navEl) navEl.textContent = Number(bal).toLocaleString('vi-VN');
-    const statEl = document.getElementById('stat-balance');
-    if (statEl) statEl.textContent = Number(bal).toLocaleString('vi-VN') + ' đ';
-    const mobEl = document.getElementById('mob-balance-val');
-    if (mobEl) mobEl.textContent = Number(bal).toLocaleString('vi-VN');
+    const fmt = Number(bal).toLocaleString('vi-VN');
+    const navEl  = document.getElementById('nav-balance');  if (navEl)  navEl.textContent  = fmt;
+    const statEl = document.getElementById('stat-balance'); if (statEl) statEl.textContent = fmt + ' đ';
+    const mobEl  = document.getElementById('mob-balance-val'); if (mobEl) mobEl.textContent = fmt;
+    if (typeof refreshBalance === 'function') refreshBalance();
+    if (typeof _navBalance   === 'function') _navBalance();
   }
 }
 
@@ -194,8 +194,14 @@ window.sbRegisterUser = function(name, email, password) {
 
 window.sbInsertTx = _sbInsertTx;
 
-document.addEventListener('DOMContentLoaded', function() {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', syncFromSupabase);
+} else {
   syncFromSupabase();
+}
+// Re-sync when user returns to tab
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) syncFromSupabase();
 });
 
 // ═══════════════════════════════════════════════════════════
