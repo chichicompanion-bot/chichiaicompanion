@@ -260,6 +260,7 @@
         const d = JSON.parse(localStorage.getItem('cc_balances') || '{}');
         d[email] = val;
         localStorage.setItem('cc_balances', JSON.stringify(d));
+        if (window.sbPushBalance) window.sbPushBalance(email, val);
       }
       function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
 

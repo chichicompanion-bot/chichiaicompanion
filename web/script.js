@@ -101,6 +101,89 @@
 })();
 
 // ═══════════════════════════════════════════════════════════
+//  SUPABASE SYNC
+// ═══════════════════════════════════════════════════════════
+const SB_URL = 'https://kcotqibvffpiikqawfyw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtjb3RxaWJ2ZmZwaWlrcWF3Znl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTI0MTEsImV4cCI6MjA5Mjc2ODQxMX0.zdpJvg2JpXrozYwrSX5C0EhE9OB5fUVU18TXlWfvuOU';
+
+const _sbH = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json'
+};
+
+async function _sbGet(path) {
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/' + path, { headers: _sbH });
+    return r.ok ? r.json() : null;
+  } catch(e) { return null; }
+}
+
+async function _sbUpsert(table, body) {
+  try {
+    await fetch(SB_URL + '/rest/v1/' + table, {
+      method: 'POST',
+      headers: { ..._sbH, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(body)
+    });
+  } catch(e) {}
+}
+
+async function _sbPatch(table, filter, body) {
+  try {
+    await fetch(SB_URL + '/rest/v1/' + table + '?' + filter, {
+      method: 'PATCH',
+      headers: _sbH,
+      body: JSON.stringify(body)
+    });
+  } catch(e) {}
+}
+
+async function _sbInsertTx(userEmail, type, amount, data) {
+  try {
+    await fetch(SB_URL + '/rest/v1/transactions', {
+      method: 'POST',
+      headers: _sbH,
+      body: JSON.stringify({ user_email: userEmail, type, amount, data })
+    });
+  } catch(e) {}
+}
+
+async function syncFromSupabase() {
+  const users = await _sbGet('users?select=email,name,password,balance');
+  if (!users || !users.length) return;
+  const accounts = users.map(u => ({ name: u.name, email: u.email, password: u.password }));
+  localStorage.setItem('cc_accounts', JSON.stringify(accounts));
+  const balances = {};
+  users.forEach(u => { balances[u.email] = Number(u.balance) || 0; });
+  localStorage.setItem('cc_balances', JSON.stringify(balances));
+  const session = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+  if (session) {
+    const bal = balances[session.email] || 0;
+    const navEl = document.getElementById('nav-balance');
+    if (navEl) navEl.textContent = Number(bal).toLocaleString('vi-VN');
+    const statEl = document.getElementById('stat-balance');
+    if (statEl) statEl.textContent = Number(bal).toLocaleString('vi-VN') + ' đ';
+    const mobEl = document.getElementById('mob-balance-val');
+    if (mobEl) mobEl.textContent = Number(bal).toLocaleString('vi-VN');
+  }
+}
+
+window.sbPushBalance = function(email, balance) {
+  _sbPatch('users', 'email=eq.' + encodeURIComponent(email), { balance });
+};
+
+window.sbRegisterUser = function(name, email, password) {
+  _sbUpsert('users', { name, email, password, balance: 0 });
+};
+
+window.sbInsertTx = _sbInsertTx;
+
+document.addEventListener('DOMContentLoaded', function() {
+  syncFromSupabase();
+});
+
+// ═══════════════════════════════════════════════════════════
 //  TELEGRAM FLOATING BUTTON
 // ═══════════════════════════════════════════════════════════
 (function () {
@@ -360,6 +443,7 @@ function saveAccount(name, email, password) {
   const list = getAccounts();
   list.push({ name, email, password });
   localStorage.setItem('cc_accounts', JSON.stringify(list));
+  if (window.sbRegisterUser) window.sbRegisterUser(name, email, password);
 }
 
 const LOCAL_PENDING_ORDERS_KEY = 'cc_pending_admin_orders';

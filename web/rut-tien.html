@@ -282,6 +282,7 @@
         const data = JSON.parse(localStorage.getItem('cc_balances') || '{}');
         data[email] = Math.max(0, (data[email] || 0) - amount);
         localStorage.setItem('cc_balances', JSON.stringify(data));
+        if (window.sbPushBalance) window.sbPushBalance(email, data[email]);
       }
 
       function formatMoney(n) {

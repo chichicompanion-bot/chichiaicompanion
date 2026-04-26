@@ -390,7 +390,7 @@
 
       function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
       function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
-      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = Math.max(0, val); localStorage.setItem('cc_balances', JSON.stringify(d)); }
+      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = Math.max(0, val); localStorage.setItem('cc_balances', JSON.stringify(d)); if (window.sbPushBalance) window.sbPushBalance(email, Math.max(0, val)); }
       function getAccounts() { return JSON.parse(localStorage.getItem('cc_accounts') || '[]'); }
 
       // ── Toast ─────────────────────────────────────────────

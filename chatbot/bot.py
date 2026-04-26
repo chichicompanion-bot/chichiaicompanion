@@ -1,5 +1,6 @@
 import base64
 import html
+import json
 import logging
 import mimetypes
 import os
@@ -51,7 +52,24 @@ last_message_time = {}
 conversation_history = defaultdict(lambda: deque(maxlen=MAX_HISTORY))
 response_cache = OrderedDict()
 forgot_password_requests = set()
-pending_password_lookup = {}  # email -> user_chat_id, chờ admin gửi mật khẩu
+
+_PENDING_FILE = os.path.join(os.path.dirname(__file__), "pending_password_lookup.json")
+
+def _load_pending():
+    try:
+        with open(_PENDING_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_pending(data: dict):
+    try:
+        with open(_PENDING_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except Exception as exc:
+        logger.warning("Could not save pending_password_lookup: %s", exc)
+
+pending_password_lookup = _load_pending()
 
 SYSTEM_PROMPT = """
 Bạn là trợ lý hỗ trợ khách hàng của website Trungtammxh (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
@@ -62,13 +80,12 @@ Nhiệm vụ:
 - Hỗ trợ dịch vụ SMM: buff tim, follow, view, comment, share trên các mạng xã hội.
 - Hỗ trợ đặt dịch vụ và kiểm tra trạng thái đơn hàng.
 - Giải đáp thắc mắc về giá và thời gian thực hiện.
-- Nếu gặp lỗi kỹ thuật nghiêm trọng, hướng dẫn liên hệ admin qua Telegram @ngtr_AI_bot.
 
 Quy tắc:
 - Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn, rõ ràng.
 - Chỉ hỗ trợ các vấn đề liên quan đến website Trungtammxh.
 - Không bịa đặt giá hoặc thông tin dịch vụ nếu không chắc chắn.
-- Nếu người dùng nói quên mật khẩu, yêu cầu họ gửi Gmail/email đã đăng ký để admin hỗ trợ.
+- Nếu người dùng hỏi quên mật khẩu, chỉ yêu cầu họ cung cấp Gmail đã đăng ký, không đề cập admin hay bất kỳ liên hệ nào khác.
 """.strip()
 
 LATEST_HINT_PATTERNS = [
@@ -99,12 +116,18 @@ FORGOT_PASSWORD_PATTERNS = [
     "mất mật khẩu",
     "quen pass",
     "quên pass",
+    "quen mk",
+    "quên mk",
+    "mat mk",
+    "mất mk",
     "forgot password",
     "reset mat khau",
     "khong dang nhap duoc",
     "không đăng nhập được",
     "khong vao duoc tai khoan",
     "không vào được tài khoản",
+    "lay lai mat khau",
+    "lấy lại mật khẩu",
 ]
 
 EMAIL_PATTERN = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", re.IGNORECASE)
@@ -159,6 +182,7 @@ def send_password_reset_to_admin(message, email: str) -> tuple[bool, str | None]
     try:
         bot.send_message(ADMIN_CHAT_ID, build_admin_password_reset_message(message, email))
         pending_password_lookup[email] = message.chat.id
+        _save_pending(pending_password_lookup)
     except Exception as exc:
         logger.exception("Failed to forward password reset request: %s", exc)
         return False, "Hiện tại không gửi được yêu cầu. Bạn thử lại sau ít phút nhé."
@@ -423,6 +447,7 @@ def admin_send_password(message):
     email = parts[1].strip().lower()
     password = parts[2].strip()
     target_chat_id = pending_password_lookup.pop(email, None)
+    _save_pending(pending_password_lookup)
     if not target_chat_id:
         bot.reply_to(message, f"Khong tim thay yeu cau cho {email}. Co the nguoi dung da qua lau hoac chua gui yeu cau.")
         return

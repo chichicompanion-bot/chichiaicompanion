@@ -299,7 +299,7 @@
       let selectedTelco = null, selectedDenom = null;
 
       function getBalance(email) { return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0; }
-      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = val; localStorage.setItem('cc_balances', JSON.stringify(d)); }
+      function setBalance(email, val) { const d = JSON.parse(localStorage.getItem('cc_balances') || '{}'); d[email] = val; localStorage.setItem('cc_balances', JSON.stringify(d)); if (window.sbPushBalance) window.sbPushBalance(email, val); }
       function formatMoney(n) { return Number(n).toLocaleString('vi-VN'); }
 
       function getCost(denom) { return denom; }
