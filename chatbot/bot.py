@@ -51,6 +51,7 @@ last_message_time = {}
 conversation_history = defaultdict(lambda: deque(maxlen=MAX_HISTORY))
 response_cache = OrderedDict()
 forgot_password_requests = set()
+pending_password_lookup = {}  # email -> user_chat_id, chờ admin gửi mật khẩu
 
 SYSTEM_PROMPT = """
 Bạn là trợ lý hỗ trợ khách hàng của website Trungtammxh (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
@@ -157,9 +158,10 @@ def send_password_reset_to_admin(message, email: str) -> tuple[bool, str | None]
 
     try:
         bot.send_message(ADMIN_CHAT_ID, build_admin_password_reset_message(message, email))
+        pending_password_lookup[email] = message.chat.id
     except Exception as exc:
         logger.exception("Failed to forward password reset request: %s", exc)
-        return False, "Minh chua gui duoc yeu cau cho admin. Ban thu lai sau it phut."
+        return False, "Hiện tại không gửi được yêu cầu. Bạn thử lại sau ít phút nhé."
     return True, None
 
 
@@ -180,17 +182,17 @@ def handle_forgot_password_flow(message, text: str) -> bool:
         if ok:
             bot.reply_to(
                 message,
-                "Minh da chuyen Gmail/email cua ban cho admin. Admin se kiem tra va ho tro som.",
+                "Đã nhận thông tin. Chúng tôi sẽ hỗ trợ bạn sớm nhất có thể.",
             )
         else:
-            bot.reply_to(message, error_message or "Khong gui duoc yeu cau cho admin.")
+            bot.reply_to(message, error_message or "Hiện tại không gửi được yêu cầu. Bạn thử lại sau ít phút nhé.")
         return True
 
     if is_forgot_password_request(text):
         forgot_password_requests.add(user_id)
         bot.reply_to(
             message,
-            "Ban vui long gui Gmail/email da dang ky tai khoan. Minh se chuyen cho admin kiem tra.",
+            "Bạn vui lòng cung cấp Gmail/email đã đăng ký tài khoản nhé.",
         )
         return True
 
@@ -383,7 +385,7 @@ def start_command(message):
         forgot_password_requests.add(message.from_user.id)
         bot.reply_to(
             message,
-            "Ban vui long gui Gmail/email da dang ky tai khoan. Minh se chuyen cho admin kiem tra.",
+            "Bạn vui lòng cung cấp Gmail/email đã đăng ký tài khoản nhé.",
         )
         return
 
@@ -408,6 +410,32 @@ def cancel_pending_request(message):
         bot.reply_to(message, "Da huy yeu cau dang cho. Ban co the nhan lai khi can.")
     else:
         bot.reply_to(message, "Hien khong co yeu cau nao dang cho.")
+
+
+@bot.message_handler(commands=["send_password"])
+def admin_send_password(message):
+    if not ADMIN_CHAT_ID or str(message.chat.id) != str(ADMIN_CHAT_ID):
+        return
+    parts = message.text.strip().split(maxsplit=2)
+    if len(parts) < 3:
+        bot.reply_to(message, "Dung: /send_password email@gmail.com matkhau")
+        return
+    email = parts[1].strip().lower()
+    password = parts[2].strip()
+    target_chat_id = pending_password_lookup.pop(email, None)
+    if not target_chat_id:
+        bot.reply_to(message, f"Khong tim thay yeu cau cho {email}. Co the nguoi dung da qua lau hoac chua gui yeu cau.")
+        return
+    try:
+        bot.send_message(
+            target_chat_id,
+            f"Mat khau tai khoan {email} la: {password}\n\nVui long doi mat khau sau khi dang nhap.",
+        )
+        bot.reply_to(message, f"Da gui mat khau cho nguoi dung ({email}).")
+        logger.info("Admin sent password for %s to chat_id %s", email, target_chat_id)
+    except Exception as exc:
+        logger.exception("Failed to send password to user: %s", exc)
+        bot.reply_to(message, "Gui that bai. Nguoi dung co the da khoa bot hoac chat ID khong hop le.")
 
 
 @bot.message_handler(commands=["reset", "clear"])
