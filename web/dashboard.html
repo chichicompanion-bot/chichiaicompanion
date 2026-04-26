@@ -224,85 +224,30 @@
       .gold-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
       .gold-corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
 
-      .gold-badge {
-        display: inline-flex; align-items: center; gap: 7px;
-        background: linear-gradient(90deg, rgba(251,191,36,0.18), rgba(245,158,11,0.12));
-        border: 1px solid rgba(251,191,36,0.4);
-        border-radius: 20px;
-        padding: 5px 16px;
-        font-size: 12px; font-weight: 700;
-        color: #fde68a;
-        letter-spacing: .4px;
-        margin-bottom: 16px;
-        text-shadow: 0 0 12px rgba(251,191,36,0.4);
-      }
-
-      .gold-heading {
-        font-size: 26px; font-weight: 800;
-        line-height: 1.35; margin-bottom: 14px;
-        color: #ffffff;
-        text-shadow: 0 2px 16px rgba(0,0,0,0.9);
-      }
-      .gold-text {
+      .gold-brand {
+        font-size: 36px; font-weight: 800;
+        letter-spacing: 1px;
         color: #fcd34d;
-        text-shadow: 0 0 30px rgba(251,191,36,0.5), 0 2px 16px rgba(0,0,0,0.9);
-      }
-
-      .gold-desc {
-        font-size: 14.5px; color: #d4cfa8;
-        line-height: 1.8; max-width: 620px;
-        margin-bottom: 22px;
-      }
-
-      .gold-divider-inner {
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(251,191,36,0.3), transparent);
+        text-shadow: 0 0 30px rgba(251,191,36,0.55), 0 2px 20px rgba(0,0,0,0.8);
         margin-bottom: 20px;
       }
 
-      .gold-section-label {
-        font-size: 11px; font-weight: 700;
-        color: rgba(251,191,36,0.6);
-        text-transform: uppercase; letter-spacing: .8px;
-        margin-bottom: 10px;
+      .gold-list {
+        list-style: none;
+        padding: 0; margin: 0;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        text-align: left;
       }
-
-      .gold-pill {
-        display: inline-flex; align-items: center;
-        padding: 5px 12px;
-        background: rgba(251,191,36,0.07);
-        border: 1px solid rgba(251,191,36,0.2);
-        border-radius: 20px;
-        font-size: 12.5px; font-weight: 500;
-        color: #e8d48a;
-        transition: all .18s;
+      .gold-list li {
+        font-size: 15px; font-weight: 500;
+        color: #f5e9c8;
+        text-shadow: 0 1px 10px rgba(0,0,0,0.7);
+        letter-spacing: .2px;
       }
-      .gold-pill:hover {
-        background: rgba(251,191,36,0.15);
-        border-color: rgba(251,191,36,0.45);
-        color: #fde68a;
-      }
-
-      .gold-feature-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
-        gap: 10px;
-      }
-      .gold-feat {
-        display: flex; align-items: flex-start; gap: 12px;
-        padding: 13px 15px;
-        background: rgba(251,191,36,0.05);
-        border: 1px solid rgba(251,191,36,0.15);
-        border-radius: 12px;
-        transition: border-color .18s, background .18s;
-      }
-      .gold-feat:hover {
-        background: rgba(251,191,36,0.1);
-        border-color: rgba(251,191,36,0.35);
-      }
-      .gold-feat-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
-      .gold-feat-title { font-size: 13px; font-weight: 700; color: #fde68a; margin-bottom: 3px; }
-      .gold-feat-desc  { font-size: 12px; color: #a89a6a; line-height: 1.5; }
+      .gold-list li::first-letter { color: #fcd34d; }
 
       @media (max-width: 600px) {
         .topbar { padding: 14px 18px; }
@@ -351,7 +296,7 @@
         <p class="welcome-sub">Bạn đã đăng nhập thành công vào <strong style="color:#c4b5fd;text-shadow:0 0 12px rgba(167,139,250,0.5);">Trungtammxh</strong></p>
 
         <!-- ── Khung giới thiệu vàng gold ──────────────── -->
-        <div class="gold-intro" style="margin-bottom:36px;">
+        <div class="gold-intro" style="margin-bottom:36px;text-align:center;">
 
           <!-- Góc trang trí -->
           <div class="gold-corner tl"></div>
@@ -359,79 +304,15 @@
           <div class="gold-corner bl"></div>
           <div class="gold-corner br"></div>
 
-          <!-- Badge -->
-          <div class="gold-badge">
-            👑 Nền tảng SMM Hàng Đầu Việt Nam
-          </div>
+          <!-- Tên thương hiệu -->
+          <div class="gold-brand">Trungtammxh</div>
 
-          <!-- Tiêu đề chính -->
-          <h2 class="gold-heading">
-            Bứt phá giới hạn — Nâng tầm<br>
-            <span class="gold-text">thương hiệu của bạn lên đỉnh cao</span>
-          </h2>
-
-          <!-- Mô tả -->
-          <p class="gold-desc">
-            <strong style="color:#fde68a;">Trungtammxh</strong> là nền tảng cung cấp dịch vụ tăng tương tác mạng xã hội
-            chuyên nghiệp hàng đầu Việt Nam — với hơn <strong style="color:#fde68a;">90 dịch vụ</strong> trên
-            <strong style="color:#fde68a;">11 nền tảng</strong> lớn nhất thế giới. Chúng tôi giúp cá nhân, doanh nghiệp
-            và KOL tăng độ phủ sóng, xây dựng uy tín thương hiệu và bứt phá doanh thu.
-            Đơn hàng xử lý <strong style="color:#fde68a;">tự động tức thì</strong> — bảo mật tuyệt đối — hỗ trợ 24/7.
-          </p>
-
-          <!-- Divider vàng -->
-          <div class="gold-divider-inner"></div>
-
-          <!-- Nền tảng hỗ trợ -->
-          <div style="margin-bottom:20px;">
-            <div class="gold-section-label">Nền tảng hỗ trợ</div>
-            <div style="display:flex;flex-wrap:wrap;gap:7px;">
-              <span class="gold-pill">📘 Facebook</span>
-              <span class="gold-pill">📸 Instagram</span>
-              <span class="gold-pill">🎵 TikTok</span>
-              <span class="gold-pill">▶️ YouTube</span>
-              <span class="gold-pill">✈️ Telegram</span>
-              <span class="gold-pill">🎧 Spotify</span>
-              <span class="gold-pill">💬 Zalo</span>
-              <span class="gold-pill">🐦 Twitter / X</span>
-              <span class="gold-pill">✅ Tick xanh</span>
-              <span class="gold-pill">🔍 SEO</span>
-              <span class="gold-pill">⭐ Đánh giá</span>
-            </div>
-          </div>
-
-          <!-- 4 điểm mạnh -->
-          <div class="gold-section-label">Cam kết của chúng tôi</div>
-          <div class="gold-feature-grid">
-            <div class="gold-feat">
-              <span class="gold-feat-icon">⚡</span>
-              <div>
-                <div class="gold-feat-title">Xử lý tức thì</div>
-                <div class="gold-feat-desc">Đơn bắt đầu trong vài phút, tốc độ vượt trội</div>
-              </div>
-            </div>
-            <div class="gold-feat">
-              <span class="gold-feat-icon">💰</span>
-              <div>
-                <div class="gold-feat-title">Giá cạnh tranh nhất</div>
-                <div class="gold-feat-desc">Cam kết rẻ hơn thị trường, lợi nhuận tối ưu</div>
-              </div>
-            </div>
-            <div class="gold-feat">
-              <span class="gold-feat-icon">🛡️</span>
-              <div>
-                <div class="gold-feat-title">An toàn tuyệt đối</div>
-                <div class="gold-feat-desc">Tài khoản thật, không rủi ro, bảo hành đơn</div>
-              </div>
-            </div>
-            <div class="gold-feat">
-              <span class="gold-feat-icon">🎯</span>
-              <div>
-                <div class="gold-feat-title">Hỗ trợ 24/7</div>
-                <div class="gold-feat-desc">Đội ngũ sẵn sàng qua Telegram mọi lúc mọi nơi</div>
-              </div>
-            </div>
-          </div>
+          <!-- 3 dòng giới thiệu -->
+          <ul class="gold-list">
+            <li>✦ Có các dịch vụ mạng xã hội trên 6 nền tảng</li>
+            <li>✦ Đơn hàng tự động xử lý, bảo mật tuyệt đối</li>
+            <li>✦ Chatbot hỗ trợ 24/7</li>
+          </ul>
         </div>
 
         <!-- Đường kẻ phân cách vàng -->
