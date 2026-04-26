@@ -270,6 +270,60 @@ document.addEventListener('visibilitychange', function() {
   btn.addEventListener('mouseleave', () => tip.classList.remove('show'));
 })();
 
+// ── Facebook float bubble ──────────────────────────────────────
+(function () {
+  const style = document.createElement('style');
+  style.textContent = `
+    .fb-float {
+      position: fixed; bottom: 92px; right: 24px; z-index: 9999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #1877F2;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(24,119,242,0.55);
+      animation: fb-pulse 2.4s ease-in-out infinite;
+      cursor: pointer; text-decoration: none;
+      transition: transform .2s;
+    }
+    .fb-float:hover { transform: scale(1.1); }
+    .fb-float svg { width: 28px; height: 28px; fill: #fff; }
+    .fb-tooltip {
+      position: fixed; bottom: 160px; right: 82px; z-index: 9998;
+      background: rgba(24,119,242,0.92); color: #fff;
+      padding: 6px 12px; border-radius: 20px;
+      font-size: 13px; font-weight: 600; white-space: nowrap;
+      box-shadow: 0 2px 12px rgba(24,119,242,0.4);
+      opacity: 0; transform: translateY(6px);
+      transition: opacity .2s, transform .2s; pointer-events: none;
+    }
+    .fb-tooltip.show { opacity: 1; transform: translateY(0); }
+    @keyframes fb-pulse {
+      0%,100% { box-shadow: 0 4px 20px rgba(24,119,242,0.55); }
+      50%      { box-shadow: 0 4px 30px rgba(24,119,242,0.9); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const btn = document.createElement('a');
+  btn.className = 'fb-float';
+  btn.href = 'https://www.facebook.com/profile.php?id=61560631922122';
+  btn.target = '_blank';
+  btn.rel = 'noopener';
+  btn.title = 'Trang Facebook của Admin';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+  </svg>`;
+
+  const tip = document.createElement('div');
+  tip.className = 'fb-tooltip';
+  tip.textContent = '👤 Trang Facebook của Admin';
+
+  document.body.appendChild(btn);
+  document.body.appendChild(tip);
+
+  btn.addEventListener('mouseenter', () => tip.classList.add('show'));
+  btn.addEventListener('mouseleave', () => tip.classList.remove('show'));
+})();
+
 // ═══════════════════════════════════════════════════════════
 //  SPACE BACKGROUND ENGINE  —  COSMIC UNIVERSE + DRAGON
 // ═══════════════════════════════════════════════════════════
