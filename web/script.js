@@ -506,6 +506,8 @@ function applyAdminNavigation(session) {
 
   adminLink.style.display = 'inline-block';
   ordersLink.style.display = 'inline-block';
+  if (window.mobSidebarShowAdmin) window.mobSidebarShowAdmin();
+  if (window.mobSidebarShowOrders) window.mobSidebarShowOrders();
 
   if (adminLink.classList.contains('nav-link')) {
     adminLink.classList.toggle('active', currentPage === 'admin.html');
