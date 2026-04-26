@@ -1,4 +1,106 @@
 // ═══════════════════════════════════════════════════════════
+//  MOBILE SIDEBAR NAVIGATION
+// ═══════════════════════════════════════════════════════════
+(function () {
+  if (window.innerWidth > 768) return;
+
+  const NAV_ITEMS = [
+    { href: './dashboard.html',   label: '🏠 Dashboard' },
+    { href: './rut-tien.html',    label: '💸 Rút tiền' },
+    { href: './nap-the.html',     label: '💳 Nạp tiền' },
+    { href: './mua-the.html',     label: '🎴 Mua thẻ' },
+    { href: './chuyen-diem.html', label: '↔️ Chuyển tiền' },
+    { href: './dich-vu.html',     label: '⚡ Dịch vụ' },
+    { href: './orders.html',      label: '📋 Đơn hàng', id: 'mob-orders' },
+    { href: './admin.html',       label: '⚙️ Điều hành', id: 'mob-admin', cls: 'admin-link', hidden: true },
+  ];
+
+  const currentPage = location.pathname.split('/').pop() || 'index.html';
+
+  function buildSidebar() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    // Hamburger button
+    const ham = document.createElement('button');
+    ham.className = 'mob-ham';
+    ham.setAttribute('aria-label', 'Menu');
+    ham.innerHTML = '<span></span>';
+    topbar.insertBefore(ham, topbar.firstChild);
+
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'mob-overlay';
+    document.body.appendChild(overlay);
+
+    // Sidebar
+    const sidebar = document.createElement('div');
+    sidebar.className = 'mob-sidebar';
+    sidebar.innerHTML = `
+      <div class="mob-sidebar-logo">
+        <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="18" fill="url(#mg1)"/>
+          <path d="M15 18a3 3 0 1 1 6 0 3 3 0 0 1-6 0z" fill="white"/>
+          <defs><linearGradient id="mg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/>
+          </linearGradient></defs>
+        </svg>
+        Trungtammxh
+      </div>
+      <nav class="mob-sidebar-nav" id="mob-sidebar-nav"></nav>
+      <div class="mob-sidebar-bottom">
+        <div class="mob-balance">💰 <span id="mob-balance-val">0</span> đ</div>
+        <button class="mob-logout" onclick="logout ? logout() : (sessionStorage.clear(), location.href='./index.html')">Đăng xuất</button>
+      </div>`;
+    document.body.appendChild(sidebar);
+
+    // Build nav links
+    const nav = document.getElementById('mob-sidebar-nav');
+    NAV_ITEMS.forEach(item => {
+      const a = document.createElement('a');
+      a.href = item.href;
+      a.textContent = item.label;
+      if (item.cls) a.classList.add(item.cls);
+      if (item.id) a.id = item.id;
+      if (item.hidden) a.style.display = 'none';
+      if (item.href.includes(currentPage)) a.classList.add('active');
+      nav.appendChild(a);
+    });
+
+    // Toggle sidebar
+    const open  = () => { sidebar.classList.add('open'); overlay.classList.add('open'); };
+    const close = () => { sidebar.classList.remove('open'); overlay.classList.remove('open'); };
+    ham.addEventListener('click', open);
+    overlay.addEventListener('click', close);
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+
+    // Sync balance
+    function syncBalance() {
+      const el = document.getElementById('mob-balance-val');
+      const navBal = document.getElementById('nav-balance');
+      if (el && navBal) el.textContent = navBal.textContent;
+    }
+    setTimeout(syncBalance, 800);
+
+    // Expose function to show admin link from other scripts
+    window.mobSidebarShowAdmin = function () {
+      const a = document.getElementById('mob-admin');
+      if (a) a.style.display = 'flex';
+    };
+    window.mobSidebarShowOrders = function () {
+      const a = document.getElementById('mob-orders');
+      if (a) a.style.display = 'flex';
+    };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', buildSidebar);
+  } else {
+    buildSidebar();
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════
 //  TELEGRAM FLOATING BUTTON
 // ═══════════════════════════════════════════════════════════
 (function () {
