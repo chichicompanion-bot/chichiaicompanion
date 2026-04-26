@@ -194,10 +194,56 @@
       }
       .badge-green { background: rgba(34,197,94,.12); color: #22c55e; border: 1px solid rgba(34,197,94,.2); }
 
+      /* Platform pills */
+      .plat-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 13px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.09);
+        border-radius: 20px;
+        font-size: 12.5px; font-weight: 500; color: #c4c0d8;
+        transition: all .18s;
+      }
+      .plat-pill:hover {
+        background: rgba(124,58,237,0.14);
+        border-color: rgba(124,58,237,0.3);
+        color: #e0d9f8;
+      }
+
+      /* Feature grid */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .feature-item {
+        display: flex; align-items: flex-start; gap: 12px;
+        padding: 14px 16px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        transition: border-color .18s;
+      }
+      .feature-item:hover { border-color: rgba(124,58,237,0.3); }
+      .feature-icon {
+        font-size: 20px; line-height: 1; flex-shrink: 0; margin-top: 1px;
+      }
+      .feature-title {
+        font-size: 13px; font-weight: 600; color: #e8e4f8;
+        margin-bottom: 3px;
+      }
+      .feature-desc {
+        font-size: 12px; color: #7a7890; line-height: 1.5;
+      }
+
       @media (max-width: 600px) {
         .topbar { padding: 14px 18px; }
         .dash-content { padding: 28px 18px; }
         .user-name { display: none; }
+        .feature-grid { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 420px) {
+        .feature-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -233,6 +279,75 @@
       <main class="dash-content">
         <h1 class="welcome-heading" id="welcome-text" style="background:linear-gradient(135deg,#fff 40%,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:brightness(1.3);">Xin chào! 👋</h1>
         <p class="welcome-sub" style="color:#a09cb8;">Bạn đã đăng nhập thành công vào <strong style="color:#c4b5fd;">Trungtammxh</strong></p>
+
+        <!-- ── Giới thiệu ──────────────────────────────── -->
+        <div class="intro-section" style="margin-bottom:36px;">
+
+          <!-- Tiêu đề lớn -->
+          <div style="margin-bottom:20px;">
+            <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.28);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;color:#a78bfa;margin-bottom:14px;letter-spacing:.3px;">
+              ⚡ Tự động · Uy tín · Giá tốt nhất
+            </div>
+            <h2 style="font-size:24px;font-weight:700;line-height:1.4;margin-bottom:10px;background:linear-gradient(120deg,#fff 30%,#c4b5fd 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+              Tăng tương tác mạng xã hội<br>chuyên nghiệp — xử lý ngay lập tức
+            </h2>
+            <p style="font-size:14.5px;color:#9a96b8;line-height:1.75;max-width:580px;">
+              Trungtammxh cung cấp hơn <strong style="color:#c4b5fd;font-weight:600;">90 dịch vụ</strong> trên
+              <strong style="color:#c4b5fd;font-weight:600;">11 nền tảng</strong> lớn nhất — đơn đặt xử lý tự động,
+              giá cạnh tranh, hỗ trợ 24/7 qua Telegram.
+            </p>
+          </div>
+
+          <!-- Nền tảng hỗ trợ -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;">
+            <span class="plat-pill">📘 Facebook</span>
+            <span class="plat-pill">📸 Instagram</span>
+            <span class="plat-pill">🎵 TikTok</span>
+            <span class="plat-pill">▶️ YouTube</span>
+            <span class="plat-pill">✈️ Telegram</span>
+            <span class="plat-pill">🎧 Spotify</span>
+            <span class="plat-pill">💬 Zalo</span>
+            <span class="plat-pill">🐦 Twitter / X</span>
+            <span class="plat-pill">✅ Tick xanh</span>
+            <span class="plat-pill">🔍 SEO</span>
+            <span class="plat-pill">⭐ Đánh giá</span>
+          </div>
+
+          <!-- 4 điểm mạnh -->
+          <div class="feature-grid">
+            <div class="feature-item">
+              <span class="feature-icon">🚀</span>
+              <div>
+                <div class="feature-title">Xử lý tức thì</div>
+                <div class="feature-desc">Đơn hàng bắt đầu trong vài phút sau khi đặt</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">💳</span>
+              <div>
+                <div class="feature-title">Nạp tiền dễ dàng</div>
+                <div class="feature-desc">Thẻ cào Viettel, Mobi, Vina — chiết khấu 10%</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🛡️</span>
+              <div>
+                <div class="feature-title">An toàn & ổn định</div>
+                <div class="feature-desc">Tài khoản thật, không ảnh hưởng tài khoản gốc</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">📊</span>
+              <div>
+                <div class="feature-title">90+ dịch vụ SMM</div>
+                <div class="feature-desc">Like, follow, view, comment, tick xanh và hơn thế</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Đường kẻ phân cách -->
+        <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(124,58,237,0.3),transparent);margin-bottom:32px;"></div>
 
         <!-- Stats -->
         <div class="cards-grid">
