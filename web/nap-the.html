@@ -523,10 +523,16 @@
               request_id: genRequestId(),
             }),
           });
-          apiResult = await resp.json();
+          const raw = await resp.text();
+          try { apiResult = JSON.parse(raw); }
+          catch (_) {
+            setLoading(false);
+            showResult('error', '✗ Lỗi server (HTTP ' + resp.status + ')', raw.slice(0, 200));
+            return;
+          }
         } catch (e) {
           setLoading(false);
-          showResult('error', '✗ Lỗi kết nối', 'Không thể kết nối đến cổng nạp thẻ. Vui lòng thử lại sau.');
+          showResult('error', '✗ Không thể kết nối', e.message || 'Vui lòng thử lại sau.');
           return;
         }
 

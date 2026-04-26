@@ -436,10 +436,16 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ telco: selectedTelco, amount: selectedDenom, quantity: qty, request_id: genId() }),
           });
-          apiResult = await resp.json();
+          const raw = await resp.text();
+          try { apiResult = JSON.parse(raw); }
+          catch (_) {
+            setLoading(false);
+            showResult('error', '✗ Lỗi server (HTTP ' + resp.status + ')', raw.slice(0, 200));
+            return;
+          }
         } catch (e) {
           setLoading(false);
-          showResult('error', '✗ Lỗi kết nối', 'Không thể kết nối cổng mua thẻ. Vui lòng thử lại.');
+          showResult('error', '✗ Không thể kết nối', e.message || 'Vui lòng thử lại.');
           return;
         }
 
