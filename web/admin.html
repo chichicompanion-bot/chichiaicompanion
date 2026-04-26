@@ -216,18 +216,13 @@
           </div>
         </div>
 
-        <!-- Pending Orders -->
-        <div class="section" style="margin-bottom:24px;" id="pending-section">
-          <div class="section-head" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <h3>📥 Đơn chờ duyệt</h3>
-              <span id="pending-badge" class="pending-badge" style="display:none;">0</span>
-            </div>
-            <button onclick="loadPendingOrders()" style="padding:7px 16px;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">🔄 Tải lại</button>
+        <!-- Pending Orders shortcut -->
+        <div style="margin-bottom:24px;padding:16px 20px;background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.18);border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:4px;">📥 Đơn chờ duyệt</div>
+            <div style="font-size:13px;color:#9490b0;">Rút tiền & nạp chuyển khoản cần xác nhận thủ công</div>
           </div>
-          <div style="padding:16px 20px;">
-            <div id="pending-orders-list"><div class="pending-empty">Đang tải...</div></div>
-          </div>
+          <a href="./orders.html" style="padding:10px 22px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;">Xem đơn →</a>
         </div>
 
         <!-- Balance adjuster -->
@@ -990,101 +985,12 @@
         modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
       }
 
-      // ── Pending Orders (rút tiền / nạp chuyển khoản) ──────────
-      async function loadPendingOrders() {
-        const el = document.getElementById('pending-orders-list');
-        el.innerHTML = '<div class="pending-empty">Đang tải...</div>';
-        try {
-          const resp = await fetch('/api/orders');
-          if (!resp.ok) throw new Error('API lỗi ' + resp.status);
-          const orders = await resp.json();
-          renderPendingOrders(orders);
-        } catch(e) {
-          el.innerHTML = '<div class="pending-empty" style="color:#f87171;">Không thể tải đơn. ' + (e.message || '') + '</div>';
-        }
-      }
-
-      function renderPendingOrders(orders) {
-        const el     = document.getElementById('pending-orders-list');
-        const badge  = document.getElementById('pending-badge');
-        if (!orders.length) {
-          el.innerHTML = '<div class="pending-empty">✓ Không có đơn nào đang chờ</div>';
-          badge.style.display = 'none';
-          return;
-        }
-        badge.style.display = 'inline-block';
-        badge.textContent   = orders.length;
-        el.innerHTML = orders.map(o => {
-          const isW = o.type === 'withdrawal';
-          const icon = isW ? '🏧' : '🏦';
-          const typeLabel = isW ? 'Rút tiền' : 'Nạp chuyển khoản';
-          const bankInfo  = o.bank ? `${o.bank} — STK: ${o.stk}` : '';
-          const approveLabel = isW ? '✓ Đã chuyển tiền' : '+ Xác nhận nạp';
-          return `
-            <div class="order-card" id="oc-${o.id}">
-              <div class="order-icon ${o.type}">${icon}</div>
-              <div class="order-info">
-                <div class="order-type">${typeLabel} — ${o.email}</div>
-                <div class="order-detail">${bankInfo ? bankInfo + ' · ' : ''}${o.time || ''}</div>
-              </div>
-              <div class="order-amount ${o.type}">${isW ? '-' : '+'}${Number(o.amount).toLocaleString('vi-VN')} đ</div>
-              <div style="display:flex;gap:8px;flex-shrink:0;">
-                <button class="btn-complete" onclick="approveOrder('${o.id}','${o.email}',${o.amount},'${o.type}')">${approveLabel}</button>
-                <button class="btn-reject"   onclick="rejectOrder('${o.id}','${o.email}',${o.amount},'${o.type}')">✗ Từ chối</button>
-              </div>
-            </div>`;
-        }).join('');
-      }
-
-      async function _deleteOrder(id) {
-        await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
-      }
-
-      async function approveOrder(id, email, amount, type) {
-        if (!confirm('Xác nhận duyệt đơn này?')) return;
-        // For bank_transfer: add balance. For withdrawal: already deducted, just confirm.
-        if (type === 'bank_transfer') {
-          const cur = (JSON.parse(localStorage.getItem('cc_balances')||'{}'))[email] || 0;
-          setBalance(email, cur + Number(amount));
-          showToast('Đã nạp ' + Number(amount).toLocaleString('vi-VN') + ' đ cho ' + email, 'success');
-        } else {
-          showToast('Đã xác nhận rút tiền cho ' + email, 'success');
-        }
-        await _deleteOrder(id);
-        document.getElementById('oc-' + id)?.remove();
-        const remaining = document.querySelectorAll('[id^="oc-"]').length;
-        const badge = document.getElementById('pending-badge');
-        if (!remaining) { badge.style.display='none'; document.getElementById('pending-orders-list').innerHTML='<div class="pending-empty">✓ Không có đơn nào đang chờ</div>'; }
-        else badge.textContent = remaining;
-        loadStats();
-      }
-
-      async function rejectOrder(id, email, amount, type) {
-        if (!confirm('Từ chối đơn này? ' + (type==='withdrawal' ? 'Tiền sẽ được hoàn lại cho user.' : ''))) return;
-        // For withdrawal: refund balance.
-        if (type === 'withdrawal') {
-          const cur = (JSON.parse(localStorage.getItem('cc_balances')||'{}'))[email] || 0;
-          setBalance(email, cur + Number(amount));
-          showToast('Đã hoàn ' + Number(amount).toLocaleString('vi-VN') + ' đ cho ' + email, 'success');
-        } else {
-          showToast('Đã từ chối yêu cầu nạp tiền của ' + email, 'success');
-        }
-        await _deleteOrder(id);
-        document.getElementById('oc-' + id)?.remove();
-        const remaining = document.querySelectorAll('[id^="oc-"]').length;
-        const badge = document.getElementById('pending-badge');
-        if (!remaining) { badge.style.display='none'; document.getElementById('pending-orders-list').innerHTML='<div class="pending-empty">✓ Không có đơn nào đang chờ</div>'; }
-        else badge.textContent = remaining;
-        loadStats();
-      }
-
       // Init
       loadStats();
       renderUsers();
       renderTxLog();
       populateAdjDatalist();
       loadSmmServices();
-      loadPendingOrders();
 
     </script>
   </body>

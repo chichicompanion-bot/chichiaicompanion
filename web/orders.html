@@ -47,6 +47,9 @@
       .order-amount.bank_transfer { color: #4ade80; }
       .btn-complete { padding: 8px 18px; background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); border-radius: 8px; color: #4ade80; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; white-space: nowrap; }
       .btn-complete:hover { background: rgba(34,197,94,.28); }
+      .btn-reject { padding: 8px 18px; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; white-space: nowrap; }
+      .btn-reject:hover { background: rgba(248,113,113,.22); }
+      .order-actions { display:flex; gap:8px; flex-shrink:0; }
       .toast { position: fixed; bottom: 32px; right: 32px; z-index: 999; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); pointer-events: none; }
       .toast.show { transform: translateY(0); opacity: 1; }
       .toast.success { background: rgba(22,163,74,0.95); border: 1px solid rgba(34,197,94,0.4); color: #fff; }
@@ -135,6 +138,19 @@
           : 'Đơn hàng chờ xử lý';
       }
 
+      // Map id → full order object để dùng khi approve/reject
+      const _orderMap = {};
+
+      function _getBalance(email) {
+        return (JSON.parse(localStorage.getItem('cc_balances') || '{}'))[email] || 0;
+      }
+      function _setBalance(email, val) {
+        const d = JSON.parse(localStorage.getItem('cc_balances') || '{}');
+        d[email] = Math.max(0, val);
+        localStorage.setItem('cc_balances', JSON.stringify(d));
+        if (window.sbPushBalance) window.sbPushBalance(email, Math.max(0, val));
+      }
+
       async function loadOrders() {
         const el = document.getElementById('orders-list');
         el.innerHTML = '<div style="text-align:center;color:#6b698a;padding:20px;font-size:13px;">Đang tải...</div>';
@@ -143,12 +159,8 @@
         let remoteOrders = [];
         try {
           const res = await fetch('/api/orders');
-          if (res.ok) {
-            remoteOrders = await res.json();
-          }
-        } catch (err) {
-          remoteOrders = [];
-        }
+          if (res.ok) remoteOrders = await res.json();
+        } catch (_) {}
 
         const list = mergePendingOrders(remoteOrders);
         if (!Array.isArray(list) || list.length === 0) {
@@ -156,44 +168,82 @@
           return;
         }
 
+        // Cache order objects
+        list.forEach(o => { _orderMap[o.id] = o; });
+
         setOrdersTitle(list.length);
         el.innerHTML = list.map(function(order) {
-          const isWithdrawal = order.type === 'withdrawal';
-          const label = isWithdrawal ? 'Rút tiền' : 'Nạp tiền (chuyển khoản)';
-          const detail = isWithdrawal
-            ? order.email + ' -> ' + order.bank + ' | STK: ' + order.stk
-            : order.email + ' | Đã chuyển khoản | ' + (order.bank || 'AB Bank') + ' | ' + (order.stk || '0903722295');
+          const isW  = order.type === 'withdrawal';
+          const icon = isW ? '🏧' : '🏦';
+          const label  = isW ? 'Rút tiền' : 'Nạp tiền (chuyển khoản)';
+          const detail = isW
+            ? order.email + ' → ' + (order.bank||'') + ' | STK: ' + (order.stk||'')
+            : order.email + ' | Đã chuyển khoản | ' + (order.bank||'AB Bank') + ' | ' + (order.stk||'0903722295');
+          const approveLabel = isW ? '✓ Đã chuyển tiền' : '+ Xác nhận nạp';
 
           return `
             <div class="order-card" id="order-${order.id}">
-              <div class="order-icon ${order.type}">${isWithdrawal ? 'R' : 'N'}</div>
+              <div class="order-icon ${order.type}">${icon}</div>
               <div class="order-info">
                 <div class="order-type">${label}</div>
                 <div class="order-detail">${detail}</div>
                 <div class="order-detail" style="margin-top:2px;color:#6b698a;">${order.time || ''}</div>
               </div>
-              <div class="order-amount ${order.type}">${isWithdrawal ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
-              <button class="btn-complete" onclick="completeOrder('${order.id}')">Hoàn tất</button>
+              <div class="order-amount ${order.type}">${isW ? '-' : '+'}${Number(order.amount).toLocaleString('vi-VN')} đ</div>
+              <div class="order-actions">
+                <button class="btn-complete" onclick="approveOrder('${order.id}')">${approveLabel}</button>
+                <button class="btn-reject"   onclick="rejectOrder('${order.id}')">✗ Từ chối</button>
+              </div>
             </div>
           `;
         }).join('');
       }
 
-      async function completeOrder(id) {
-        const card = document.getElementById('order-' + id);
-        if (card) {
-          card.style.opacity = '0.4';
-          card.style.pointerEvents = 'none';
-        }
+      async function _removeOrder(id) {
         dismissPendingOrder(id);
-        try {
-          await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' });
-          showToast('Đã hoàn tất đơn hàng', 'success');
-          setTimeout(loadOrders, 400);
-        } catch (err) {
-          showToast('Đã xoá khỏi hàng chờ local, API chưa phản hồi', 'error');
-          setTimeout(loadOrders, 400);
+        try { await fetch('/api/orders?id=' + encodeURIComponent(id), { method: 'DELETE' }); } catch (_) {}
+        const card = document.getElementById('order-' + id);
+        if (card) card.remove();
+        const remaining = document.querySelectorAll('[id^="order-"]').length;
+        setOrdersTitle(remaining);
+        if (!remaining) document.getElementById('orders-list').innerHTML =
+          '<div style="text-align:center;color:#4a4860;padding:24px;font-size:13px;">Không có đơn hàng nào đang chờ xử lý</div>';
+      }
+
+      async function approveOrder(id) {
+        const order = _orderMap[id];
+        if (!order) return;
+        if (!confirm('Xác nhận duyệt đơn này?')) return;
+
+        if (order.type === 'bank_transfer') {
+          // Cộng tiền vào tài khoản user
+          const cur = _getBalance(order.email);
+          _setBalance(order.email, cur + Number(order.amount));
+          showToast('Đã nạp ' + Number(order.amount).toLocaleString('vi-VN') + ' đ cho ' + order.email, 'success');
+        } else {
+          // Rút tiền: balance đã trừ rồi, chỉ cần xác nhận
+          showToast('Đã xác nhận chuyển tiền cho ' + order.email, 'success');
         }
+        await _removeOrder(id);
+      }
+
+      async function rejectOrder(id) {
+        const order = _orderMap[id];
+        if (!order) return;
+        const msg = order.type === 'withdrawal'
+          ? 'Từ chối rút tiền? Số tiền sẽ được hoàn lại cho user.'
+          : 'Từ chối nạp tiền? (Không thay đổi số dư user)';
+        if (!confirm(msg)) return;
+
+        if (order.type === 'withdrawal') {
+          // Hoàn tiền
+          const cur = _getBalance(order.email);
+          _setBalance(order.email, cur + Number(order.amount));
+          showToast('Đã hoàn ' + Number(order.amount).toLocaleString('vi-VN') + ' đ cho ' + order.email, 'success');
+        } else {
+          showToast('Đã từ chối yêu cầu nạp tiền của ' + order.email, 'success');
+        }
+        await _removeOrder(id);
       }
 
       function logout() {
