@@ -72,6 +72,15 @@
       .btn-cancel:hover { background: rgba(255,255,255,0.1); }
       .btn-confirm { flex: 2; padding: 11px; background: linear-gradient(135deg, #7c3aed, #6366f1); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .2s; }
       .btn-confirm:hover { opacity: .9; }
+      .modal-pw-wrap { margin-bottom: 16px; }
+      .modal-pw-label { font-size: 12px; color: #9490b0; margin-bottom: 6px; display: block; }
+      .modal-pw-field { position: relative; }
+      .modal-pw-field input { width: 100%; padding: 10px 38px 10px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; }
+      .modal-pw-field input:focus { border-color: rgba(124,58,237,0.6); }
+      .modal-pw-field input.pw-error { border-color: #f87171; }
+      .modal-pw-eye { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #9490b0; padding: 0; line-height: 1; }
+      .pw-err-msg { font-size: 12px; color: #f87171; margin-top: 5px; display: none; }
+      .pw-err-msg.show { display: block; }
 
       .submit-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 8px; transition: opacity .2s, transform .1s; box-shadow: 0 4px 20px rgba(124,58,237,.4); }
       .submit-btn:hover:not(:disabled) { opacity: .9; }
@@ -125,7 +134,7 @@
     <!-- Confirm modal -->
     <div class="modal-overlay" id="modal">
       <div class="modal">
-        <h3>Xác nhận chuyển điểm</h3>
+        <h3>Xác nhận chuyển tiền</h3>
         <p>Vui lòng kiểm tra thông tin trước khi xác nhận.</p>
         <div class="modal-detail">
           <div class="modal-row"><span class="label">Người nhận</span><span class="value" id="m-receiver">—</span></div>
@@ -135,6 +144,14 @@
             <span class="value highlight" id="m-amount">0 đ</span>
           </div>
           <div class="modal-row"><span class="label">Số dư sau chuyển</span><span class="value" id="m-after">0 đ</span></div>
+        </div>
+        <div class="modal-pw-wrap">
+          <label class="modal-pw-label">🔒 Nhập mật khẩu để xác nhận</label>
+          <div class="modal-pw-field">
+            <input type="password" id="modal-pw-input" placeholder="Mật khẩu của bạn" autocomplete="current-password" />
+            <button type="button" class="modal-pw-eye" onclick="toggleModalPw()">👁</button>
+          </div>
+          <div class="pw-err-msg" id="pw-err-msg">Mật khẩu không đúng. Vui lòng thử lại.</div>
         </div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeModal()">Huỷ</button>
@@ -170,7 +187,7 @@
         <div class="transfer-grid">
           <div>
             <div class="form-card">
-              <div class="form-card-title">💸 Thông tin chuyển điểm</div>
+              <div class="form-card-title">💸 Thông tin chuyển tiền</div>
 
               <div class="field-group">
                 <label>Email người nhận</label>
@@ -210,7 +227,7 @@
 
             <!-- History -->
             <div class="history-section">
-              <div class="history-title">Lịch sử chuyển điểm</div>
+              <div class="history-title">Lịch sử chuyển tiền</div>
               <div id="transfer-history"><div class="tx-empty">Chưa có giao dịch nào</div></div>
             </div>
           </div>
@@ -320,7 +337,7 @@
         if (!receiverEmail) { showResult('error', 'Thiếu thông tin', 'Vui lòng nhập email người nhận.'); return; }
         if (receiverEmail === session.email) { showResult('error', 'Không hợp lệ', 'Không thể chuyển cho chính mình.'); return; }
         if (!foundReceiver) { showResult('error', 'Không tìm thấy', 'Email người nhận không tồn tại trong hệ thống.'); return; }
-        if (!amount || amount < 1000) { showResult('error', 'Số điểm không hợp lệ', 'Số điểm tối thiểu là 1.000 đ.'); return; }
+        if (!amount || amount < 1000) { showResult('error', 'Số tiền không hợp lệ', 'Số tiền tối thiểu là 1.000 đ.'); return; }
         if (amount > myBalance) { showResult('error', 'Số dư không đủ', `Số dư của bạn chỉ còn ${formatMoney(myBalance)} đ.`); return; }
 
         pendingTransfer = { receiver: foundReceiver, amount, note: document.getElementById('inp-note').value.trim() };
@@ -332,13 +349,37 @@
         document.getElementById('modal').classList.add('show');
       }
 
+      function toggleModalPw() {
+        const inp = document.getElementById('modal-pw-input');
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      }
+
       function closeModal() {
         document.getElementById('modal').classList.remove('show');
+        const pwInp = document.getElementById('modal-pw-input');
+        pwInp.value = '';
+        pwInp.classList.remove('pw-error');
+        document.getElementById('pw-err-msg').classList.remove('show');
         pendingTransfer = null;
       }
 
       function confirmTransfer() {
         if (!pendingTransfer) return;
+
+        const pwInp   = document.getElementById('modal-pw-input');
+        const errMsg  = document.getElementById('pw-err-msg');
+        const entered = pwInp.value;
+        const accounts = typeof getAccounts === 'function' ? getAccounts() : (JSON.parse(localStorage.getItem('cc_accounts') || '[]'));
+        const myAcc   = accounts.find(a => a.email === session.email);
+        if (!myAcc || myAcc.password !== entered) {
+          pwInp.classList.add('pw-error');
+          errMsg.classList.add('show');
+          pwInp.focus();
+          return;
+        }
+        pwInp.classList.remove('pw-error');
+        errMsg.classList.remove('show');
+
         const { receiver, amount, note } = pendingTransfer;
 
         const senderBal   = getBalance(session.email);
