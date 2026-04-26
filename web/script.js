@@ -56,13 +56,15 @@
 
     // Build nav links
     const nav = document.getElementById('mob-sidebar-nav');
+    const _mobSession = JSON.parse(sessionStorage.getItem('cc_session') || 'null');
+    const _mobIsAdmin = _mobSession && _mobSession.email && _mobSession.email.toLowerCase() === 'nguyenngoctri2910@gmail.com';
     NAV_ITEMS.forEach(item => {
       const a = document.createElement('a');
       a.href = item.href;
       a.textContent = item.label;
       if (item.cls) a.classList.add(item.cls);
       if (item.id) a.id = item.id;
-      if (item.hidden) a.style.display = 'none';
+      if (item.hidden && !(item.id === 'mob-admin' && _mobIsAdmin)) a.style.display = 'none';
       if (item.href.includes(currentPage)) a.classList.add('active');
       nav.appendChild(a);
     });
@@ -150,6 +152,19 @@ async function _sbInsertTx(userEmail, type, amount, data) {
 }
 
 async function syncFromSupabase() {
+  const sbUsers = await _sbGet('users?select=email,name,password,balance');
+  const sbEmails = new Set((sbUsers || []).map(u => u.email));
+
+  // Push local accounts not yet in Supabase (first-time seed)
+  const localAccounts = JSON.parse(localStorage.getItem('cc_accounts') || '[]');
+  const localBalances = JSON.parse(localStorage.getItem('cc_balances') || '{}');
+  for (const acc of localAccounts) {
+    if (!sbEmails.has(acc.email)) {
+      await _sbUpsert('users', { email: acc.email, name: acc.name, password: acc.password, balance: localBalances[acc.email] || 0 });
+    }
+  }
+
+  // Pull fresh authoritative data from Supabase
   const users = await _sbGet('users?select=email,name,password,balance');
   if (!users || !users.length) return;
   const accounts = users.map(u => ({ name: u.name, email: u.email, password: u.password }));
