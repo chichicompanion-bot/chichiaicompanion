@@ -249,6 +249,51 @@
           <div id="adj-status" style="padding:0 20px 16px;font-size:13px;min-height:20px;color:#4ade80;"></div>
         </div>
 
+        <!-- Password lookup -->
+        <div class="section" style="margin-bottom:24px;">
+          <div class="section-head">
+            <h3>🔑 Tra cứu mật khẩu</h3>
+            <span>Nhập Gmail để tìm tài khoản và lấy mật khẩu</span>
+          </div>
+          <div style="padding:20px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
+            <div style="flex:1;min-width:240px;">
+              <div style="font-size:12px;color:#6b698a;margin-bottom:6px;">Gmail tài khoản</div>
+              <input id="pw-email" list="pw-email-list" placeholder="nhập gmail..." style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;outline:none;" oninput="pwEmailChange()" onkeydown="if(event.key==='Enter')lookupPassword()" />
+              <datalist id="pw-email-list"></datalist>
+            </div>
+            <button onclick="lookupPassword()" style="padding:10px 22px;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;">Tìm kiếm</button>
+          </div>
+          <div id="pw-result" style="display:none;padding:0 20px 20px;">
+            <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:18px 20px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
+                <div>
+                  <div style="font-size:11px;color:#6b698a;margin-bottom:4px;">HO TEN</div>
+                  <div id="pw-res-name" style="font-size:14px;font-weight:600;color:#fff;"></div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:#6b698a;margin-bottom:4px;">EMAIL</div>
+                  <div id="pw-res-email" style="font-size:14px;font-weight:600;color:#a78bfa;"></div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:#6b698a;margin-bottom:4px;">MAT KHAU</div>
+                  <div id="pw-res-pass" style="font-size:14px;font-weight:700;color:#4ade80;font-family:monospace;letter-spacing:1px;"></div>
+                </div>
+                <div>
+                  <div style="font-size:11px;color:#6b698a;margin-bottom:4px;">SO DU</div>
+                  <div id="pw-res-bal" style="font-size:14px;font-weight:600;color:#fbbf24;"></div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#6b698a;margin-bottom:8px;">Lenh gui qua Telegram Bot:</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input id="pw-cmd" readonly style="flex:1;padding:9px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4ade80;font-size:13px;font-family:monospace;outline:none;" />
+                <button onclick="copyPwCmd()" style="padding:9px 16px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;color:#4ade80;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;">Copy lenh</button>
+              </div>
+              <div id="pw-copy-status" style="margin-top:8px;font-size:12px;color:#4ade80;min-height:16px;"></div>
+            </div>
+          </div>
+          <div id="pw-notfound" style="display:none;padding:0 20px 20px;font-size:13px;color:#f87171;">Khong tim thay tai khoan voi Gmail nay.</div>
+        </div>
+
         <!-- Users table -->
         <div class="section">
           <div class="section-head">
@@ -359,6 +404,42 @@
       }
 
       // ── Balance adjuster ──────────────────────────────────
+      function pwEmailChange() {
+        const dl = document.getElementById('pw-email-list');
+        dl.innerHTML = getAccounts().map(a => `<option value="${a.email}">${a.name}</option>`).join('');
+      }
+
+      function lookupPassword() {
+        const email = document.getElementById('pw-email').value.trim().toLowerCase();
+        const result = document.getElementById('pw-result');
+        const notfound = document.getElementById('pw-notfound');
+        result.style.display = 'none';
+        notfound.style.display = 'none';
+        if (!email) { showToast('Vui lòng nhập Gmail.', 'error'); return; }
+        const acc = getAccounts().find(a => a.email === email);
+        if (!acc) { notfound.style.display = 'block'; return; }
+        const bal = getBalance(email);
+        document.getElementById('pw-res-name').textContent  = acc.name || '(chua co)';
+        document.getElementById('pw-res-email').textContent = acc.email;
+        document.getElementById('pw-res-pass').textContent  = acc.password;
+        document.getElementById('pw-res-bal').textContent   = formatMoney(bal) + ' đ';
+        document.getElementById('pw-cmd').value = `/send_password ${acc.email} ${acc.password}`;
+        document.getElementById('pw-copy-status').textContent = '';
+        result.style.display = 'block';
+      }
+
+      function copyPwCmd() {
+        const cmd = document.getElementById('pw-cmd');
+        navigator.clipboard.writeText(cmd.value).then(() => {
+          document.getElementById('pw-copy-status').textContent = 'Da copy! Dan lenh vao Telegram bot.';
+          setTimeout(() => { document.getElementById('pw-copy-status').textContent = ''; }, 3000);
+        }).catch(() => {
+          cmd.select();
+          document.execCommand('copy');
+          document.getElementById('pw-copy-status').textContent = 'Da copy!';
+        });
+      }
+
       function adjEmailChange() {
         const email = document.getElementById('adj-email').value.trim().toLowerCase();
         const bal   = getBalance(email);
