@@ -146,11 +146,8 @@
         <button class="cat-btn" onclick="setCategory('youtube',this)"><span class="cat-icon">▶️</span> YouTube</button>
         <button class="cat-btn" onclick="setCategory('twitter',this)"><span class="cat-icon">🐦</span> Twitter / X</button>
         <button class="cat-btn" onclick="setCategory('telegram',this)"><span class="cat-icon">✈️</span> Telegram</button>
-        <button class="cat-btn" onclick="setCategory('spotify',this)"><span class="cat-icon">🎧</span> Spotify</button>
-        <button class="cat-btn" onclick="setCategory('zalo',this)"><span class="cat-icon">💬</span> Zalo</button>
         <div class="cat-title" style="margin-top:20px;">Đặc biệt</div>
         <button class="cat-btn" onclick="setCategory('tickxanh',this)"><span class="cat-icon">✅</span> Tick xanh</button>
-        <button class="cat-btn" onclick="setCategory('seo',this)"><span class="cat-icon">🔍</span> SEO / Traffic</button>
         <button class="cat-btn" onclick="setCategory('review',this)"><span class="cat-icon">⭐</span> Đánh giá</button>
 
         <div style="margin-top:24px;padding:14px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.18);border-radius:12px;">
@@ -329,22 +326,6 @@
         { id:'tg_poll_vote',  name:'Vote bình chọn poll',     price:20,  min:50,   max:10000,  badge:'new',  unit:'vote',          desc:'Bỏ phiếu bình chọn trong poll Telegram' },
         { id:'tg_online',     name:'Thành viên Online (30 ngày)',price:25,min:200, max:5000,   badge:'vip',  unit:'thành viên',    desc:'Thành viên online liên tục 30 ngày trong nhóm Telegram' },
       ],
-      spotify: [
-        { id:'sp_stream',     name:'Lượt nghe (Streams)',     price:12,  min:1000, max:5000000,badge:'hot',  unit:'lượt nghe',     desc:'Tăng lượt nghe bài hát Spotify — ảnh hưởng bảng xếp hạng' },
-        { id:'sp_follow_artist',name:'Follow nghệ sĩ',        price:20,  min:100,  max:100000, badge:null,   unit:'follow',        desc:'Tăng lượt theo dõi tài khoản nghệ sĩ Spotify' },
-        { id:'sp_follow_playlist',name:'Follow playlist',     price:18,  min:100,  max:100000, badge:null,   unit:'follow',        desc:'Tăng follower cho playlist nhạc Spotify' },
-        { id:'sp_save',       name:'Lưu bài (Save / Like)',   price:22,  min:100,  max:50000,  badge:'new',  unit:'lượt lưu',      desc:'Tăng lượt lưu bài hát vào thư viện người dùng' },
-        { id:'sp_monthly',    name:'Monthly Listener',        price:15,  min:500,  max:500000, badge:'vip',  unit:'listener',      desc:'Tăng monthly listener — chỉ số quan trọng cho nghệ sĩ' },
-        { id:'sp_podcast',    name:'Lượt nghe Podcast',       price:12,  min:1000, max:1000000,badge:'new',  unit:'lượt nghe',     desc:'Tăng lượt nghe tập podcast Spotify' },
-      ],
-      zalo: [
-        { id:'zl_follow',     name:'Follow Zalo OA',          price:30,  min:100,  max:50000,  badge:'hot',  unit:'follow',        desc:'Tăng người theo dõi Official Account Zalo — tài khoản Việt thật' },
-        { id:'zl_like',       name:'Like bài viết',           price:18,  min:50,   max:20000,  badge:null,   unit:'like',          desc:'Tăng lượt thích bài đăng Zalo OA' },
-        { id:'zl_comment',    name:'Comment bài viết',        price:80,  min:10,   max:1000,   badge:'new',  unit:'comment',       desc:'Bình luận bài viết Zalo từ tài khoản thật số điện thoại VN' },
-        { id:'zl_reaction',   name:'Reaction bài viết',       price:18,  min:50,   max:20000,  badge:null,   unit:'reaction',      desc:'Thêm biểu cảm reaction cho bài đăng Zalo OA' },
-        { id:'zl_group',      name:'Thành viên nhóm',         price:28,  min:100,  max:10000,  badge:null,   unit:'thành viên',    desc:'Thêm thành viên vào nhóm Zalo — số điện thoại VN thật' },
-        { id:'zl_view',       name:'View bài viết',           price:12,  min:500,  max:100000, badge:'new',  unit:'lượt xem',      desc:'Tăng lượt xem bài đăng Zalo OA' },
-      ],
       tickxanh: [
         { id:'tx_fb',         name:'Tick xanh Facebook',      price:2500000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Facebook cá nhân / trang — bảo hành 6 tháng' },
         { id:'tx_ig',         name:'Tick xanh Instagram',     price:3200000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Instagram — yêu cầu 10K+ follower' },
@@ -354,14 +335,6 @@
         { id:'tx_tw',         name:'Tick xanh Twitter/X',     price:1200000, min:1, max:1,     badge:'vip',  unit:'tài khoản',     desc:'Đăng ký Twitter Blue X Premium — xác minh chính chủ' },
         { id:'tx_tg',         name:'Tick xanh Telegram',      price:1800000, min:1, max:1,     badge:'new',  unit:'tài khoản',     desc:'Huy hiệu xác minh ✓ xanh Telegram — dành cho kênh lớn' },
         { id:'tx_zalo',       name:'Tick xanh Zalo OA',       price:1500000, min:1, max:1,     badge:'new',  unit:'tài khoản',     desc:'Xác minh Official Account Zalo — dành cho doanh nghiệp' },
-      ],
-      seo: [
-        { id:'seo_traffic',   name:'Traffic website',         price:2,   min:1000, max:1000000,badge:'hot',  unit:'lượt truy cập', desc:'Lượt truy cập website từ IP Việt Nam thật' },
-        { id:'seo_google',    name:'Tìm kiếm Google',         price:15,  min:100,  max:20000,  badge:'new',  unit:'lượt',          desc:'Tìm kiếm từ khoá → click vào web tăng thứ hạng Google' },
-        { id:'seo_backlink',  name:'Backlink chất lượng',     price:500, min:1,    max:500,    badge:'vip',  unit:'backlink',       desc:'Backlink DA50+ từ website uy tín, tăng thứ hạng SEO' },
-        { id:'seo_gmaps',     name:'Google Maps Review',      price:180, min:5,    max:1000,   badge:null,   unit:'đánh giá',       desc:'Đánh giá Google Maps 5 sao có nội dung thật' },
-        { id:'seo_youtube',   name:'YouTube SEO Traffic',     price:8,   min:500,  max:100000, badge:null,   unit:'lượt xem',       desc:'Traffic tìm kiếm vào kênh YouTube từ Google' },
-        { id:'seo_bing',      name:'Traffic Bing / Yahoo',    price:3,   min:1000, max:500000, badge:'new',  unit:'lượt truy cập', desc:'Lượt truy cập từ Bing và Yahoo — đa dạng nguồn traffic' },
       ],
       review: [
         { id:'rv_shopee',     name:'Đánh giá Shopee',         price:120, min:5,    max:1000,   badge:'hot',  unit:'đánh giá',      desc:'Review 5 sao có nội dung + ảnh, tài khoản mua hàng thật' },
@@ -379,9 +352,8 @@
       facebook:'📘 Dịch vụ Facebook', instagram:'📸 Dịch vụ Instagram',
       tiktok:'🎵 Dịch vụ TikTok', youtube:'▶️ Dịch vụ YouTube',
       twitter:'🐦 Dịch vụ Twitter / X', telegram:'✈️ Dịch vụ Telegram',
-      spotify:'🎧 Dịch vụ Spotify', zalo:'💬 Dịch vụ Zalo',
       tickxanh:'✅ Tick xanh xác minh',
-      seo:'🔍 SEO & Traffic', review:'⭐ Dịch vụ đánh giá',
+      review:'⭐ Dịch vụ đánh giá',
     };
 
     let currentCat = 'facebook';
@@ -433,8 +405,7 @@
       facebook:['fb','facebook','face'], instagram:['ig','instagram','insta'],
       tiktok:['tt','tiktok','tik tok'], youtube:['yt','youtube','you tube'],
       twitter:['tw','twitter','x'], telegram:['tg','telegram'],
-      spotify:['sp','spotify'], zalo:['zalo','zl'],
-      tickxanh:['tick','xanh','verified','blue'], seo:['seo','traffic','backlink'],
+      tickxanh:['tick','xanh','verified','blue'],
       review:['review','danh gia','đánh giá','shopee','lazada','tiki','grab'],
     };
 
