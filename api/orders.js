@@ -3,7 +3,7 @@
 //   UPSTASH_REDIS_REST_URL
 //   UPSTASH_REDIS_REST_TOKEN
 
-const KEY = 'trungtammxh_orders';
+const KEY = 'mxh24_orders';
 
 async function redis(url, token, cmd, ...args) {
   const parts = [cmd, ...args].map(a => encodeURIComponent(String(a))).join('/');

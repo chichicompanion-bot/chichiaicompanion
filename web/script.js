@@ -52,7 +52,7 @@
           <circle cx="50" cy="57" r="11" fill="url(#mg1)"/>
           <path d="M27 76 Q50 65 73 76" stroke="url(#mg1)" stroke-width="6" stroke-linecap="round"/>
         </svg>
-        Trungtammxh
+        Mxh24
       </div>
       <nav class="mob-sidebar-nav" id="mob-sidebar-nav"></nav>
       <div class="mob-sidebar-bottom">

@@ -72,7 +72,7 @@ def _save_pending(data: dict):
 pending_password_lookup = _load_pending()
 
 SYSTEM_PROMPT = """
-Bạn là trợ lý hỗ trợ khách hàng của website Trungtammxh (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
+Bạn là trợ lý hỗ trợ khách hàng của website Mxh24 (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
 
 Nhiệm vụ:
 - Hỗ trợ tài khoản: đăng ký, đăng nhập, quên mật khẩu.
@@ -83,7 +83,7 @@ Nhiệm vụ:
 
 Quy tắc:
 - Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn, rõ ràng.
-- Chỉ hỗ trợ các vấn đề liên quan đến website Trungtammxh.
+- Chỉ hỗ trợ các vấn đề liên quan đến website Mxh24.
 - Không bịa đặt giá hoặc thông tin dịch vụ nếu không chắc chắn.
 - Nếu người dùng hỏi quên mật khẩu, chỉ yêu cầu họ cung cấp Gmail đã đăng ký, không đề cập admin hay bất kỳ liên hệ nào khác.
 """.strip()
@@ -357,7 +357,7 @@ def get_ai_image_response(user_id: int, image_bytes: bytes, mime_type: str, capt
     prompt_text = (
         caption.strip()
         if caption
-        else "Day la anh chup man hinh. Hay mo ta van de va ho tro nguoi dung lien quan den website Trungtammxh."
+        else "Day la anh chup man hinh. Hay mo ta van de va ho tro nguoi dung lien quan den website Mxh24."
     )
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -416,8 +416,8 @@ def start_command(message):
     first_name = message.from_user.first_name or "ban"
     bot.reply_to(
         message,
-        f"Xin chao {first_name}! Toi la tro ly ho tro cua Trungtammxh.\n\n"
-        "Ban can ho tro ve van de gi tren website? (Nap tien, dich vu SMM, tai khoan, don hang...)",
+        f"Xin chào {first_name}! Bạn cần hỗ trợ gì về mxh24?\n\n"
+        "(Nạp tiền, dịch vụ SMM, tài khoản, đơn hàng...)",
     )
 
 
@@ -550,5 +550,5 @@ if hasattr(signal, "SIGBREAK"):
 
 
 if __name__ == "__main__":
-    logger.info("Starting Trungtammxh support bot, model=%s", GROQ_MODEL)
+    logger.info("Starting Mxh24 support bot, model=%s", GROQ_MODEL)
     bot.infinity_polling(timeout=60, long_polling_timeout=60)

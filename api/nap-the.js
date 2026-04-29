@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  const { carrier, amount, serial, pin, request_id } = req.body || {};
+  const { carrier, amount, serial, pin, request_id, email } = req.body || {};
 
   if (!carrier || !amount || !serial || !pin || !request_id) {
     return res.status(400).json({ status: 'error', message: 'Thiếu thông tin nạp thẻ.' });
@@ -62,6 +62,18 @@ module.exports = async (req, res) => {
     //  3  = thẻ lỗi / đã sử dụng
     //  4  = bảo trì hệ thống
     //  99 = đang xử lý bất đồng bộ (gọi lại sau)
+
+    // status 99 = async processing — store in Redis so callback can credit balance
+    if (data.status === 99 && email) {
+      const RU = process.env.UPSTASH_REDIS_REST_URL;
+      const RT = process.env.UPSTASH_REDIS_REST_TOKEN;
+      if (RU && RT) {
+        const key = 'nap_' + (data.request_id || request_id);
+        const val = JSON.stringify({ email, declared_amount: parseInt(amount) });
+        const parts = ['set', key, val, 'ex', '86400'].map(a => encodeURIComponent(String(a))).join('/');
+        await fetch(`${RU}/${parts}`, { headers: { Authorization: `Bearer ${RT}` } }).catch(() => {});
+      }
+    }
 
     return res.json({
       status:          data.status,
