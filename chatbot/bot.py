@@ -54,6 +54,7 @@ response_cache = OrderedDict()
 forgot_password_requests = set()
 
 _PENDING_FILE = os.path.join(os.path.dirname(__file__), "pending_password_lookup.json")
+_BUSY_FILE = os.path.join(os.path.dirname(__file__), "busy_state.json")
 
 def _load_pending():
     try:
@@ -69,7 +70,22 @@ def _save_pending(data: dict):
     except Exception as exc:
         logger.warning("Could not save pending_password_lookup: %s", exc)
 
+def _load_busy() -> bool:
+    try:
+        with open(_BUSY_FILE, "r", encoding="utf-8") as f:
+            return bool(json.load(f).get("busy"))
+    except Exception:
+        return False
+
+def _save_busy(busy: bool) -> None:
+    try:
+        with open(_BUSY_FILE, "w", encoding="utf-8") as f:
+            json.dump({"busy": busy}, f)
+    except Exception as exc:
+        logger.warning("Could not save busy_state: %s", exc)
+
 pending_password_lookup = _load_pending()
+busy_mode = _load_busy()
 
 SYSTEM_PROMPT = """
 Bạn là trợ lý hỗ trợ khách hàng của website Mxh24 (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
@@ -463,6 +479,34 @@ def admin_send_password(message):
         bot.reply_to(message, "Gui that bai. Nguoi dung co the da khoa bot hoac chat ID khong hop le.")
 
 
+@bot.message_handler(commands=["busy"])
+def admin_set_busy(message):
+    global busy_mode
+    if not ADMIN_CHAT_ID or str(message.chat.id) != str(ADMIN_CHAT_ID):
+        return
+    busy_mode = True
+    _save_busy(True)
+    bot.reply_to(message, "🔕 Đã bật chế độ bận. Khách nhắn sẽ được báo về đây, bot KHÔNG trả lời AI.")
+
+
+@bot.message_handler(commands=["free"])
+def admin_set_free(message):
+    global busy_mode
+    if not ADMIN_CHAT_ID or str(message.chat.id) != str(ADMIN_CHAT_ID):
+        return
+    busy_mode = False
+    _save_busy(False)
+    bot.reply_to(message, "🔔 Đã tắt chế độ bận. Bot trả lời khách bình thường.")
+
+
+@bot.message_handler(commands=["status"])
+def admin_show_status(message):
+    if not ADMIN_CHAT_ID or str(message.chat.id) != str(ADMIN_CHAT_ID):
+        return
+    state = "🔕 BẬN" if busy_mode else "🔔 RẢNH"
+    bot.reply_to(message, f"Trạng thái: {state}\n/busy để bật bận, /free để tắt.")
+
+
 @bot.message_handler(commands=["reset", "clear"])
 def reset_history(message):
     user_id = message.from_user.id
@@ -520,6 +564,28 @@ def handle_message(message):
             return
 
         if handle_forgot_password_flow(message, text):
+            last_message_time[user_id] = now
+            return
+
+        # Busy mode: forward to admin + auto-reply, skip AI
+        is_admin_chat = ADMIN_CHAT_ID and str(message.chat.id) == str(ADMIN_CHAT_ID)
+        if busy_mode and not is_admin_chat:
+            if ADMIN_CHAT_ID:
+                user = message.from_user
+                full_name = clean_text(" ".join(p for p in [user.first_name, user.last_name] if p)) or "(không tên)"
+                username = f"@{user.username}" if getattr(user, "username", None) else "(không có)"
+                try:
+                    bot.send_message(
+                        ADMIN_CHAT_ID,
+                        "🔔 Có khách nhắn\n"
+                        f"👤 Tên: {full_name}\n"
+                        f"🆔 Username: {username}\n"
+                        f"💬 Nội dung: {text}\n"
+                        f"💡 Chat ID: {message.chat.id}",
+                    )
+                except Exception as exc:
+                    logger.exception("Failed to forward busy-mode message: %s", exc)
+            bot.reply_to(message, "Cảm ơn bạn đã liên hệ! Hiện admin đang bận, sẽ phản hồi bạn sớm nhất có thể.")
             last_message_time[user_id] = now
             return
 
