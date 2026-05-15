@@ -199,7 +199,17 @@ QUY TẮC TRẢ LỜI GIÁ (RẤT QUAN TRỌNG):
 Quy tắc chung:
 - Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn, rõ ràng (≤4 dòng).
 - Chỉ hỗ trợ các vấn đề liên quan đến website Mxh24.
-- Nếu khách hỏi quên mật khẩu, chỉ yêu cầu họ cung cấp Gmail đã đăng ký.
+
+QUY TẮC QUÊN MẬT KHẨU (TUYỆT ĐỐI TUÂN THỦ):
+- Khi khách báo quên mật khẩu / mất tài khoản / không đăng nhập được: CHỈ yêu cầu họ cung cấp Gmail đã đăng ký, không nói thêm gì khác.
+- Sau khi khách gửi Gmail: CHỈ trả lời "Đã nhận thông tin. Vui lòng chờ trong ít phút, admin sẽ gửi lại mật khẩu cho bạn ngay tại đây."
+- TUYỆT ĐỐI KHÔNG nói các câu sau (đây là LỖI NẶNG):
+  • "kiểm tra hộp thư đến" / "kiểm tra hộp thư spam"
+  • "email/mật khẩu sẽ được gửi tới Gmail của bạn"
+  • "sẽ nhận hướng dẫn qua email"
+  • "đăng nhập vào Gmail để xem"
+  • Bất kỳ câu nào ám chỉ hệ thống gửi email cho khách.
+- Lý do: hệ thống KHÔNG gửi email. Admin sẽ tra mật khẩu thủ công rồi bot gửi LẠI ngay tại cửa sổ Telegram này.
 
 ═════════════ BẢNG GIÁ DỊCH VỤ ═════════════
 {SERVICE_CATALOG}
@@ -228,24 +238,44 @@ LATEST_HINT_PATTERNS = [
 ]
 
 FORGOT_PASSWORD_PATTERNS = [
-    "quen mat khau",
-    "quên mật khẩu",
-    "mat mat khau",
-    "mất mật khẩu",
-    "quen pass",
-    "quên pass",
-    "quen mk",
-    "quên mk",
-    "mat mk",
-    "mất mk",
-    "forgot password",
-    "reset mat khau",
-    "khong dang nhap duoc",
-    "không đăng nhập được",
-    "khong vao duoc tai khoan",
-    "không vào được tài khoản",
-    "lay lai mat khau",
-    "lấy lại mật khẩu",
+    # Quên...
+    "quen mat khau", "quên mật khẩu",
+    "quen pass", "quên pass",
+    "quen mk", "quên mk",
+    "quen password", "quên password",
+    "quen tai khoan", "quên tài khoản",
+    "quen tk", "quên tk",
+    # Mất...
+    "mat mat khau", "mất mật khẩu",
+    "mat mk", "mất mk",
+    "mat pass", "mất pass",
+    "mat tk", "mất tk",
+    "mat tai khoan", "mất tài khoản",
+    # Lấy lại...
+    "lay lai mat khau", "lấy lại mật khẩu",
+    "lay lai mk", "lấy lại mk",
+    "lay lai pass", "lấy lại pass",
+    "lay lai password", "lấy lại password",
+    "lay lai tk", "lấy lại tk",
+    "lay lai tai khoan", "lấy lại tài khoản",
+    "lay lai account", "lấy lại account",
+    # Reset / khôi phục
+    "reset mat khau", "reset mật khẩu",
+    "reset password", "reset pass",
+    "khoi phuc mat khau", "khôi phục mật khẩu",
+    "khoi phuc tk", "khôi phục tk",
+    "khoi phuc tai khoan", "khôi phục tài khoản",
+    # Không vào được
+    "khong dang nhap duoc", "không đăng nhập được",
+    "khong vao duoc tai khoan", "không vào được tài khoản",
+    "khong vao duoc tk", "không vào được tk",
+    "khong nho mat khau", "không nhớ mật khẩu",
+    "khong nho mk", "không nhớ mk",
+    "khong nho pass", "không nhớ pass",
+    # English
+    "forgot password", "forgot my password",
+    "lost password", "lost my password",
+    "recover password", "recover account",
 ]
 
 EMAIL_PATTERN = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", re.IGNORECASE)
@@ -324,7 +354,8 @@ def handle_forgot_password_flow(message, text: str) -> bool:
         if ok:
             bot.reply_to(
                 message,
-                "Đã nhận thông tin. Chúng tôi sẽ hỗ trợ bạn sớm nhất có thể.",
+                "Đã nhận Gmail của bạn. Vui lòng chờ trong ít phút, "
+                "admin sẽ gửi lại mật khẩu cho bạn ngay tại đây.",
             )
         else:
             bot.reply_to(message, error_message or "Hiện tại không gửi được yêu cầu. Bạn thử lại sau ít phút nhé.")
