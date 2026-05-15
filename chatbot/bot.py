@@ -87,21 +87,123 @@ def _save_busy(busy: bool) -> None:
 pending_password_lookup = _load_pending()
 busy_mode = _load_busy()
 
-SYSTEM_PROMPT = """
+# Bảng giá dịch vụ — đồng bộ với web/dich-vu.html (SERVICES).
+# Khi cập nhật giá trên web, NHỚ cập nhật ở đây để bot trả lời đúng.
+# price = đ/1 đơn vị; giá/1.000 = price*1000.
+SERVICE_CATALOG = """
+═══ FACEBOOK ═══
+- Like bài viết: 15đ/like (15.000đ/1.000) | min 50, max 100.000 | tài khoản Việt thật
+- Follow trang/Profile: 22đ/follow (22.000đ/1.000) | min 100, max 50.000
+- React cảm xúc (Like/Love/Haha...): 18đ/react (18.000đ/1.000) | min 50, max 50.000 | VN thật
+- Share bài viết: 17đ/share (17.000đ/1.000) | min 50, max 10.000
+- Comment bài viết: 85đ/comment (85.000đ/1.000) | min 10, max 2.000 | tài khoản Việt thật
+- View video: 13đ/view (13.000đ/1.000) | min 500, max 500.000
+- View Story: 13đ/view (13.000đ/1.000) | min 500, max 200.000 | xử lý trong 30 phút
+- Mắt Livestream: 50đ/mắt (50.000đ/1.000) | min 100, max 20.000 | ổn định thời gian thực
+- Thành viên Group: 35đ/thành viên (35.000đ/1.000) | min 100, max 20.000
+- Like trang (Page Like): 15đ/like (15.000đ/1.000) | min 100, max 100.000
+- Tham gia sự kiện: 30đ/tham gia (30.000đ/1.000) | min 50, max 5.000
+- Check-in địa điểm: 65đ/check-in (65.000đ/1.000) | min 20, max 5.000
+- Review 5 sao: 160đ/đánh giá (160.000đ/1.000) | min 5, max 1.000 | có nội dung
+- Lưu bài viết: 14đ/lưu (14.000đ/1.000) | min 100, max 50.000
+
+═══ INSTAGRAM ═══
+- Tim ảnh/Reel: 14đ/tim (14.000đ/1.000) | min 50, max 100.000
+- Follow: 20đ/follow (20.000đ/1.000) | min 100, max 50.000
+- View Story: 13đ/view (13.000đ/1.000) | min 200, max 200.000
+- View Reel/Video: 13đ/view (13.000đ/1.000) | min 500, max 500.000
+- Comment: 90đ/comment (90.000đ/1.000) | min 10, max 1.000 | có avatar
+- Lưu bài viết: 18đ/lưu (18.000đ/1.000) | min 100, max 50.000
+- Share/Repost: 25đ/share (25.000đ/1.000) | min 50, max 10.000
+- Mắt Livestream: 48đ/mắt (48.000đ/1.000) | min 100, max 10.000
+- Impressions/Reach: 12đ/impression (12.000đ/1.000) | min 1.000, max 500.000
+- Lượt xem trang cá nhân: 12đ/view (12.000đ/1.000) | min 500, max 200.000
+
+═══ TIKTOK ═══
+- Tim video: 12đ/tim (12.000đ/1.000) | min 100, max 500.000
+- Follow: 32đ/follow (32.000đ/1.000) | min 100, max 100.000 | tài khoản thật
+- View video: 12đ/view (12.000đ/1.000) | min 1.000, max 1.000.000 | tăng reach FYP
+- Comment: 105đ/comment (105.000đ/1.000) | min 10, max 2.000 | bình luận thật
+- Share video: 25đ/share (25.000đ/1.000) | min 100, max 20.000
+- Mắt Livestream: 50đ/mắt (50.000đ/1.000) | min 100, max 10.000 | thời gian thực
+- Lưu/Bookmark: 14đ/lưu (14.000đ/1.000) | min 100, max 50.000
+- Duet video: 35đ/duet (35.000đ/1.000) | min 50, max 5.000
+- Xem trang cá nhân: 12đ/view (12.000đ/1.000) | min 1.000, max 500.000
+- Yêu thích (Favorite): 13đ/favorite (13.000đ/1.000) | min 100, max 100.000
+
+═══ YOUTUBE ═══
+- View video: 28đ/view (28.000đ/1.000) | min 500, max 500.000 | tài khoản thật
+- Like video: 13đ/like (13.000đ/1.000) | min 50, max 50.000
+- Subscribe kênh: 415đ/sub (415.000đ/1.000) | min 100, max 10.000 | tài khoản thật
+- Watch Time (4000H): 230đ/giờ (230.000đ/1.000) | min 10, max 2.000 | điều kiện YPP
+- Comment: 29đ/comment (29.000đ/1.000) | min 5, max 1.000
+- Share video: 28đ/share (28.000đ/1.000) | min 50, max 10.000
+- View Short: 43đ/view (43.000đ/1.000) | min 1.000, max 500.000
+- Mắt Livestream: 50đ/mắt (50.000đ/1.000) | min 50, max 5.000
+- Like bình luận: 13đ/like (13.000đ/1.000) | min 50, max 10.000
+
+═══ TWITTER / X ═══
+- Like tweet: 15đ/like (15.000đ/1.000) | min 50, max 50.000
+- Follow: 20đ/follow (20.000đ/1.000) | min 100, max 50.000
+- Retweet: 25đ/retweet (25.000đ/1.000) | min 50, max 20.000
+- View tweet/Video: 12đ/view (12.000đ/1.000) | min 500, max 500.000
+- Reply/Comment: 90đ/reply (90.000đ/1.000) | min 10, max 1.000
+- Bookmark: 18đ/bookmark (18.000đ/1.000) | min 50, max 20.000
+- Quote tweet: 30đ/quote (30.000đ/1.000) | min 20, max 5.000
+- Vote poll: 25đ/vote (25.000đ/1.000) | min 50, max 5.000
+
+═══ TELEGRAM ═══
+- Thành viên channel/group: 28đ/thành viên (28.000đ/1.000) | min 100, max 50.000 | tốc độ 30k/ngày
+- View bài đăng: 12đ/view (12.000đ/1.000) | min 500, max 1.000.000 | xử lý ngay
+- React emoji bài đăng: 15đ/react (15.000đ/1.000) | min 50, max 50.000
+- Share bài đăng: 18đ/share (18.000đ/1.000) | min 50, max 20.000
+- Vote poll: 20đ/vote (20.000đ/1.000) | min 50, max 10.000
+- Thành viên Online 30 ngày: 25đ/thành viên (25.000đ/1.000) | min 200, max 5.000
+
+═══ TICK XANH XÁC MINH (gói cố định, 1 lần) ═══
+- Facebook: 2.500.000đ/tài khoản | bảo hành 6 tháng
+- Instagram: 3.200.000đ/tài khoản | yêu cầu 10K+ follower
+- TikTok: 2.800.000đ/tài khoản | bảo hành 3 tháng
+- Nút bạc YouTube (100K sub): 800.000đ/kênh
+- Nút vàng YouTube (1M sub): 3.500.000đ/kênh
+- Twitter/X (Blue Premium): 1.200.000đ/tài khoản
+- Telegram: 1.800.000đ/tài khoản | dành cho kênh lớn
+- Zalo OA: 1.500.000đ/tài khoản | dành cho doanh nghiệp
+
+═══ ĐÁNH GIÁ / REVIEW (giá/1 đánh giá) ═══
+- Shopee: 120đ/review | min 5, max 1.000 | 5 sao + nội dung + ảnh
+- Lazada: 130đ/review | min 5, max 500
+- Tiki: 140đ/review | min 5, max 500
+- Grab/Baemin: 160đ/review | min 5, max 500
+- Google Business Review: 180đ/review | min 5, max 500
+- Foody/Now: 150đ/review | min 5, max 300
+- TikTok Shop: 200đ/review | min 5, max 500 | có video + nội dung
+- Sendo: 130đ/review | min 5, max 300
+""".strip()
+
+SYSTEM_PROMPT = f"""
 Bạn là trợ lý hỗ trợ khách hàng của website Mxh24 (chichiaicompanion.com) - nền tảng dịch vụ mạng xã hội (SMM).
 
 Nhiệm vụ:
 - Hỗ trợ tài khoản: đăng ký, đăng nhập, quên mật khẩu.
 - Hỗ trợ nạp tiền: nạp thẻ cào, chuyển khoản ngân hàng AB Bank STK 0903722295.
-- Hỗ trợ dịch vụ SMM: buff tim, follow, view, comment, share trên các mạng xã hội.
+- Trả lời GIÁ và thông tin dịch vụ SMM DỰA TRÊN BẢNG GIÁ DƯỚI ĐÂY.
 - Hỗ trợ đặt dịch vụ và kiểm tra trạng thái đơn hàng.
-- Giải đáp thắc mắc về giá và thời gian thực hiện.
 
-Quy tắc:
-- Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn, rõ ràng.
+QUY TẮC TRẢ LỜI GIÁ (RẤT QUAN TRỌNG):
+- KHI KHÁCH HỎI GIÁ, PHẢI TRẢ LỜI TRỰC TIẾP CON SỐ từ bảng giá bên dưới. KHÔNG được bảo khách "vào web xem", "truy cập trang chủ", "vào dịch vụ Mxh24 để xem giá" hoặc các câu tương tự.
+- Format trả lời giá: nêu giá/1 đơn vị + giá/1.000 + min/max. Ví dụ: "Buff follow TikTok: 32đ/follow (32.000đ/1.000 follow), tối thiểu 100, tối đa 100.000. Tài khoản thật, lên ổn định."
+- Nếu khách hỏi "buff X bao nhiêu" hoặc "X bao nhiêu tiền" — coi đó là hỏi giá.
+- Nếu dịch vụ KHÔNG có trong bảng giá → nói "hiện chưa có dịch vụ này", KHÔNG bịa giá.
+
+Quy tắc chung:
+- Luôn trả lời bằng tiếng Việt, thân thiện, ngắn gọn, rõ ràng (≤4 dòng).
 - Chỉ hỗ trợ các vấn đề liên quan đến website Mxh24.
-- Không bịa đặt giá hoặc thông tin dịch vụ nếu không chắc chắn.
-- Nếu người dùng hỏi quên mật khẩu, chỉ yêu cầu họ cung cấp Gmail đã đăng ký, không đề cập admin hay bất kỳ liên hệ nào khác.
+- Nếu khách hỏi quên mật khẩu, chỉ yêu cầu họ cung cấp Gmail đã đăng ký.
+
+═════════════ BẢNG GIÁ DỊCH VỤ ═════════════
+{SERVICE_CATALOG}
+═══════════════════════════════════════════
 """.strip()
 
 LATEST_HINT_PATTERNS = [
