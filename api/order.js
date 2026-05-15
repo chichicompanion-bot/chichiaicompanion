@@ -123,6 +123,21 @@ const SERVICE_MAP = {
   rv_sendo:       process.env.SVC_RV_SENDO       || null,
 };
 
+async function notifyTelegram(text) {
+  const TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+  const CHAT  = process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.ADMIN_CHAT_ID;
+  if (!TOKEN || !CHAT) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: CHAT, text, parse_mode: 'HTML' }),
+    });
+  } catch (err) {
+    console.error('Telegram notify failed:', err);
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -131,7 +146,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-  const { svcId, link, qty } = req.body || {};
+  const { svcId, link, qty, email } = req.body || {};
 
   if (!svcId || !link || !qty) {
     return res.status(400).json({ status: 'error', message: 'Thiếu thông tin đơn hàng.' });
@@ -175,6 +190,17 @@ module.exports = async (req, res) => {
       console.error('SMM Panel unexpected response:', data);
       return res.status(500).json({ status: 'error', message: 'Lỗi từ nhà cung cấp dịch vụ.' });
     }
+
+    // Thông báo admin qua Telegram về đơn vừa đặt thành công với panel
+    notifyTelegram(
+      `🚀 <b>Đơn SMM mới</b>\n` +
+      `👤 Email: <code>${email || '(không có)'}</code>\n` +
+      `🛠 Dịch vụ: <code>${svcId}</code>\n` +
+      `🔗 Link: ${link}\n` +
+      `📦 Số lượng: <b>${qty}</b>\n` +
+      `🆔 Panel order: <code>${data.order}</code>\n` +
+      `⏰ ${new Date().toLocaleString('vi-VN')}`
+    );
 
     return res.json({ status: 'ok', panelOrderId: data.order });
   } catch (err) {

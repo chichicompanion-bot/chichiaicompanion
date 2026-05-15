@@ -561,12 +561,12 @@
             `Bạn khai báo ${formatMoney(declared_amount)} đ nhưng thẻ thực tế là ${formatMoney(actual_amount)} đ. Do sai mệnh giá, chỉ cộng ${formatMoney(credited)} đ (50% mệnh giá thực).`
           );
         }
-        // status 99 — đang xử lý bất đồng bộ
+        // status 99 — đang xử lý bất đồng bộ (hoặc admin đang xử lý thủ công)
         else if (status === 99) {
           saveTransaction({ carrier: selectedCarrier, denom: selectedDenom, credited: 0, serial, status: 'pending', time: new Date().toLocaleString('vi-VN') });
           showResult('pending',
             '⏳ Đang xử lý...',
-            'Thẻ đang được xác minh. Tiền sẽ được cộng tự động trong vài phút. Vui lòng kiểm tra lại lịch sử.'
+            apiResult.message || 'Thẻ đang được xác minh. Tiền sẽ được cộng tự động sau khi xử lý xong.'
           );
         }
         // status 3 — thẻ lỗi / đã dùng
