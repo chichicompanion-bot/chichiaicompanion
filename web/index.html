@@ -1,128 +1,20 @@
-﻿<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html lang="vi" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Mxh24</title>
-    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-    <link rel="apple-touch-icon" href="images/logo.png">
-    <meta property="og:image" content="https://chichiaicompanion.com/images/logo.png">
-    <meta property="og:title" content="Mxh24">
-    <meta property="og:description" content="Dịch vụ mạng xã hội - SMM Panel">
-    <meta property="og:type" content="website">
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEXUS HEALTH — Hệ Thống Giám Sát Sinh Học Vòng Tay Thông Minh ESP32</title>
+    <meta name="description" content="NEXUS HEALTH — Nền tảng AI Biomedical Telemetry & Giám sát sức khỏe thời gian thực từ vòng tay thông minh ESP32 + MAX30102." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="./assets/index-Dxz33aGS.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-DQVYoMz4.js">
+    <link rel="modulepreload" crossorigin href="./assets/charts-Chbw6V7W.js">
+    <link rel="modulepreload" crossorigin href="./assets/icons-aVzvDM3y.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-Cu0SBCp1.css">
   </head>
-  <body>
-    <!-- Animated background -->
-    <canvas id="bg-canvas"></canvas>
-    <div class="orbs">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
-    </div>
-
-    <!-- Centered card -->
-    <div class="page-center">
-      <div class="auth-card">
-        <!-- Logo -->
-        <div class="card-logo">
-          <svg width="32" height="32" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="g1" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#2196F3"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><circle cx="50" cy="44" r="35" stroke="url(#g1)" stroke-width="7" fill="none"/><path d="M22 66 L8 92 L38 77" fill="url(#g1)"/><circle cx="50" cy="11" r="5.5" fill="url(#g1)"/><path d="M42 22 Q50 17 58 22" stroke="url(#g1)" stroke-width="5" stroke-linecap="round"/><circle cx="19" cy="23" r="3.5" fill="url(#g1)"/><circle cx="13" cy="47" r="7" fill="url(#g1)"/><path d="M3 62 Q13 55 23 62" stroke="url(#g1)" stroke-width="5" stroke-linecap="round"/><circle cx="87" cy="47" r="7" fill="url(#g1)"/><path d="M77 62 Q87 55 97 62" stroke="url(#g1)" stroke-width="5" stroke-linecap="round"/><circle cx="50" cy="57" r="11" fill="url(#g1)"/><path d="M27 76 Q50 65 73 76" stroke="url(#g1)" stroke-width="6" stroke-linecap="round"/></svg>
-          <span>Mxh24</span>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tab-row">
-          <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Đăng nhập</button>
-          <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Đăng ký</button>
-        </div>
-
-        <!-- Login form -->
-        <div id="form-login" class="auth-form">
-          <div class="form-header">
-            <h2>Chào mừng trở lại</h2>
-            <p>Nhập thông tin tài khoản để tiếp tục</p>
-          </div>
-          <form id="login-form" novalidate>
-            <div class="field-group">
-              <label for="login-email">Email</label>
-              <input id="login-email" type="email" placeholder="ban@example.com" autocomplete="email" />
-              <span class="field-error" id="login-email-err"></span>
-            </div>
-            <div class="field-group">
-              <label for="login-password">Mật khẩu</label>
-              <div class="input-wrap">
-                <input id="login-password" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" />
-                <button type="button" class="eye-btn" onclick="togglePassword('login-password', this)">
-                  <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-              <span class="field-error" id="login-pass-err"></span>
-            </div>
-            <div class="form-row">
-              <label class="checkbox-label">
-                <input type="checkbox" id="remember" />
-                <span>Ghi nhớ đăng nhập</span>
-              </label>
-              <a href="https://t.me/ngtr_AI_bot?start=forgot_password" class="link-text" target="_blank" rel="noopener">Quên mật khẩu?</a>
-            </div>
-            <button type="submit" class="btn-primary">Đăng nhập</button>
-            <div id="login-status" class="status-msg"></div>
-          </form>
-        </div>
-
-        <!-- Register form -->
-        <div id="form-register" class="auth-form hidden">
-          <div class="form-header">
-            <h2>Tạo tài khoản mới</h2>
-            <p>Miễn phí, không cần thẻ tín dụng</p>
-          </div>
-          <form id="register-form" novalidate>
-            <div class="field-group">
-              <label for="reg-name">Họ và tên</label>
-              <input id="reg-name" type="text" placeholder="Nguyễn Văn A" autocomplete="name" />
-              <span class="field-error" id="reg-name-err"></span>
-            </div>
-            <div class="field-group">
-              <label for="reg-email">Email</label>
-              <input id="reg-email" type="email" placeholder="ban@example.com" autocomplete="email" />
-              <span class="field-error" id="reg-email-err"></span>
-            </div>
-            <div class="field-group">
-              <label for="reg-password">Mật khẩu</label>
-              <div class="input-wrap">
-                <input id="reg-password" type="password" placeholder="Ít nhất 6 ký tự" autocomplete="new-password" />
-                <button type="button" class="eye-btn" onclick="togglePassword('reg-password', this)">
-                  <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-              <div class="strength-bar"><div id="strength-fill" class="strength-fill"></div></div>
-              <span class="field-error" id="reg-pass-err"></span>
-            </div>
-            <div class="field-group">
-              <label for="reg-confirm">Xác nhận mật khẩu</label>
-              <div class="input-wrap">
-                <input id="reg-confirm" type="password" placeholder="Nhập lại mật khẩu" autocomplete="new-password" />
-                <button type="button" class="eye-btn" onclick="togglePassword('reg-confirm', this)">
-                  <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-              <span class="field-error" id="reg-confirm-err"></span>
-            </div>
-            <label class="checkbox-label terms-label">
-              <input type="checkbox" id="terms" />
-              <span>Tôi đồng ý với <a href="#" class="link-text">điều khoản sử dụng</a></span>
-            </label>
-            <span class="field-error" id="reg-terms-err"></span>
-            <button type="submit" class="btn-primary">Tạo tài khoản</button>
-            <div id="register-status" class="status-msg"></div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <script src="./script.js"></script>
+  <body class="bg-[#050811] text-[#F0F6FC] antialiased selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden">
+    <div id="root"></div>
   </body>
 </html>
