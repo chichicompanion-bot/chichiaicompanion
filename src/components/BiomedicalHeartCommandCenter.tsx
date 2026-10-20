@@ -253,9 +253,9 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [autoRotate, setAutoRotate] = useState(true);
-  // Open the 4 floating glass charts by default so the exact reference composition is immediately visible,
-  // and allow right-clicking the 3D heart (or clicking the bottom prompt) to toggle them closed/open.
-  const [floatingChartsOpen, setFloatingChartsOpen] = useState(true);
+  // Start with the 4 floating glass charts CLOSED so only the 3D Heart is shown initially;
+  // right-clicking the 3D heart smoothly opens/closes the 4 panels.
+  const [floatingChartsOpen, setFloatingChartsOpen] = useState(false);
   const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('VENTRICULAR SYSTOLE • LUB (S1)');
   const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState<number>(74);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
@@ -358,6 +358,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   const handleToggleFloatingCharts = useCallback(() => {
     rightClickWavePhaseRef.current = 0.01;
     setFloatingChartsOpen((prev) => !prev);
+  }, []);
+
+  const handleCloseFloatingCharts = useCallback(() => {
+    rightClickWavePhaseRef.current = 0.01;
+    setFloatingChartsOpen(false);
   }, []);
 
   // Build SVG path for mini PPG waveform in bottom-right HUD pill
@@ -1171,7 +1176,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           dataMode={dataMode}
           isLiveConnected={isLiveValid}
           reducedMotion={reducedMotion}
-          onClose={() => setFloatingChartsOpen(false)}
+          onClose={handleCloseFloatingCharts}
         />
 
         {/* BOTTOM HUD STATUS BAR (Device Status Left, PPG Signal Right) */}

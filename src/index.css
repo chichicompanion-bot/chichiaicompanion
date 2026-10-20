@@ -133,13 +133,76 @@ html.light .text-rose-300 {
   color: #be123c !important;
 }
 
-/* Always keep the 3D Heart stage and 4 floating HUD glass panels dark-navy glassmorphism */
+/* Always keep the 3D Heart stage and 4 floating HUD glass panels dark-navy glassmorphism (GPU-composited without costly per-frame backdrop-filter blur) */
 .nexus-heart-hud-glass {
-  background: linear-gradient(155deg, rgba(6, 16, 34, 0.78) 0%, rgba(4, 10, 22, 0.68) 100%);
-  border: 1px solid rgba(0, 240, 255, 0.34);
-  box-shadow: 0 14px 36px -8px rgba(0, 0, 0, 0.72), 0 0 22px -6px rgba(0, 240, 255, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(155deg, rgba(7, 19, 40, 0.88) 0%, rgba(4, 11, 25, 0.82) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.38);
+  box-shadow: 0 16px 38px -8px rgba(0, 0, 0, 0.78), 0 0 24px -6px rgba(0, 240, 255, 0.22), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+.nexus-heart-hud-panel {
+  --from-x: 0px;
+  --from-y: 0px;
+  --stagger-open: 0ms;
+  --stagger-close: 0ms;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.nexus-heart-hud-panel.is-closed {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(var(--from-x), var(--from-y), 0) scale(0.84);
+  transition:
+    transform 320ms cubic-bezier(0.4, 0, 0.2, 1) var(--stagger-close),
+    opacity 240ms ease-out var(--stagger-close);
+}
+
+.nexus-heart-hud-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 460ms cubic-bezier(0.16, 1, 0.3, 1) var(--stagger-open),
+    opacity 340ms ease-out var(--stagger-open),
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.nexus-heart-hud-panel.is-open:hover {
+  transform: translate3d(0, -4px, 0) scale(1.012);
+  border-color: rgba(0, 240, 255, 0.68);
+  box-shadow: 0 20px 44px -8px rgba(0, 0, 0, 0.85), 0 0 30px -4px rgba(0, 240, 255, 0.34), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.nexus-hud-chart-reveal {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 260ms ease-in;
+}
+
+.nexus-heart-hud-panel.is-open .nexus-hud-chart-reveal {
+  clip-path: inset(0 0% 0 0);
+  transition: clip-path 620ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--stagger-open) + 90ms);
+}
+
+.nexus-hud-leader-line {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  opacity: 0;
+  transition:
+    stroke-dashoffset 260ms ease-in,
+    opacity 220ms ease-in;
+}
+
+.nexus-hud-leader-line.is-open {
+  stroke-dashoffset: 0;
+  opacity: 1;
+  transition:
+    stroke-dashoffset 520ms cubic-bezier(0.16, 1, 0.3, 1) var(--stagger-open),
+    opacity 300ms ease-out var(--stagger-open);
 }
 
 html.light .nexus-heart-stage-dark,
