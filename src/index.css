@@ -133,6 +133,16 @@ html.light .text-rose-300 {
   color: #be123c !important;
 }
 
+/* Always keep the 4 floating HUD glass panels around the 3D Heart translucent dark-blue glassmorphism */
+html.light .nexus-heart-hud-glass {
+  background: linear-gradient(145deg, rgba(6, 13, 28, 0.84) 0%, rgba(10, 21, 42, 0.76) 100%) !important;
+  color: #f8fafc !important;
+}
+
+html.light .nexus-heart-hud-glass .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
 .nexus-tech-grid {
   background-size: 48px 48px;
   background-image: 

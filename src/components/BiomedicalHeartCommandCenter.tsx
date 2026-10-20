@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Cpu,
-  Eye,
   Heart,
+  Layers,
   Maximize2,
+  MousePointerClick,
   Pause,
   Play,
   Radio,
@@ -19,11 +20,14 @@ import {
   DeviceStatus,
   MetricCardData,
   MetricKey,
+  TelemetryTimeSeriesPoint,
   WaveformSample,
 } from '../types/health';
+import { FloatingHeartChartsHUD } from './FloatingHeartChartsHUD';
 
 interface BiomedicalHeartCommandCenterProps {
   metrics: MetricCardData[];
+  series: TelemetryTimeSeriesPoint[];
   deviceStatus: DeviceStatus;
   dataMode: DataMode;
   ppgWave: WaveformSample[];
@@ -39,21 +43,33 @@ interface Vec3 {
   z: number;
 }
 
-interface HeartFace {
-  v0: Vec3;
-  v1: Vec3;
-  v2: Vec3;
+type TissueType =
+  | 'lv'
+  | 'rv'
+  | 'la'
+  | 'ra'
+  | 'sulcus'
+  | 'coronary_artery'
+  | 'coronary_vein'
+  | 'aorta'
+  | 'pulmonary'
+  | 'vena_cava';
+
+interface SmoothVertex {
+  pos: Vec3;
   normal: Vec3;
-  center: Vec3;
-  chamber: 'lv' | 'rv' | 'la' | 'ra' | 'aorta' | 'pulmonary' | 'svc';
-  baseColor: [number, number, number];
+  ao: number; // Ambient occlusion (0.35..1.0)
+  sulcusWeight: number; // 0..1 epicardial fat / groove blend
+  coronaryWeight: number; // 0..1 raised coronary vessel ridge
+  isVenousVessel: boolean;
+  chamber: TissueType;
+  baseRGB: [number, number, number];
 }
 
-interface CoronaryPath3D {
-  points: Vec3[];
-  color: string;
-  width: number;
-  isMain: boolean;
+interface SmoothTriangle {
+  i0: number;
+  i1: number;
+  i2: number;
 }
 
 interface OrbitalParticle3D {
@@ -61,7 +77,6 @@ interface OrbitalParticle3D {
   radius: number;
   speed: number;
   tiltX: number;
-  tiltZ: number;
   size: number;
   isCyan: boolean;
 }
@@ -109,153 +124,354 @@ function normalize3(v: Vec3): Vec3 {
   return { x: v.x / len, y: v.y / len, z: v.z / len };
 }
 
-function computeFaceNormal(a: Vec3, b: Vec3, c: Vec3): Vec3 {
-  const ux = b.x - a.x;
-  const uy = b.y - a.y;
-  const uz = b.z - a.z;
-  const vx = c.x - a.x;
-  const vy = c.y - a.y;
-  const vz = c.z - a.z;
-  return normalize3({
-    x: uy * vz - uz * vy,
-    y: uz * vx - ux * vz,
-    z: ux * vy - uy * vx,
-  });
-}
-
 /**
- * Generates a complete 3D triangulated multi-chamber anatomical heart mesh
- * (Left/Right Ventricles, Left/Right Atria, Aortic Arch, Pulmonary Trunk, Superior Vena Cava)
- * plus 3D Coronary Artery trees. Works universally on 100% of browsers with zero WebGL driver issues.
+ * Builds a high-resolution, smooth vertex-normal interpolated 3D Anatomical Human Heart mesh.
+ * Every vertex receives a smooth averaged surface normal, ambient occlusion factor,
+ * epicardial sulcus groove weight, and raised 3D coronary artery displacement so that
+ * per-pixel Phong + Subsurface Scattering rasterization produces a 100% smooth organic organ
+ * with zero visible polygon edges.
  */
-function build3DAnatomicalHeartModel(): {
-  faces: HeartFace[];
-  coronaries: CoronaryPath3D[];
+function buildSmoothAnatomicalHeartMesh(): {
+  vertices: SmoothVertex[];
+  triangles: SmoothTriangle[];
 } {
-  const faces: HeartFace[] = [];
+  const vertices: SmoothVertex[] = [];
+  const triangles: SmoothTriangle[] = [];
 
-  // Helper to sculpt an anatomical point on the main ventricular/atrial myocardium
-  const sculptMyocardiumPoint = (u: number, v: number): Vec3 => {
-    // u in [0, PI] (0 = top base, PI = bottom apex), v in [0, 2*PI]
+  // Helper to append a grid mesh with smooth welded vertex normals
+  const appendParametricSurface = (
+    uSteps: number,
+    vSteps: number,
+    wrapV: boolean,
+    evalPoint: (u: number, v: number) => {
+      pos: Vec3;
+      ao: number;
+      sulcusWeight: number;
+      coronaryWeight: number;
+      isVenousVessel: boolean;
+      chamber: TissueType;
+      baseRGB: [number, number, number];
+    }
+  ) => {
+    const baseIdx = vertices.length;
+    const cols = vSteps + 1;
+
+    for (let iu = 0; iu <= uSteps; iu++) {
+      const u = iu / uSteps;
+      for (let iv = 0; iv <= vSteps; iv++) {
+        const v = iv / vSteps;
+        const data = evalPoint(u, v);
+        vertices.push({
+          pos: data.pos,
+          normal: { x: 0, y: 1, z: 0 },
+          ao: data.ao,
+          sulcusWeight: data.sulcusWeight,
+          coronaryWeight: data.coronaryWeight,
+          isVenousVessel: data.isVenousVessel,
+          chamber: data.chamber,
+          baseRGB: data.baseRGB,
+        });
+      }
+    }
+
+    for (let iu = 0; iu < uSteps; iu++) {
+      for (let iv = 0; iv < vSteps; iv++) {
+        const i00 = baseIdx + iu * cols + iv;
+        const i10 = baseIdx + (iu + 1) * cols + iv;
+        const i11 = baseIdx + (iu + 1) * cols + (iv + 1);
+        const i01 = baseIdx + iu * cols + (iv + 1);
+        triangles.push({ i0: i00, i1: i10, i2: i11 });
+        triangles.push({ i0: i00, i1: i11, i2: i01 });
+      }
+    }
+
+    // Compute smooth averaged vertex normals for this surface patch
+    const endIdx = vertices.length;
+    const accum: Vec3[] = Array.from({ length: endIdx - baseIdx }, () => ({
+      x: 0,
+      y: 0,
+      z: 0,
+    }));
+
+    for (let t = triangles.length - uSteps * vSteps * 2; t < triangles.length; t++) {
+      const tri = triangles[t];
+      const p0 = vertices[tri.i0].pos;
+      const p1 = vertices[tri.i1].pos;
+      const p2 = vertices[tri.i2].pos;
+      const ux = p1.x - p0.x;
+      const uy = p1.y - p0.y;
+      const uz = p1.z - p0.z;
+      const vx = p2.x - p0.x;
+      const vy = p2.y - p0.y;
+      const vz = p2.z - p0.z;
+      const nx = uy * vz - uz * vy;
+      const ny = uz * vx - ux * vz;
+      const nz = ux * vy - uy * vx;
+
+      accum[tri.i0 - baseIdx].x += nx;
+      accum[tri.i0 - baseIdx].y += ny;
+      accum[tri.i0 - baseIdx].z += nz;
+      accum[tri.i1 - baseIdx].x += nx;
+      accum[tri.i1 - baseIdx].y += ny;
+      accum[tri.i1 - baseIdx].z += nz;
+      accum[tri.i2 - baseIdx].x += nx;
+      accum[tri.i2 - baseIdx].y += ny;
+      accum[tri.i2 - baseIdx].z += nz;
+    }
+
+    // Weld seam normals when wrapV is true
+    if (wrapV) {
+      for (let iu = 0; iu <= uSteps; iu++) {
+        const left = iu * cols;
+        const right = iu * cols + vSteps;
+        const sx = accum[left].x + accum[right].x;
+        const sy = accum[left].y + accum[right].y;
+        const sz = accum[left].z + accum[right].z;
+        accum[left] = { x: sx, y: sy, z: sz };
+        accum[right] = { x: sx, y: sy, z: sz };
+      }
+    }
+
+    for (let i = baseIdx; i < endIdx; i++) {
+      vertices[i].normal = normalize3(accum[i - baseIdx]);
+    }
+  };
+
+  // --- 1. MAIN MYOCARDIUM: LEFT & RIGHT VENTRICLES + LEFT & RIGHT ATRIA + AURICLES + EPICARDIAL CORONARY VESSELS ---
+  appendParametricSurface(68, 88, true, (uNorm, vNorm) => {
+    const u = Math.min(0.996, Math.max(0.004, uNorm)) * Math.PI;
+    const v = vNorm * Math.PI * 2;
     const sinU = Math.sin(u);
     const cosU = Math.cos(u);
     const sinV = Math.sin(v);
     const cosV = Math.cos(v);
 
-    // yn: 1 at top base, 0 at bottom apex
+    // yn: 1 at superior base, 0 at inferior apex
     const yn = (cosU + 1) * 0.5;
 
-    // Anatomical heart profile: broad muscular upper ventricles tapering to a tilted apex
-    const profileRadius = 0.34 + 0.78 * Math.pow(sinU, 0.76) * (0.65 + 0.38 * yn);
-    let x = profileRadius * cosV;
-    let z = profileRadius * sinV * 0.84;
-    let y = cosU * 1.18 - 0.12;
+    // Asymmetric organic heart cross-section: thicker muscular LV on anatomical left (+x), broader RV on front-right
+    const baseRadius = 0.28 + 0.82 * Math.pow(sinU, 0.72) * (0.64 + 0.42 * Math.pow(yn, 0.8));
+    let x = baseRadius * cosV;
+    let z = baseRadius * sinV * 0.84;
+    let y = cosU * 1.18 - 0.14;
 
-    // Tilt the apex toward the left-anterior inferior direction
-    const apexFactor = Math.pow(1 - yn, 1.35);
-    x += apexFactor * 0.32;
-    z += apexFactor * 0.16;
+    // Anatomical leftward-anterior-inferior tilt of the cardiac apex
+    const apexCurve = Math.pow(1 - yn, 1.42);
+    x += apexCurve * 0.36;
+    z += apexCurve * 0.18;
 
-    // Right ventricular anterior-right muscular bulge
-    if (x < 0.1 && y > -0.6 && y < 0.55) {
-      const rvFactor = Math.exp(-Math.pow((x + 0.45) * 2.2, 2)) * Math.exp(-Math.pow(y * 1.8, 2));
-      x -= rvFactor * 0.18;
-      z += rvFactor * 0.14;
+    // Right Ventricular anterior muscular bulge & infundibulum (conus arteriosus) leading to pulmonary trunk
+    const rvBulge =
+      Math.exp(-Math.pow((x + 0.38) * 2.1, 2)) *
+      Math.exp(-Math.pow((y - 0.08) * 1.65, 2)) *
+      Math.max(0, sinV + 0.2);
+    x -= rvBulge * 0.19;
+    z += rvBulge * 0.21;
+    y += rvBulge * 0.08;
+
+    // Left Ventricular thick rounded lateral-posterior wall
+    const lvBulge =
+      Math.exp(-Math.pow((x - 0.48) * 2.0, 2)) *
+      Math.exp(-Math.pow((y + 0.05) * 1.5, 2));
+    x += lvBulge * 0.14;
+    z += lvBulge * 0.08 * Math.sign(z || 1);
+
+    // Right Atrium & scalloped Right Auricular Appendage (superior right-anterior)
+    const raBulge =
+      Math.exp(-Math.pow((x + 0.48) * 2.3, 2)) *
+      Math.exp(-Math.pow((y - 0.62) * 2.6, 2));
+    x -= raBulge * 0.24;
+    z += raBulge * 0.12;
+
+    // Left Atrium & Left Auricular Appendage (superior left-posterior)
+    const laBulge =
+      Math.exp(-Math.pow((x - 0.44) * 2.4, 2)) *
+      Math.exp(-Math.pow((y - 0.64) * 2.7, 2));
+    x += laBulge * 0.2;
+    z -= laBulge * 0.14;
+
+    // ANATOMICAL GROOVES (SULCI):
+    // 1) Coronary Sulcus (Atrioventricular groove separating atria and ventricles around y = 0.38)
+    const avSulcusDist = y - (0.38 - 0.08 * cosV);
+    const avSulcus = Math.exp(-Math.pow(avSulcusDist * 7.8, 2));
+
+    // 2) Anterior & Posterior Interventricular Sulcus (groove separating LV and RV)
+    const ivPlane = x + 0.16 * y - 0.05;
+    const ivSulcus =
+      Math.exp(-Math.pow(ivPlane * 6.5, 2)) *
+      Math.sin(u) *
+      (1 - 0.4 * Math.max(0, y - 0.35));
+
+    const sulcusWeight = Math.min(1, avSulcus * 0.75 + ivSulcus * 0.85);
+    const grooveIndent = 1 - (avSulcus * 0.085 + ivSulcus * 0.095);
+    x *= grooveIndent;
+    z *= grooveIndent;
+
+    // 3D RAISED EPICARDIAL CORONARY ARTERIES & VEINS sculpted directly into the surface:
+    // LAD artery running down the anterior interventricular sulcus + diagonal branches
+    let coronaryWeight = 0;
+    let isVenousVessel = false;
+    if (z > 0 && y < 0.48) {
+      // LAD main trunk
+      const ladDist = x + 0.16 * y - 0.04 + 0.025 * Math.sin(y * 9);
+      const ladProfile = Math.exp(-Math.pow(ladDist * 36, 2)) * Math.exp(-Math.pow(Math.max(0, y - 0.42) * 8, 2));
+      // First Diagonal Branch (D1) branching across LV
+      const d1Dist = (x - 0.04) - (0.18 - y) * 0.72 + 0.02 * Math.sin(y * 12);
+      const d1Mask = y < 0.22 && y > -0.55 && x > -0.02 ? 1 : 0;
+      const d1Profile = d1Mask * Math.exp(-Math.pow(d1Dist * 42, 2));
+      // Second Diagonal Branch (D2)
+      const d2Dist = (x - 0.08) - (-0.15 - y) * 0.65;
+      const d2Mask = y < -0.12 && y > -0.72 && x > 0.02 ? 1 : 0;
+      const d2Profile = d2Mask * Math.exp(-Math.pow(d2Dist * 45, 2));
+      // Right Coronary Artery (RCA) & Acute Marginal branch on RV
+      const rcaDist = avSulcusDist + 0.02 * Math.cos(v * 4);
+      const rcaMask = x < -0.05 ? 1 : 0;
+      const rcaProfile = rcaMask * Math.exp(-Math.pow(rcaDist * 38, 2));
+
+      // Great Cardiac Vein running parallel to LAD
+      const veinDist = x + 0.16 * y - 0.095 + 0.02 * Math.cos(y * 8);
+      const veinProfile = Math.exp(-Math.pow(veinDist * 42, 2)) * (y < 0.38 ? 1 : 0);
+
+      coronaryWeight = Math.min(
+        1,
+        Math.max(ladProfile, d1Profile * 0.85, d2Profile * 0.75, rcaProfile * 0.9, veinProfile * 0.82)
+      );
+      if (veinProfile * 0.82 > Math.max(ladProfile, d1Profile * 0.85, rcaProfile * 0.9)) {
+        isVenousVessel = true;
+      }
+    } else if (z <= 0 && y < 0.45) {
+      // Posterior Descending Artery (PDA) & Middle Cardiac Vein on posterior sulcus
+      const pdaDist = x + 0.14 * y - 0.04 + 0.02 * Math.sin(y * 8);
+      const pdaProfile = Math.exp(-Math.pow(pdaDist * 36, 2));
+      coronaryWeight = Math.min(1, pdaProfile * 0.88);
     }
 
-    // Interventricular sulcus (groove separating Left and Right Ventricles)
-    const sulcusDist = x + 0.14 * y - 0.06;
-    const sulcusGroove = Math.exp(-Math.pow(sulcusDist * 6.0, 2)) * Math.sin(u);
-    const grooveScale = 1 - sulcusGroove * 0.11;
-    x *= grooveScale;
-    z *= grooveScale;
+    // Displace coronary vessels outward so they have true 3D cylindrical relief
+    const vesselLift = coronaryWeight * 0.034;
+    const radLen = Math.hypot(x, z) || 1;
+    x += (x / radLen) * vesselLift;
+    z += (z / radLen) * vesselLift;
 
-    // Atrioventricular coronary sulcus (groove between atria and ventricles near y = 0.42)
-    const avGroove = Math.exp(-Math.pow((y - 0.42) * 7.5, 2));
-    x *= 1 - avGroove * 0.08;
-    z *= 1 - avGroove * 0.08;
+    // Subtle organic myocardial muscle contour (smooth, never jagged)
+    const organicWave =
+      0.011 * Math.sin(u * 5 + v * 3) * Math.cos(u * 3 - v * 2) +
+      0.006 * Math.sin(u * 9 + v * 6);
+    x += cosV * sinU * organicWave;
+    z += sinV * sinU * organicWave;
 
-    // Organic myocardial muscular fiber texture
-    const ripple =
-      0.016 * Math.sin(u * 10 + v * 6) * Math.cos(u * 6 - v * 4) +
-      0.008 * Math.cos(u * 16 + v * 12);
-    x += cosV * sinU * ripple;
-    z += sinV * sinU * ripple;
+    // Ambient Occlusion in deep sulci and inferior base
+    const ao = Math.max(
+      0.38,
+      Math.min(1.0, 0.96 - avSulcus * 0.34 - ivSulcus * 0.28 - (1 - yn) * 0.08)
+    );
 
-    return { x, y, z };
-  };
+    // Realistic Biological Tissue Base Colors (Deep oxygenated crimson myocardium, warm epicardial fat in sulci)
+    const isAtrium = y > 0.38;
+    const isLeft = x >= -0.04;
+    let chamber: TissueType = isAtrium ? (isLeft ? 'la' : 'ra') : isLeft ? 'lv' : 'rv';
 
-  // 1) Main Myocardium (Left & Right Ventricles + Atrial Base)
-  const uSteps = 30;
-  const vSteps = 44;
-  const grid: Vec3[][] = [];
+    // Rich anatomical myocardium palette (dark crimson-red to maroon-rose)
+    let r = isAtrium ? 128 : isLeft ? 148 : 138;
+    let g = isAtrium ? 22 : isLeft ? 20 : 22;
+    let b = isAtrium ? 38 : isLeft ? 34 : 36;
 
-  for (let iu = 0; iu <= uSteps; iu++) {
-    const u = (iu / uSteps) * Math.PI;
-    const row: Vec3[] = [];
-    for (let iv = 0; iv <= vSteps; iv++) {
-      const v = (iv / vSteps) * Math.PI * 2;
-      row.push(sculptMyocardiumPoint(u, v));
+    // Blend warm pinkish-ochre epicardial adipose tissue along the coronary/interventricular sulci
+    if (sulcusWeight > 0.01) {
+      const fatMix = sulcusWeight * 0.58;
+      r = Math.round(r * (1 - fatMix) + 198 * fatMix);
+      g = Math.round(g * (1 - fatMix) + 88 * fatMix);
+      b = Math.round(b * (1 - fatMix) + 74 * fatMix);
     }
-    grid.push(row);
-  }
 
-  for (let iu = 0; iu < uSteps; iu++) {
-    for (let iv = 0; iv < vSteps; iv++) {
-      const p00 = grid[iu][iv];
-      const p10 = grid[iu + 1][iv];
-      const p11 = grid[iu + 1][iv + 1];
-      const p01 = grid[iu][iv + 1];
-
-      const pushTri = (a: Vec3, b: Vec3, c: Vec3) => {
-        const center = {
-          x: (a.x + b.x + c.x) / 3,
-          y: (a.y + b.y + c.y) / 3,
-          z: (a.z + b.z + c.z) / 3,
-        };
-        const normal = computeFaceNormal(a, b, c);
-        const isUpper = center.y > 0.44;
-        const isLeft = center.x >= -0.05;
-        const chamber = isUpper ? (isLeft ? 'la' : 'ra') : isLeft ? 'lv' : 'rv';
-        const baseColor: [number, number, number] =
-          chamber === 'lv'
-            ? [185, 16, 48]
-            : chamber === 'rv'
-            ? [162, 14, 44]
-            : [140, 12, 38];
-
-        faces.push({ v0: a, v1: b, v2: c, normal, center, chamber, baseColor });
-      };
-
-      pushTri(p00, p10, p11);
-      pushTri(p00, p11, p01);
+    // Blend raised coronary arteries (deep arterial scarlet) or cardiac veins (dark venous burgundy)
+    if (coronaryWeight > 0.05) {
+      chamber = isVenousVessel ? 'coronary_vein' : 'coronary_artery';
+      const cMix = Math.min(1, coronaryWeight * 1.15);
+      if (isVenousVessel) {
+        r = Math.round(r * (1 - cMix) + 86 * cMix);
+        g = Math.round(g * (1 - cMix) + 22 * cMix);
+        b = Math.round(b * (1 - cMix) + 54 * cMix);
+      } else {
+        r = Math.round(r * (1 - cMix) + 195 * cMix);
+        g = Math.round(g * (1 - cMix) + 26 * cMix);
+        b = Math.round(b * (1 - cMix) + 42 * cMix);
+      }
     }
-  }
 
-  // Helper to build a 3D tubular vessel along a 3D spine curve
-  const addVesselTube = (
-    spine: Vec3[],
+    return {
+      pos: { x, y, z },
+      ao,
+      sulcusWeight,
+      coronaryWeight,
+      isVenousVessel,
+      chamber,
+      baseRGB: [r, g, b],
+    };
+  });
+
+  // Helper to add a smooth anatomical tubular great vessel along a 3D spline
+  const appendSmoothVesselTube = (
+    controlPoints: Vec3[],
     radii: number[],
-    radialSegments: number,
-    chamber: HeartFace['chamber'],
-    baseColor: [number, number, number]
+    uSteps: number,
+    vSteps: number,
+    chamber: TissueType,
+    baseRGB: [number, number, number]
   ) => {
-    const rings: Vec3[][] = [];
-    for (let i = 0; i < spine.length; i++) {
-      const curr = spine[i];
-      const prev = spine[Math.max(0, i - 1)];
-      const next = spine[Math.min(spine.length - 1, i + 1)];
+    // Catmull-Rom spline evaluation
+    const sampleSpline = (tNorm: number): { pos: Vec3; radius: number } => {
+      const n = controlPoints.length - 1;
+      const scaled = Math.min(n - 0.0001, Math.max(0, tNorm * n));
+      const idx = Math.floor(scaled);
+      const frac = scaled - idx;
+
+      const p0 = controlPoints[Math.max(0, idx - 1)];
+      const p1 = controlPoints[idx];
+      const p2 = controlPoints[Math.min(n, idx + 1)];
+      const p3 = controlPoints[Math.min(n, idx + 2)];
+
+      const t2 = frac * frac;
+      const t3 = t2 * frac;
+
+      const interp = (a: number, b: number, c: number, d: number) =>
+        0.5 *
+        (2 * b +
+          (-a + c) * frac +
+          (2 * a - 5 * b + 4 * c - d) * t2 +
+          (-a + 3 * b - 3 * c + d) * t3);
+
+      const r0 = radii[Math.max(0, idx - 1)];
+      const r1 = radii[idx];
+      const r2 = radii[Math.min(n, idx + 1)];
+      const r3 = radii[Math.min(n, idx + 2)];
+
+      return {
+        pos: {
+          x: interp(p0.x, p1.x, p2.x, p3.x),
+          y: interp(p0.y, p1.y, p2.y, p3.y),
+          z: interp(p0.z, p1.z, p2.z, p3.z),
+        },
+        radius: interp(r0, r1, r2, r3),
+      };
+    };
+
+    appendParametricSurface(uSteps, vSteps, true, (u, v) => {
+      const curr = sampleSpline(u);
+      const prev = sampleSpline(Math.max(0, u - 0.02));
+      const next = sampleSpline(Math.min(1, u + 0.02));
+
       const tangent = normalize3({
-        x: next.x - prev.x,
-        y: next.y - prev.y,
-        z: next.z - prev.z,
+        x: next.pos.x - prev.pos.x,
+        y: next.pos.y - prev.pos.y,
+        z: next.pos.z - prev.pos.z,
       });
 
-      const up = Math.abs(tangent.y) < 0.9 ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 };
+      const refUp =
+        Math.abs(tangent.y) < 0.88 ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 };
       const binormal = normalize3({
-        x: tangent.y * up.z - tangent.z * up.y,
-        y: tangent.z * up.x - tangent.x * up.z,
-        z: tangent.x * up.y - tangent.y * up.x,
+        x: tangent.y * refUp.z - tangent.z * refUp.y,
+        y: tangent.z * refUp.x - tangent.x * refUp.z,
+        z: tangent.x * refUp.y - tangent.y * refUp.x,
       });
       const normal = normalize3({
         x: binormal.y * tangent.z - binormal.z * tangent.y,
@@ -263,213 +479,153 @@ function build3DAnatomicalHeartModel(): {
         z: binormal.x * tangent.y - binormal.y * tangent.x,
       });
 
-      const r = radii[i];
-      const ring: Vec3[] = [];
-      for (let s = 0; s <= radialSegments; s++) {
-        const theta = (s / radialSegments) * Math.PI * 2;
-        const cosT = Math.cos(theta);
-        const sinT = Math.sin(theta);
-        ring.push({
-          x: curr.x + r * (cosT * binormal.x + sinT * normal.x),
-          y: curr.y + r * (cosT * binormal.y + sinT * normal.y),
-          z: curr.z + r * (cosT * binormal.z + sinT * normal.z),
-        });
-      }
-      rings.push(ring);
-    }
+      const theta = v * Math.PI * 2;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
 
-    for (let i = 0; i < rings.length - 1; i++) {
-      for (let s = 0; s < radialSegments; s++) {
-        const a = rings[i][s];
-        const b = rings[i + 1][s];
-        const c = rings[i + 1][s + 1];
-        const d = rings[i][s + 1];
+      // Slight organic arterial ring undulation
+      const r = curr.radius * (1 + 0.015 * Math.sin(u * Math.PI * 6));
+      const pos = {
+        x: curr.pos.x + r * (cosT * binormal.x + sinT * normal.x),
+        y: curr.pos.y + r * (cosT * binormal.y + sinT * normal.y),
+        z: curr.pos.z + r * (cosT * binormal.z + sinT * normal.z),
+      };
 
-        const pushTri = (p0: Vec3, p1: Vec3, p2: Vec3) => {
-          const center = {
-            x: (p0.x + p1.x + p2.x) / 3,
-            y: (p0.y + p1.y + p2.y) / 3,
-            z: (p0.z + p1.z + p2.z) / 3,
-          };
-          const normal = computeFaceNormal(p0, p1, p2);
-          faces.push({ v0: p0, v1: p1, v2: p2, normal, center, chamber, baseColor });
-        };
+      // Darken slightly near root junction and open lumen rim for realistic depth
+      const rootAO = u < 0.15 ? 0.65 + (u / 0.15) * 0.35 : u > 0.92 ? 0.78 : 0.96;
 
-        pushTri(a, b, c);
-        pushTri(a, c, d);
-      }
-    }
+      return {
+        pos,
+        ao: rootAO,
+        sulcusWeight: 0,
+        coronaryWeight: 0,
+        isVenousVessel: chamber === 'vena_cava' || chamber === 'pulmonary',
+        chamber,
+        baseRGB,
+      };
+    });
   };
 
-  // 2) Ascending Aorta & Aortic Arch (Bright Arterial Crimson)
-  addVesselTube(
+  // --- 2. ASCENDING AORTA, AORTIC ARCH & DESCENDING THORACIC AORTA ---
+  appendSmoothVesselTube(
     [
-      { x: 0.04, y: 0.68, z: 0.05 },
-      { x: 0.1, y: 1.02, z: 0.08 },
-      { x: 0.08, y: 1.32, z: 0.04 },
-      { x: -0.05, y: 1.5, z: -0.06 },
-      { x: -0.26, y: 1.44, z: -0.22 },
-      { x: -0.38, y: 1.15, z: -0.34 },
+      { x: 0.02, y: 0.56, z: 0.02 },
+      { x: 0.09, y: 0.96, z: 0.06 },
+      { x: 0.06, y: 1.32, z: 0.02 },
+      { x: -0.08, y: 1.52, z: -0.08 },
+      { x: -0.28, y: 1.44, z: -0.24 },
+      { x: -0.36, y: 1.12, z: -0.36 },
+      { x: -0.34, y: 0.65, z: -0.42 },
     ],
-    [0.22, 0.23, 0.22, 0.2, 0.18, 0.17],
+    [0.22, 0.24, 0.23, 0.21, 0.19, 0.18, 0.17],
+    34,
+    26,
+    'aorta',
+    [172, 28, 46]
+  );
+
+  // 3 Supra-Aortic Arterial Branches (Brachiocephalic Trunk, Left Common Carotid, Left Subclavian)
+  appendSmoothVesselTube(
+    [
+      { x: 0.06, y: 1.36, z: 0.01 },
+      { x: 0.12, y: 1.62, z: 0.02 },
+      { x: 0.16, y: 1.86, z: 0.03 },
+    ],
+    [0.082, 0.072, 0.064],
+    14,
     16,
     'aorta',
-    [215, 24, 58]
+    [168, 26, 44]
   );
-
-  // 3 Supra-aortic arterial branches (Brachiocephalic, Left Common Carotid, Left Subclavian)
-  addVesselTube(
+  appendSmoothVesselTube(
     [
-      { x: 0.08, y: 1.38, z: 0.02 },
-      { x: 0.14, y: 1.65, z: 0.03 },
-      { x: 0.18, y: 1.85, z: 0.04 },
+      { x: -0.05, y: 1.46, z: -0.06 },
+      { x: -0.04, y: 1.72, z: -0.06 },
+      { x: -0.03, y: 1.92, z: -0.06 },
     ],
-    [0.075, 0.068, 0.06],
-    10,
-    'aorta',
-    [220, 30, 64]
-  );
-  addVesselTube(
-    [
-      { x: -0.04, y: 1.46, z: -0.05 },
-      { x: -0.03, y: 1.72, z: -0.05 },
-      { x: -0.02, y: 1.9, z: -0.05 },
-    ],
-    [0.065, 0.058, 0.052],
-    10,
-    'aorta',
-    [220, 30, 64]
-  );
-  addVesselTube(
-    [
-      { x: -0.18, y: 1.44, z: -0.15 },
-      { x: -0.22, y: 1.68, z: -0.18 },
-      { x: -0.25, y: 1.85, z: -0.2 },
-    ],
-    [0.062, 0.055, 0.05],
-    10,
-    'aorta',
-    [220, 30, 64]
-  );
-
-  // 3) Pulmonary Artery Trunk & Left/Right Bifurcation (Deep Cyan-Violet Venous/Pulmonary tone)
-  addVesselTube(
-    [
-      { x: -0.24, y: 0.56, z: 0.34 },
-      { x: -0.12, y: 0.88, z: 0.28 },
-      { x: 0.08, y: 1.1, z: 0.16 },
-      { x: 0.36, y: 1.15, z: 0.02 },
-      { x: 0.58, y: 1.12, z: -0.08 },
-    ],
-    [0.18, 0.175, 0.165, 0.145, 0.13],
+    [0.068, 0.06, 0.054],
     14,
+    16,
+    'aorta',
+    [168, 26, 44]
+  );
+  appendSmoothVesselTube(
+    [
+      { x: -0.18, y: 1.44, z: -0.16 },
+      { x: -0.22, y: 1.68, z: -0.19 },
+      { x: -0.25, y: 1.86, z: -0.21 },
+    ],
+    [0.064, 0.056, 0.05],
+    14,
+    16,
+    'aorta',
+    [168, 26, 44]
+  );
+
+  // --- 3. PULMONARY TRUNK & LEFT/RIGHT PULMONARY ARTERY BIFURCATION ---
+  appendSmoothVesselTube(
+    [
+      { x: -0.22, y: 0.48, z: 0.34 },
+      { x: -0.12, y: 0.84, z: 0.28 },
+      { x: 0.06, y: 1.08, z: 0.16 },
+      { x: 0.34, y: 1.14, z: 0.02 },
+      { x: 0.58, y: 1.1, z: -0.08 },
+    ],
+    [0.19, 0.185, 0.175, 0.15, 0.135],
+    26,
+    22,
     'pulmonary',
-    [38, 105, 175]
+    [126, 26, 52]
   );
 
-  // 4) Superior Vena Cava & Right Auricle
-  addVesselTube(
+  // Right Pulmonary Artery Branch passing behind ascending aorta
+  appendSmoothVesselTube(
     [
-      { x: -0.52, y: 0.62, z: -0.08 },
-      { x: -0.58, y: 0.98, z: -0.1 },
-      { x: -0.58, y: 1.34, z: -0.12 },
-      { x: -0.56, y: 1.66, z: -0.12 },
+      { x: 0.02, y: 1.04, z: 0.14 },
+      { x: -0.22, y: 1.06, z: -0.04 },
+      { x: -0.48, y: 1.02, z: -0.14 },
     ],
-    [0.16, 0.15, 0.14, 0.135],
-    14,
-    'svc',
-    [28, 130, 195]
+    [0.14, 0.13, 0.12],
+    16,
+    16,
+    'pulmonary',
+    [122, 24, 50]
   );
 
-  // 5) 3D Epicardial Coronary Artery Tree (LAD, Circumflex, RCA & Diagonal Branches)
-  const buildCoronaryOnSurface = (uvCoords: Array<[number, number]>): Vec3[] =>
-    uvCoords.map(([u, v]) => {
-      const pt = sculptMyocardiumPoint(u, v);
-      return { x: pt.x * 1.025, y: pt.y * 1.025, z: pt.z * 1.025 };
-    });
+  // --- 4. SUPERIOR & INFERIOR VENA CAVA ---
+  appendSmoothVesselTube(
+    [
+      { x: -0.48, y: 0.54, z: -0.06 },
+      { x: -0.54, y: 0.92, z: -0.09 },
+      { x: -0.55, y: 1.32, z: -0.11 },
+      { x: -0.53, y: 1.68, z: -0.11 },
+    ],
+    [0.165, 0.155, 0.145, 0.14],
+    22,
+    20,
+    'vena_cava',
+    [104, 20, 44]
+  );
 
-  const coronaries: CoronaryPath3D[] = [
-    // Left Anterior Descending (LAD) Artery running down the interventricular groove to the apex
-    {
-      points: buildCoronaryOnSurface([
-        [0.95, 1.38],
-        [1.18, 1.44],
-        [1.45, 1.48],
-        [1.75, 1.52],
-        [2.05, 1.54],
-        [2.35, 1.55],
-        [2.65, 1.52],
-      ]),
-      color: '#00f0ff',
-      width: 3.0,
-      isMain: true,
-    },
-    // First Diagonal Branch (D1) across the Left Ventricle
-    {
-      points: buildCoronaryOnSurface([
-        [1.35, 1.46],
-        [1.55, 1.15],
-        [1.78, 0.85],
-        [2.02, 0.62],
-      ]),
-      color: '#00f0ff',
-      width: 2.0,
-      isMain: false,
-    },
-    // Second Diagonal Branch (D2)
-    {
-      points: buildCoronaryOnSurface([
-        [1.75, 1.52],
-        [1.95, 1.22],
-        [2.18, 0.96],
-      ]),
-      color: '#38bdf8',
-      width: 1.6,
-      isMain: false,
-    },
-    // Left Circumflex Artery (LCx) wrapping left-posteriorly
-    {
-      points: buildCoronaryOnSurface([
-        [0.98, 1.35],
-        [1.08, 0.92],
-        [1.22, 0.45],
-        [1.42, 0.05],
-        [1.68, -0.25],
-      ]),
-      color: '#ff2e54',
-      width: 2.4,
-      isMain: true,
-    },
-    // Right Coronary Artery (RCA) & Acute Marginal Branch
-    {
-      points: buildCoronaryOnSurface([
-        [1.02, 1.75],
-        [1.18, 2.15],
-        [1.38, 2.52],
-        [1.65, 2.78],
-        [1.98, 2.92],
-      ]),
-      color: '#ff2e54',
-      width: 2.4,
-      isMain: true,
-    },
-    {
-      points: buildCoronaryOnSurface([
-        [1.38, 2.52],
-        [1.68, 2.25],
-        [1.98, 2.05],
-      ]),
-      color: '#00e5a3',
-      width: 1.7,
-      isMain: false,
-    },
-  ];
+  appendSmoothVesselTube(
+    [
+      { x: -0.42, y: -0.35, z: -0.28 },
+      { x: -0.46, y: -0.68, z: -0.32 },
+      { x: -0.48, y: -0.96, z: -0.34 },
+    ],
+    [0.16, 0.155, 0.15],
+    14,
+    18,
+    'vena_cava',
+    [100, 18, 42]
+  );
 
-  return { faces, coronaries };
+  return { vertices, triangles };
 }
 
 export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenterProps> = ({
   metrics,
+  series,
   deviceStatus,
   dataMode,
   ppgWave,
@@ -478,10 +634,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   onSelectMetricModal,
   onSwitchDataMode,
 }) => {
+  const stageContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [autoRotate, setAutoRotate] = useState(true);
-  const [showWireframeScan, setShowWireframeScan] = useState(true);
+  const [floatingChartsOpen, setFloatingChartsOpen] = useState(false);
   const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('VENTRICULAR SYSTOLE • LUB (S1)');
   const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState<number>(74);
 
@@ -570,9 +727,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   const smoothedBpmRef = useRef<number>(rawTargetBpm);
   const autoRotateRef = useRef<boolean>(autoRotate);
   const reducedMotionRef = useRef<boolean>(reducedMotion);
-  const showWireframeRef = useRef<boolean>(showWireframeScan);
-  const isLightModeRef = useRef<boolean>(isLightMode);
   const resetCameraTriggerRef = useRef<boolean>(false);
+  const rightClickWavePhaseRef = useRef<number>(0);
 
   useEffect(() => {
     targetBpmRef.current = rawTargetBpm;
@@ -586,13 +742,26 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     reducedMotionRef.current = reducedMotion;
   }, [reducedMotion]);
 
-  useEffect(() => {
-    showWireframeRef.current = showWireframeScan;
-  }, [showWireframeScan]);
+  // Trigger right-click cyan activation shockwave & toggle 4 floating charts
+  const handleToggleFloatingCharts = useCallback(() => {
+    rightClickWavePhaseRef.current = 0.01;
+    setFloatingChartsOpen((prev) => !prev);
+  }, []);
 
+  // Close floating charts when clicking outside the heart stage container
   useEffect(() => {
-    isLightModeRef.current = isLightMode;
-  }, [isLightMode]);
+    if (!floatingChartsOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        stageContainerRef.current &&
+        !stageContainerRef.current.contains(e.target as Node)
+      ) {
+        setFloatingChartsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [floatingChartsOpen]);
 
   // Build SVG path for mini PPG waveform in HUD
   const ppgPath = useMemo(() => {
@@ -612,27 +781,50 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       .join(' ');
   }, [ppgWave]);
 
-  // Universal 3D Volumetric Software Engine (runs on 100% of browsers even when WebGL is disabled)
+  // Per-Pixel Smooth Phong + Subsurface Scattering 3D Anatomical Heart Renderer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { faces, coronaries } = build3DAnatomicalHeartModel();
+    const { vertices, triangles } = buildSmoothAnatomicalHeartMesh();
+    const numVerts = vertices.length;
 
-    // Generate 3D Orbital Particles
-    const particles: OrbitalParticle3D[] = Array.from({ length: 95 }, (_, i) => ({
-      angle: (i / 95) * Math.PI * 2,
-      radius: 1.52 + (i % 7) * 0.11,
-      speed: 0.25 + (i % 5) * 0.09,
-      tiltX: ((i % 9) - 4) * 0.12,
-      tiltZ: ((i % 6) - 2.5) * 0.1,
-      size: 1.4 + (i % 3) * 0.7,
+    // Pre-allocate transformed vertex arrays to avoid GC allocations per frame
+    const txArr = new Float32Array(numVerts);
+    const tyArr = new Float32Array(numVerts);
+    const tzArr = new Float32Array(numVerts);
+    const nxArr = new Float32Array(numVerts);
+    const nyArr = new Float32Array(numVerts);
+    const nzArr = new Float32Array(numVerts);
+    const sxArr = new Float32Array(numVerts);
+    const syArr = new Float32Array(numVerts);
+
+    // Offscreen per-pixel Z-buffer and RGBA pixel buffer (360 x 360 smooth shading resolution)
+    const BUF_W = 360;
+    const BUF_H = 360;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = BUF_W;
+    offCanvas.height = BUF_H;
+    const offCtx = offCanvas.getContext('2d');
+    if (!offCtx) return;
+
+    const imgData = offCtx.createImageData(BUF_W, BUF_H);
+    const pixels32 = new Uint32Array(imgData.data.buffer);
+    const zBuffer = new Float32Array(BUF_W * BUF_H);
+
+    // Subtle orbiting particles
+    const particles: OrbitalParticle3D[] = Array.from({ length: 64 }, (_, i) => ({
+      angle: (i / 64) * Math.PI * 2,
+      radius: 1.56 + (i % 6) * 0.11,
+      speed: 0.22 + (i % 5) * 0.07,
+      tiltX: ((i % 7) - 3) * 0.11,
+      size: 1.3 + (i % 3) * 0.55,
       isCyan: i % 3 !== 0,
     }));
 
-    // Pointer / Drag interaction state
+    // Left-click drag rotation state
     let isDragging = false;
     let prevX = 0;
     let prevY = 0;
@@ -643,6 +835,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let baseAutoAngleY = 0;
 
     const onPointerDown = (e: PointerEvent) => {
+      // Only left mouse button or touch drags the 3D model; right click is reserved for 4 HUD charts
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
       isDragging = true;
       prevX = e.clientX;
       prevY = e.clientY;
@@ -659,14 +853,16 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         const dy = e.clientY - prevY;
         prevX = e.clientX;
         prevY = e.clientY;
-        dragRotY += dx * 0.0085;
-        dragRotX = Math.max(-0.65, Math.min(0.65, dragRotX + dy * 0.007));
+        dragRotY += dx * 0.008;
+        dragRotX = Math.max(-0.6, Math.min(0.6, dragRotX + dy * 0.0065));
       }
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      isDragging = false;
-      canvas.releasePointerCapture?.(e.pointerId);
+      if (isDragging) {
+        isDragging = false;
+        canvas.releasePointerCapture?.(e.pointerId);
+      }
     };
 
     const onPointerLeave = () => {
@@ -680,15 +876,17 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointerleave', onPointerLeave);
 
-    let cw = canvas.clientWidth || 520;
-    let ch = canvas.clientHeight || 440;
+    let cw = canvas.clientWidth || 540;
+    let ch = canvas.clientHeight || 460;
     const updateSize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      cw = canvas.clientWidth || 520;
-      ch = canvas.clientHeight || 440;
+      cw = canvas.clientWidth || 540;
+      ch = canvas.clientHeight || 460;
       canvas.width = Math.round(cw * dpr);
       canvas.height = Math.round(ch * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
     };
     updateSize();
 
@@ -702,69 +900,16 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let rotY = 0;
     let rotX = 0;
 
-    // 3D Transformation + Perspective Projection helper
-    const transformAndProject = (
-      pt: Vec3,
-      vPulse: number,
-      aPulse: number,
-      chamber: HeartFace['chamber'],
-      cosY: number,
-      sinY: number,
-      cosX: number,
-      sinX: number,
-      cosZ: number,
-      sinZ: number,
-      centerX: number,
-      centerY: number,
-      scaleFactor: number
-    ) => {
-      let x = pt.x;
-      let y = pt.y;
-      let z = pt.z;
-
-      // Biological Lub-Dub Chamber Contraction (3.8% - 4.6% volume expansion)
-      if (chamber === 'lv' || chamber === 'rv') {
-        const radial = 1 + vPulse * 0.045;
-        const twist = vPulse * 0.04 * (y + 0.5);
-        const tx = x * Math.cos(twist) - z * Math.sin(twist);
-        const tz = x * Math.sin(twist) + z * Math.cos(twist);
-        x = tx * radial;
-        z = tz * radial;
-        y = y * (1 + vPulse * 0.025);
-      } else if (chamber === 'la' || chamber === 'ra') {
-        const atrialScale = 1 + aPulse * 0.042 + vPulse * 0.015;
-        x *= atrialScale;
-        z *= atrialScale;
-      } else {
-        // Great vessels pulse slightly after ventricular ejection
-        const arterialScale = 1 + vPulse * 0.032;
-        x *= arterialScale;
-        z *= arterialScale;
-      }
-
-      // Rotate around Y
-      const x1 = x * cosY + z * sinY;
-      const z1 = -x * sinY + z * cosY;
-      // Rotate around X
-      const y2 = y * cosX - z1 * sinX;
-      const z2 = y * sinX + z1 * cosX;
-      // Rotate around Z
-      const x3 = x1 * cosZ - y2 * sinZ;
-      const y3 = x1 * sinZ + y2 * cosZ;
-
-      const fov = 4.2;
-      const depth = fov - z2;
-      const persp = fov / Math.max(1.2, depth);
-
-      return {
-        sx: centerX + x3 * scaleFactor * persp,
-        sy: centerY - (y3 - 0.18) * scaleFactor * persp,
-        z: z2,
-        x3,
-        y3,
-        persp,
-      };
-    };
+    // Normalized lighting vectors
+    // Key light: warm biological lab light from top-left-front
+    const keyLx = -0.38;
+    const keyLy = 0.56;
+    const keyLz = 0.73;
+    // Half-vector for Blinn-Phong wet specular (keyLight + view(0,0,1))
+    const halfLen = Math.hypot(keyLx, keyLy, keyLz + 1);
+    const halfX = keyLx / halfLen;
+    const halfY = keyLy / halfLen;
+    const halfZ = (keyLz + 1) / halfLen;
 
     const animate = (now: number) => {
       rafId = requestAnimationFrame(animate);
@@ -804,19 +949,28 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const vPulse = ventricularPulse * motionMul;
       const aPulse = atrialPulse * motionMul;
 
+      // Advance right-click cyan activation ring if active
+      if (rightClickWavePhaseRef.current > 0) {
+        rightClickWavePhaseRef.current += dt * 1.45;
+        if (rightClickWavePhaseRef.current > 1) {
+          rightClickWavePhaseRef.current = 0;
+        }
+      }
+
+      // Slow continuous rotation (~25s per revolution = 0.25 rad/s)
       if (autoRotateRef.current && !isDragging && !reducedMotionRef.current) {
-        baseAutoAngleY += dt * 0.25; // ~1 full revolution every 25 seconds
+        baseAutoAngleY += dt * 0.24;
         dragRotX *= Math.pow(0.93, dt * 60);
       }
 
-      const organicTiltX = reducedMotionRef.current ? 0 : Math.sin(now * 0.0009) * 0.06;
-      const organicTiltZ = reducedMotionRef.current ? 0 : Math.cos(now * 0.0007) * 0.045;
+      const organicTiltX = reducedMotionRef.current ? 0 : Math.sin(now * 0.00085) * 0.05;
+      const organicTiltZ = reducedMotionRef.current ? 0 : Math.cos(now * 0.00065) * 0.035;
 
-      const targetY = baseAutoAngleY + dragRotY + hoverNormX * 0.22;
-      const targetX = organicTiltX + dragRotX + hoverNormY * 0.16;
+      const targetY = baseAutoAngleY + dragRotY + hoverNormX * 0.16;
+      const targetX = organicTiltX + dragRotX + hoverNormY * 0.12;
 
-      rotY += (targetY - rotY) * 0.09;
-      rotX += (targetX - rotX) * 0.09;
+      rotY += (targetY - rotY) * 0.085;
+      rotX += (targetX - rotX) * 0.085;
 
       const cosY = Math.cos(rotY);
       const sinY = Math.sin(rotY);
@@ -825,25 +979,249 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const cosZ = Math.cos(organicTiltZ);
       const sinZ = Math.sin(organicTiltZ);
 
-      const cx = cw * 0.5;
-      const cy = ch * 0.52;
-      const baseScale = Math.min(cw, ch) * 0.285;
+      // Clear Z-buffer & offscreen pixel buffer
+      pixels32.fill(0);
+      zBuffer.fill(-1e9);
 
+      const fov = 4.4;
+      const bufScale = BUF_W * 0.275;
+      const bufCx = BUF_W * 0.5;
+      const bufCy = BUF_H * 0.54;
+
+      // 1) Transform all vertices & smooth normals
+      for (let i = 0; i < numVerts; i++) {
+        const v = vertices[i];
+        let x = v.pos.x;
+        let y = v.pos.y;
+        let z = v.pos.z;
+
+        // Realistic biological Lub-Dub contraction per chamber
+        if (
+          v.chamber === 'lv' ||
+          v.chamber === 'rv' ||
+          v.chamber === 'coronary_artery' ||
+          v.chamber === 'coronary_vein'
+        ) {
+          const radial = 1 + vPulse * 0.044;
+          const twist = vPulse * 0.036 * (y + 0.45);
+          const cTw = Math.cos(twist);
+          const sTw = Math.sin(twist);
+          const rx = x * cTw - z * sTw;
+          const rz = x * sTw + z * cTw;
+          x = rx * radial;
+          z = rz * radial;
+          y = y * (1 + vPulse * 0.022);
+        } else if (v.chamber === 'la' || v.chamber === 'ra') {
+          const aScale = 1 + aPulse * 0.04 + vPulse * 0.014;
+          x *= aScale;
+          z *= aScale;
+        } else {
+          // Great vessels expand slightly as systolic blood wave ejects into aorta/pulmonary trunk
+          const vScale = 1 + vPulse * 0.03;
+          x *= vScale;
+          z *= vScale;
+        }
+
+        // Rotate position Y -> X -> Z
+        const x1 = x * cosY + z * sinY;
+        const z1 = -x * sinY + z * cosY;
+        const y2 = y * cosX - z1 * sinX;
+        const z2 = y * sinX + z1 * cosX;
+        const x3 = x1 * cosZ - y2 * sinZ;
+        const y3 = x1 * sinZ + y2 * cosZ;
+
+        // Rotate smooth vertex normal Y -> X -> Z
+        const nx1 = v.normal.x * cosY + v.normal.z * sinY;
+        const nz1 = -v.normal.x * sinY + v.normal.z * cosY;
+        const ny2 = v.normal.y * cosX - nz1 * sinX;
+        const nz2 = v.normal.y * sinX + nz1 * cosX;
+        const nx3 = nx1 * cosZ - ny2 * sinZ;
+        const ny3 = nx1 * sinZ + ny2 * cosZ;
+
+        const persp = fov / Math.max(1.2, fov - z2);
+        txArr[i] = x3;
+        tyArr[i] = y3;
+        tzArr[i] = z2;
+        nxArr[i] = nx3;
+        nyArr[i] = ny3;
+        nzArr[i] = nz2;
+        sxArr[i] = bufCx + x3 * bufScale * persp;
+        syArr[i] = bufCy - (y3 - 0.18) * bufScale * persp;
+      }
+
+      // 2) Per-Pixel Smooth Barycentric Phong + Subsurface Scattering Rasterizer
+      const pulseGlowBoost = vPulse * 18;
+
+      for (let t = 0; t < triangles.length; t++) {
+        const tri = triangles[t];
+        const i0 = tri.i0;
+        const i1 = tri.i1;
+        const i2 = tri.i2;
+
+        // Quick backface check in screen space
+        const x0 = sxArr[i0];
+        const y0 = syArr[i0];
+        const x1 = sxArr[i1];
+        const y1 = syArr[i1];
+        const x2 = sxArr[i2];
+        const y2 = syArr[i2];
+
+        const area2 = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+        // Skip degenerate or back-facing triangles
+        if (area2 >= 0 && nzArr[i0] < -0.15 && nzArr[i1] < -0.15 && nzArr[i2] < -0.15) {
+          continue;
+        }
+        const absArea = Math.abs(area2);
+        if (absArea < 0.05) continue;
+
+        const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
+        const maxX = Math.min(BUF_W - 1, Math.ceil(Math.max(x0, x1, x2)));
+        const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2)));
+        const maxY = Math.min(BUF_H - 1, Math.ceil(Math.max(y0, y1, y2)));
+
+        if (minX > maxX || minY > maxY) continue;
+
+        const invArea = 1 / area2;
+        const v0 = vertices[i0];
+        const v1 = vertices[i1];
+        const v2 = vertices[i2];
+
+        const z0 = tzArr[i0];
+        const z1 = tzArr[i1];
+        const z2 = tzArr[i2];
+
+        const n0x = nxArr[i0],
+          n0y = nyArr[i0],
+          n0z = nzArr[i0];
+        const n1x = nxArr[i1],
+          n1y = nyArr[i1],
+          n1z = nzArr[i1];
+        const n2x = nxArr[i2],
+          n2y = nyArr[i2],
+          n2z = nzArr[i2];
+
+        const [r0, g0, b0] = v0.baseRGB;
+        const [r1, g1, b1] = v1.baseRGB;
+        const [r2, g2, b2] = v2.baseRGB;
+
+        const ao0 = v0.ao,
+          ao1 = v1.ao,
+          ao2 = v2.ao;
+
+        for (let py = minY; py <= maxY; py++) {
+          const cy = py + 0.5;
+          const rowOffset = py * BUF_W;
+          for (let px = minX; px <= maxX; px++) {
+            const cx = px + 0.5;
+
+            const w0 = ((x1 - cx) * (y2 - cy) - (x2 - cx) * (y1 - cy)) * invArea;
+            const w1 = ((x2 - cx) * (y0 - cy) - (x0 - cx) * (y2 - cy)) * invArea;
+            const w2 = 1 - w0 - w1;
+
+            if (w0 < -0.002 || w1 < -0.002 || w2 < -0.002) continue;
+
+            const z = w0 * z0 + w1 * z1 + w2 * z2;
+            const idx = rowOffset + px;
+            if (z <= zBuffer[idx]) continue;
+            zBuffer[idx] = z;
+
+            // Smoothly interpolated normal at this pixel
+            let nx = w0 * n0x + w1 * n1x + w2 * n2x;
+            let ny = w0 * n0y + w1 * n1y + w2 * n2y;
+            let nz = w0 * n0z + w1 * n1z + w2 * n2z;
+            const nLen = Math.hypot(nx, ny, nz) || 1;
+            nx /= nLen;
+            ny /= nLen;
+            nz /= nLen;
+
+            // Ensure outward-facing normal
+            if (nz < 0) {
+              nx = -nx * 0.35;
+              ny = -ny * 0.35;
+              nz = 0.05;
+            }
+
+            // Interpolated base color & Ambient Occlusion
+            const br = w0 * r0 + w1 * r1 + w2 * r2;
+            const bg = w0 * g0 + w1 * g1 + w2 * g2;
+            const bb = w0 * b0 + w1 * b1 + w2 * b2;
+            const ao = w0 * ao0 + w1 * ao1 + w2 * ao2;
+
+            // 1) Key diffuse lighting + Subsurface Scattering wrap
+            const nDotL = nx * keyLx + ny * keyLy + nz * keyLz;
+            const diffuse = Math.max(0, nDotL) * 0.78;
+            // Subsurface scattering (warm crimson light wrapping into shadow terminator)
+            const wrap = Math.max(0, (nDotL + 0.48) / 1.48);
+            const sss = wrap * wrap * 0.36;
+
+            // 2) Warm lower-right bounce fill light
+            const fillDot = Math.max(0, nx * 0.55 - ny * 0.45 + nz * 0.4) * 0.24;
+
+            // 3) Dual-lobe wet biological specular (soft sheen + sharp wet gloss)
+            const nDotH = Math.max(0, nx * halfX + ny * halfY + nz * halfZ);
+            const nDotH2 = nDotH * nDotH;
+            const nDotH4 = nDotH2 * nDotH2;
+            const nDotH16 = nDotH4 * nDotH4 * nDotH4 * nDotH4;
+            const nDotH64 = nDotH16 * nDotH16 * nDotH16 * nDotH16;
+            const wetSheen = nDotH16 * 0.28 + nDotH64 * 0.52;
+
+            // 4) Subtle Cyan Rim Reflection ONLY at the grazing silhouette edge
+            const oneMinusNz = 1 - Math.min(1, Math.max(0, nz));
+            const fresnelRim = oneMinusNz * oneMinusNz * oneMinusNz * oneMinusNz;
+            const cyanEdge = fresnelRim * 0.58;
+
+            const lightFactor = (0.24 + diffuse + fillDot) * ao;
+
+            const finalR = Math.min(
+              255,
+              Math.max(
+                0,
+                (br * lightFactor + sss * 185 + wetSheen * 245 + pulseGlowBoost * ao + cyanEdge * 18) | 0
+              )
+            );
+            const finalG = Math.min(
+              255,
+              Math.max(
+                0,
+                (bg * lightFactor + sss * 26 + wetSheen * 185 + cyanEdge * 215) | 0
+              )
+            );
+            const finalB = Math.min(
+              255,
+              Math.max(
+                0,
+                (bb * lightFactor + sss * 38 + wetSheen * 195 + cyanEdge * 245) | 0
+              )
+            );
+
+            // Little-endian ABGR packing for Uint32Array ImageData
+            pixels32[idx] = (255 << 24) | (finalB << 16) | (finalG << 8) | finalR;
+          }
+        }
+      }
+
+      offCtx.putImageData(imgData, 0, 0);
+
+      // --- COMPOSITE ONTO MAIN HIGH-DPI CANVAS ---
       ctx.clearRect(0, 0, cw, ch);
+      const cx = cw * 0.5;
+      const cy = ch * 0.5;
+      const stageRadius = Math.min(cw, ch) * 0.44;
 
-      // 1) Volumetric Bioluminescent Core Halo behind the 3D Heart
-      const haloRadius = baseScale * (1.55 + vPulse * 0.18);
-      const haloGrad = ctx.createRadialGradient(cx, cy, baseScale * 0.15, cx, cy, haloRadius);
-      haloGrad.addColorStop(0, `rgba(255, 30, 72, ${0.26 + vPulse * 0.18})`);
-      haloGrad.addColorStop(0.45, `rgba(0, 240, 255, ${0.1 + vPulse * 0.08})`);
+      // 1) Volumetric Ambient Lab Halo behind the 3D Heart
+      const haloR = stageRadius * (1.15 + vPulse * 0.08);
+      const haloGrad = ctx.createRadialGradient(cx, cy, stageRadius * 0.08, cx, cy, haloR);
+      haloGrad.addColorStop(0, `rgba(190, 24, 52, ${0.24 + vPulse * 0.12})`);
+      haloGrad.addColorStop(0.52, `rgba(0, 210, 255, ${0.07 + vPulse * 0.05})`);
       haloGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = haloGrad;
       ctx.beginPath();
-      ctx.arc(cx, cy, haloRadius, 0, Math.PI * 2);
+      ctx.arc(cx, cy, haloR, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2) Draw Back Half of 3D Orbital HUD Rings (z < 0)
-      const drawOrbitalRing3D = (
+      // Helper to draw thin, delicate 3D Orbital HUD Rings
+      const baseScale = Math.min(cw, ch) * 0.275;
+      const drawDelicateOrbitRing = (
         radius3D: number,
         tiltXRad: number,
         tiltZRad: number,
@@ -857,7 +1235,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         ctx.lineWidth = lineWidth;
         ctx.beginPath();
         let started = false;
-        const segments = 90;
+        const segments = 96;
         const cosTX = Math.cos(tiltXRad);
         const sinTX = Math.sin(tiltXRad);
         const ctz = Math.cos(tiltZRad);
@@ -868,7 +1246,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           const rx = Math.cos(a) * radius3D;
           const rz = Math.sin(a) * radius3D;
 
-          // Apply tiltX & tiltZ
           const y1 = -rz * sinTX;
           const z1 = rz * cosTX;
           const x2 = rx * ctz - y1 * stz;
@@ -880,7 +1257,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             continue;
           }
 
-          const fov = 4.2;
           const persp = fov / Math.max(1.2, fov - z1);
           const sx = cx + x2 * baseScale * persp;
           const sy = cy - y2 * baseScale * persp;
@@ -896,229 +1272,95 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         ctx.restore();
       };
 
-      const spin1 = now * 0.0003;
-      const spin2 = -now * 0.00045;
-      drawOrbitalRing3D(1.88, 1.12, 0.08, spin1, 'rgba(0, 240, 255, 0.25)', 1.3, false);
-      drawOrbitalRing3D(1.56, 0.88, -0.36, spin2, 'rgba(0, 229, 163, 0.22)', 1.1, false);
-      drawOrbitalRing3D(1.34, -0.95, 0.28, spin1 * 1.2, 'rgba(255, 46, 84, 0.2)', 1.0, false);
+      const spin1 = now * 0.00025;
+      const spin2 = -now * 0.00035;
 
-      // 3) Project & Depth-Sort 3D Heart Triangles (Painter's Z-buffer algorithm + Volumetric Phong Shading)
-      const projectedFaces: Array<{
-        p0: { sx: number; sy: number; z: number };
-        p1: { sx: number; sy: number; z: number };
-        p2: { sx: number; sy: number; z: number };
-        depth: number;
-        fillStyle: string;
-        strokeStyle: string;
-      }> = [];
+      // 2) Back half of delicate orbital rings
+      drawDelicateOrbitRing(1.78, 1.14, 0.08, spin1, 'rgba(0, 240, 255, 0.16)', 1.0, false);
+      drawDelicateOrbitRing(1.5, 0.92, -0.32, spin2, 'rgba(0, 229, 163, 0.14)', 0.9, false);
 
-      for (let i = 0; i < faces.length; i++) {
-        const f = faces[i];
-
-        // Rotate normal
-        const nx1 = f.normal.x * cosY + f.normal.z * sinY;
-        const nz1 = -f.normal.x * sinY + f.normal.z * cosY;
-        const ny2 = f.normal.y * cosX - nz1 * sinX;
-        const nz2 = f.normal.y * sinX + nz1 * cosX;
-
-        // Back-face culling (keep slightly past horizon for smooth rim)
-        if (nz2 < -0.15) continue;
-
-        const p0 = transformAndProject(
-          f.v0,
-          vPulse,
-          aPulse,
-          f.chamber,
-          cosY,
-          sinY,
-          cosX,
-          sinX,
-          cosZ,
-          sinZ,
-          cx,
-          cy,
-          baseScale
-        );
-        const p1 = transformAndProject(
-          f.v1,
-          vPulse,
-          aPulse,
-          f.chamber,
-          cosY,
-          sinY,
-          cosX,
-          sinX,
-          cosZ,
-          sinZ,
-          cx,
-          cy,
-          baseScale
-        );
-        const p2 = transformAndProject(
-          f.v2,
-          vPulse,
-          aPulse,
-          f.chamber,
-          cosY,
-          sinY,
-          cosX,
-          sinX,
-          cosZ,
-          sinZ,
-          cx,
-          cy,
-          baseScale
-        );
-
-        const depth = (p0.z + p1.z + p2.z) / 3;
-
-        // Volumetric Three-Point Biomedical Lighting + Fresnel Rim Glow
-        // Key light from top-right-front (0.55, 0.62, 0.56)
-        const keyDot = Math.max(0, nx1 * 0.55 + ny2 * 0.62 + nz2 * 0.56);
-        // Cyan Rim light from left-back (-0.75, 0.35, 0.25)
-        const rimFactor = Math.pow(1 - Math.max(0, nz2), 2.4);
-        const cyanRim = Math.max(0, -nx1 * 0.7 + ny2 * 0.3) * rimFactor;
-        // Specular highlight (wet epicardial surface sheen)
-        const spec = Math.pow(Math.max(0, nz2 * 0.75 + ny2 * 0.45 + nx1 * 0.3), 18) * (0.55 + vPulse * 0.45);
-        // Systolic internal bioluminescence
-        const pulseGlow = vPulse * 34;
-
-        const [br, bg, bb] = f.baseColor;
-        const ambient = 0.28;
-        const diffuse = keyDot * 0.82;
-
-        const r = Math.min(255, Math.round(br * (ambient + diffuse) + spec * 230 + pulseGlow + rimFactor * 45));
-        const g = Math.min(255, Math.round(bg * (ambient + diffuse) + spec * 140 + cyanRim * 195 + rimFactor * 80));
-        const b = Math.min(255, Math.round(bb * (ambient + diffuse) + spec * 175 + cyanRim * 245 + rimFactor * 135));
-
-        const fillStyle = `rgb(${r}, ${g}, ${b})`;
-        const strokeStyle = showWireframeRef.current
-          ? `rgba(0, 240, 255, ${0.14 + rimFactor * 0.25 + vPulse * 0.12})`
-          : fillStyle;
-
-        projectedFaces.push({ p0, p1, p2, depth, fillStyle, strokeStyle });
-      }
-
-      // Sort back-to-front
-      projectedFaces.sort((a, b) => a.depth - b.depth);
-
-      // Render 3D Heart Triangles
-      ctx.lineJoin = 'round';
-      for (let i = 0; i < projectedFaces.length; i++) {
-        const pf = projectedFaces[i];
-        ctx.beginPath();
-        ctx.moveTo(pf.p0.sx, pf.p0.sy);
-        ctx.lineTo(pf.p1.sx, pf.p1.sy);
-        ctx.lineTo(pf.p2.sx, pf.p2.sy);
-        ctx.closePath();
-        ctx.fillStyle = pf.fillStyle;
-        ctx.fill();
-        ctx.strokeStyle = pf.strokeStyle;
-        ctx.lineWidth = showWireframeRef.current ? 0.65 : 0.45;
-        ctx.stroke();
-      }
-
-      // 4) Render Glowing Bioluminescent 3D Coronary Arteries on visible front surface
+      // 3) Draw the Smooth Per-Pixel Shaded 3D Anatomical Heart
+      const drawSize = Math.min(cw, ch) * 0.94;
       ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      for (let c = 0; c < coronaries.length; c++) {
-        const cor = coronaries[c];
-        ctx.beginPath();
-        let started = false;
-        for (let j = 0; j < cor.points.length; j++) {
-          const proj = transformAndProject(
-            cor.points[j],
-            vPulse,
-            aPulse,
-            'lv',
-            cosY,
-            sinY,
-            cosX,
-            sinX,
-            cosZ,
-            sinZ,
-            cx,
-            cy,
-            baseScale
-          );
-          if (proj.z < -0.1) {
-            started = false;
-            continue;
-          }
-          if (!started) {
-            ctx.moveTo(proj.sx, proj.sy);
-            started = true;
-          } else {
-            ctx.lineTo(proj.sx, proj.sy);
-          }
-        }
-        ctx.shadowColor = cor.color;
-        ctx.shadowBlur = 8 + vPulse * 10;
-        ctx.strokeStyle = cor.color;
-        ctx.lineWidth = cor.width * (1 + vPulse * 0.25);
-        ctx.globalAlpha = 0.78 + vPulse * 0.22;
-        ctx.stroke();
-      }
+      ctx.shadowColor = `rgba(225, 29, 72, ${0.28 + vPulse * 0.2})`;
+      ctx.shadowBlur = 24;
+      ctx.drawImage(
+        offCanvas,
+        cx - drawSize * 0.5,
+        cy - drawSize * 0.5,
+        drawSize,
+        drawSize
+      );
       ctx.restore();
 
-      // 5) Draw Expanding 3D Systolic Shockwave Ring on each Lub-Dub Beat
+      // 4) Soft Systolic Pulse Wave Ring on each heartbeat
       if (shockwavePhase > 0 && !reducedMotionRef.current) {
-        const shockRadius = 1.15 + shockwavePhase * 1.15;
-        const alpha = Math.sin(shockwavePhase * Math.PI) * 0.62;
-        const shockColor =
-          shockwavePhase < 0.35
-            ? `rgba(255, 46, 84, ${alpha.toFixed(3)})`
-            : `rgba(0, 240, 255, ${alpha.toFixed(3)})`;
-        drawOrbitalRing3D(shockRadius, 1.12, 0.08, 0, shockColor, 2.4, true);
-        drawOrbitalRing3D(shockRadius, 1.12, 0.08, 0, shockColor, 1.6, false);
+        const waveRadius = 1.08 + shockwavePhase * 0.95;
+        const alpha = Math.sin(shockwavePhase * Math.PI) * 0.36;
+        drawDelicateOrbitRing(
+          waveRadius,
+          1.14,
+          0.08,
+          0,
+          `rgba(0, 240, 255, ${alpha.toFixed(3)})`,
+          1.5,
+          true
+        );
+        drawDelicateOrbitRing(
+          waveRadius,
+          1.14,
+          0.08,
+          0,
+          `rgba(0, 240, 255, ${(alpha * 0.6).toFixed(3)})`,
+          1.1,
+          false
+        );
       }
 
-      // 6) Draw Front Half of 3D Orbital HUD Rings (z >= 0)
-      drawOrbitalRing3D(1.88, 1.12, 0.08, spin1, 'rgba(0, 240, 255, 0.62)', 1.6, true);
-      drawOrbitalRing3D(1.56, 0.88, -0.36, spin2, 'rgba(0, 229, 163, 0.55)', 1.4, true);
-      drawOrbitalRing3D(1.34, -0.95, 0.28, spin1 * 1.2, 'rgba(255, 46, 84, 0.45)', 1.2, true);
+      // 5) Right-Click Cyan Activation Wave Ring (when opening/closing the 4 floating charts)
+      if (rightClickWavePhaseRef.current > 0) {
+        const rcP = rightClickWavePhaseRef.current;
+        const rcR = stageRadius * (0.25 + rcP * 1.15);
+        const rcAlpha = Math.max(0, (1 - rcP) * 0.75);
+        ctx.save();
+        ctx.strokeStyle = `rgba(0, 240, 255, ${rcAlpha.toFixed(3)})`;
+        ctx.lineWidth = 2.0;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rcR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
 
-      // 7) Render Orbiting 3D Telemetry Particles
+      // 6) Front half of delicate orbital rings
+      drawDelicateOrbitRing(1.78, 1.14, 0.08, spin1, 'rgba(0, 240, 255, 0.38)', 1.15, true);
+      drawDelicateOrbitRing(1.5, 0.92, -0.32, spin2, 'rgba(0, 229, 163, 0.3)', 1.0, true);
+
+      // 7) Subtle Orbiting Telemetry Particles
       ctx.save();
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         if (!reducedMotionRef.current) {
-          p.angle += dt * p.speed * (1 + vPulse * 0.45);
+          p.angle += dt * p.speed * (1 + vPulse * 0.35);
         }
         const rx = Math.cos(p.angle) * p.radius;
         const rz = Math.sin(p.angle) * p.radius;
-        const ry = Math.sin(p.angle * 1.5 + p.tiltX) * 0.55;
+        const ry = Math.sin(p.angle * 1.4 + p.tiltX) * 0.48;
 
-        const fov = 4.2;
         const persp = fov / Math.max(1.2, fov - rz);
         const sx = cx + rx * baseScale * persp;
         const sy = cy - ry * baseScale * persp;
-        const rSize = p.size * persp * (1 + vPulse * 0.35);
+        const rSize = p.size * persp;
 
         ctx.fillStyle = p.isCyan
-          ? `rgba(0, 240, 255, ${0.45 + vPulse * 0.45})`
-          : `rgba(255, 46, 84, ${0.5 + vPulse * 0.45})`;
+          ? `rgba(0, 240, 255, ${0.38 + vPulse * 0.35})`
+          : `rgba(255, 77, 109, ${0.42 + vPulse * 0.35})`;
         ctx.beginPath();
         ctx.arc(sx, sy, rSize, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
-
-      // 8) Subtle Horizontal Laser Bio-Scan Line
-      if (showWireframeRef.current && !reducedMotionRef.current) {
-        const scanY = cy + Math.sin(now * 0.0014) * (baseScale * 1.15);
-        const scanGrad = ctx.createLinearGradient(cx - baseScale * 1.4, scanY, cx + baseScale * 1.4, scanY);
-        scanGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-        scanGrad.addColorStop(0.5, 'rgba(0, 240, 255, 0.38)');
-        scanGrad.addColorStop(1, 'rgba(0, 240, 255, 0)');
-        ctx.strokeStyle = scanGrad;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(cx - baseScale * 1.4, scanY);
-        ctx.lineTo(cx + baseScale * 1.4, scanY);
-        ctx.stroke();
-      }
     };
 
     rafId = requestAnimationFrame(animate);
@@ -1135,17 +1377,17 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
   return (
     <section
-      aria-label="Trung tâm mô phỏng giải phẫu tim 3D thời gian thực"
+      aria-label="Trung tâm giải phẫu tim 3D chân thực và 4 biểu đồ HUD"
       className="relative rounded-3xl nexus-glass overflow-hidden border border-cyan-500/25 shadow-2xl"
     >
-      {/* Subtle Radial Bio-Scanner Backdrop inside Hero */}
+      {/* Subtle Radial Bio-Lab Backdrop inside Hero */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           background: isLightMode
-            ? 'radial-gradient(circle at 50% 50%, rgba(225, 29, 72, 0.07), rgba(2, 132, 199, 0.05) 45%, transparent 75%)'
-            : 'radial-gradient(circle at 50% 50%, rgba(255, 46, 84, 0.16), rgba(0, 240, 255, 0.08) 42%, rgba(5, 8, 17, 0.92) 78%)',
+            ? 'radial-gradient(circle at 50% 50%, rgba(190, 24, 52, 0.06), rgba(2, 132, 199, 0.04) 45%, transparent 75%)'
+            : 'radial-gradient(circle at 50% 50%, rgba(190, 24, 52, 0.14), rgba(0, 240, 255, 0.06) 42%, rgba(5, 8, 17, 0.94) 78%)',
         }}
       />
 
@@ -1158,21 +1400,37 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-mono-tech font-bold uppercase tracking-[0.2em] text-cyan-400">
-                BIOMEDICAL 3D CARDIAC CORE • REAL-TIME TELEMETRY HUD
+                BIOMEDICAL 3D ANATOMICAL HEART • TELEMETRY COMMAND
               </span>
               <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono-tech bg-cyan-500/10 border border-cyan-400/30 text-cyan-300">
                 <Sparkles className="w-3 h-3" />
-                3D Multi-Chamber Digital Twin
+                Smooth Subsurface 3D Anatomy
               </span>
             </div>
             <h2 className="font-display font-bold text-lg sm:text-xl text-white">
-              Mô Hình Trái Tim 3D Tương Tác & Đồng Bộ Nhịp Sinh Học (Lub-Dub)
+              Mô Hình Giải Phẫu Trái Tim Người 3D & Bốn Biểu Đồ Kính Tương Tác
             </h2>
           </div>
         </div>
 
         {/* Interactive 3D Viewport Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Mobile / Touch fallback & quick toggle button for the 4 Glass Charts */}
+          <button
+            type="button"
+            onClick={handleToggleFloatingCharts}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono-tech font-semibold transition-all cursor-pointer ${
+              floatingChartsOpen
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm'
+                : 'bg-slate-900/80 hover:bg-slate-800 border-cyan-500/35 text-cyan-300'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>
+              {floatingChartsOpen ? 'Ẩn 4 Biểu Đồ HUD' : 'Mở 4 Biểu Đồ HUD (Chuột phải / Chạm)'}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setAutoRotate((r) => !r)}
@@ -1184,19 +1442,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
               <Play className="w-3.5 h-3.5 text-emerald-400" />
             )}
             <span>{autoRotate ? 'Tạm dừng xoay' : 'Tiếp tục xoay'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowWireframeScan((w) => !w)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono-tech transition-colors cursor-pointer ${
-              showWireframeScan
-                ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200'
-                : 'bg-slate-900/80 border-slate-700/80 text-slate-300'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Lưới Scan 3D</span>
           </button>
 
           <button
@@ -1213,7 +1458,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         </div>
       </div>
 
-      {/* Main 3-Column Command Center Grid: Left HUD | Center 3D Heart | Right HUD */}
+      {/* Main 3-Column Command Center Grid: Left HUD | Center 3D Heart + 4 Floating Glass Charts | Right HUD */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 p-5 sm:p-7 items-center">
         {/* LEFT HUD TELEMETRY COLUMN */}
         <div className="lg:col-span-3 space-y-3.5 order-2 lg:order-1">
@@ -1323,68 +1568,51 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           </div>
         </div>
 
-        {/* CENTER 3D ANATOMICAL HEART STAGE */}
-        <div className="lg:col-span-6 relative flex flex-col items-center justify-center order-1 lg:order-2">
-          {/* Decorative HUD Corner Brackets & Radar Crosshairs */}
-          <div className="pointer-events-none absolute inset-2 sm:inset-4 border border-cyan-500/15 rounded-3xl">
-            <div className="absolute -top-0.5 -left-0.5 w-5 h-5 border-t-2 border-l-2 border-cyan-400 rounded-tl-lg" />
-            <div className="absolute -top-0.5 -right-0.5 w-5 h-5 border-t-2 border-r-2 border-cyan-400 rounded-tr-lg" />
-            <div className="absolute -bottom-0.5 -left-0.5 w-5 h-5 border-b-2 border-l-2 border-cyan-400 rounded-bl-lg" />
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 border-b-2 border-r-2 border-cyan-400 rounded-br-lg" />
-
-            {/* Subtle HUD callout lines connecting center heart to side panels on desktop */}
-            <svg
-              className="hidden lg:block absolute inset-0 w-full h-full"
-              viewBox="0 0 600 440"
-              fill="none"
-            >
-              <path
-                d="M 195 160 L 115 110 L 18 110"
-                stroke="rgba(255, 46, 84, 0.45)"
-                strokeWidth="1.2"
-                strokeDasharray="4 3"
-              />
-              <circle cx="195" cy="160" r="3.5" fill="#ff2e54" />
-              <path
-                d="M 210 270 L 130 270 L 18 270"
-                stroke="rgba(0, 240, 255, 0.4)"
-                strokeWidth="1.2"
-                strokeDasharray="4 3"
-              />
-              <circle cx="210" cy="270" r="3.5" fill="#00f0ff" />
-              <path
-                d="M 405 155 L 485 110 L 582 110"
-                stroke="rgba(0, 229, 163, 0.45)"
-                strokeWidth="1.2"
-                strokeDasharray="4 3"
-              />
-              <circle cx="405" cy="155" r="3.5" fill="#00e5a3" />
-              <path
-                d="M 395 275 L 475 275 L 582 275"
-                stroke="rgba(0, 240, 255, 0.4)"
-                strokeWidth="1.2"
-                strokeDasharray="4 3"
-              />
-              <circle cx="395" cy="275" r="3.5" fill="#00f0ff" />
-            </svg>
+        {/* CENTER 3D ANATOMICAL HEART STAGE + 4 FLOATING GLASS CHARTS */}
+        <div
+          ref={stageContainerRef}
+          onContextMenu={(e) => {
+            // Only intercept right-click inside the 3D Heart stage to toggle the 4 floating glass charts
+            e.preventDefault();
+            e.stopPropagation();
+            handleToggleFloatingCharts();
+          }}
+          className="lg:col-span-6 relative flex flex-col items-center justify-center order-1 lg:order-2 min-h-[390px] sm:min-h-[450px] lg:min-h-[490px]"
+        >
+          {/* Subtle HUD Corner Brackets */}
+          <div className="pointer-events-none absolute inset-1 sm:inset-2 border border-cyan-500/15 rounded-3xl">
+            <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 border-cyan-400/70 rounded-tl-lg" />
+            <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 border-cyan-400/70 rounded-tr-lg" />
+            <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 border-cyan-400/70 rounded-bl-lg" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 border-cyan-400/70 rounded-br-lg" />
           </div>
 
-          {/* Universal 3D Volumetric Canvas (Works on 100% of browsers even with WebGL disabled) */}
+          {/* Smooth Per-Pixel 3D Anatomical Heart Canvas */}
           <canvas
             ref={canvasRef}
-            title="Nhấn giữ và kéo chuột để xoay quan sát mô hình Trái Tim 3D từ mọi góc độ"
-            className="w-full h-[360px] sm:h-[430px] lg:h-[460px] cursor-grab active:cursor-grabbing select-none touch-none"
+            title="Kéo chuột trái để xoay 360° • Nhấp chuột phải vào vùng trái tim để mở/đóng 4 biểu đồ kính trong suốt"
+            className="w-full h-[360px] sm:h-[430px] lg:h-[470px] cursor-grab active:cursor-grabbing select-none touch-none"
+          />
+
+          {/* 4 Floating Glassmorphism Charts (Triggered by Right-Click on the Heart Stage or Touch Button) */}
+          <FloatingHeartChartsHUD
+            visible={floatingChartsOpen}
+            onClose={() => setFloatingChartsOpen(false)}
+            metrics={metrics}
+            series={series}
+            dataMode={dataMode}
+            isLiveConnected={isLiveValid}
+            reducedMotion={reducedMotion}
           />
 
           {/* Bottom Center Interactive Instruction Pill */}
-          <div className="relative z-10 -mt-2 mb-1 px-3.5 py-1 rounded-full bg-slate-900/85 border border-slate-700/80 text-[11px] font-mono-tech text-slate-300 flex items-center gap-2 shadow-md">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>
-              Kéo chuột để xoay 360° • Chu kỳ đập thực tế:{' '}
-              <strong className="text-cyan-300">
-                {(60 / Math.max(40, displayedSmoothedBpm)).toFixed(2)}s
-              </strong>{' '}
-              ({displayedSmoothedBpm} BPM)
+          <div className="relative z-20 -mt-2 mb-1 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-[11px] font-mono-tech text-slate-200 flex flex-wrap items-center justify-center gap-2 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+            <span>Kéo chuột trái: Xoay 3D</span>
+            <span className="text-slate-500">•</span>
+            <span className="inline-flex items-center gap-1 text-cyan-300 font-semibold">
+              <MousePointerClick className="w-3.5 h-3.5" />
+              Nhấp chuột phải vào tim: {floatingChartsOpen ? 'Đóng 4 biểu đồ' : 'Mở 4 biểu đồ kính'}
             </span>
           </div>
         </div>
@@ -1469,8 +1697,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             <div className="flex items-start gap-2 text-[11px] text-slate-300 leading-relaxed">
               <ShieldAlert className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
               <span>
-                Mô hình 3D thủ tục đa buồng tim mô phỏng chu kỳ co bóp sinh học{' '}
-                <strong>Lub-Dub</strong> dựa trên BPM ước tính, không thay thế hình ảnh siêu âm/CT lâm sàng.
+                Mô hình giải phẫu 3D bề mặt mịn (Tâm thất, Tâm nhĩ, Quai động mạch chủ, Động mạch phổi, Tĩnh mạch chủ & Mạch vành) đồng bộ nhịp{' '}
+                <strong>Lub-Dub</strong> theo BPM.
               </span>
             </div>
 

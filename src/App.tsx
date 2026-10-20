@@ -270,6 +270,7 @@ export const App: React.FC = () => {
                 {/* 3D ANATOMICAL HEART COMMAND CENTER HERO */}
                 <BiomedicalHeartCommandCenter
                   metrics={metrics}
+                  series={series}
                   deviceStatus={deviceStatus}
                   dataMode={dataMode}
                   ppgWave={ppgWaveform}
@@ -344,6 +345,7 @@ export const App: React.FC = () => {
               <>
                 <BiomedicalHeartCommandCenter
                   metrics={metrics}
+                  series={series}
                   deviceStatus={deviceStatus}
                   dataMode={dataMode}
                   ppgWave={ppgWaveform}
@@ -390,6 +392,7 @@ export const App: React.FC = () => {
               <>
                 <BiomedicalHeartCommandCenter
                   metrics={metrics}
+                  series={series}
                   deviceStatus={deviceStatus}
                   dataMode={dataMode}
                   ppgWave={ppgWaveform}
