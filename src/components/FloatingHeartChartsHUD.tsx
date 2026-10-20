@@ -216,13 +216,16 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = ({
     const first = coords[0];
     const areaPath = `${linePath} L ${last.x.toFixed(1)} ${svgH} L ${first.x.toFixed(1)} ${svgH} Z`;
 
-    // Pick 5 evenly spaced time labels
-    const timeLabels = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+    // Pick 4 evenly spaced time labels and format cleanly so they never collide
+    const timeLabels = [0, 0.33, 0.66, 1].map((t) => {
       const idx = Math.min(
         coords.length - 1,
         Math.round(t * (coords.length - 1))
       );
-      return coords[idx].time;
+      const raw = coords[idx].time;
+      return raw.length > 5 && raw.split(':').length === 3
+        ? raw.slice(0, 5)
+        : raw;
     });
 
     return { coords, linePath, areaPath, last, timeLabels };

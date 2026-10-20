@@ -74,10 +74,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!collapsed && (
               <div>
                 <div className="font-display font-bold text-base tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-teal-300">
-                  NEXUS HEALTH
+                  CHICHI HEALTH
                 </div>
                 <div className="text-[11px] font-mono-tech text-slate-400 tracking-wider">
-                  BIOMEDICAL OS v2.4
+                  CHICHI COMPANION OS
                 </div>
               </div>
             )}

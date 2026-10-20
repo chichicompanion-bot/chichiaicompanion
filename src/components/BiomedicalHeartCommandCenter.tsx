@@ -1,13 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
-  Heart,
-  MousePointerClick,
   Pause,
   Play,
   Radio,
   RotateCcw,
-  Sparkles,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -1075,43 +1072,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       />
 
       {/* TOP COMMAND HEADER BAR */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-cyan-500/20 bg-slate-950/60 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-[0_0_16px_rgba(244,63,94,0.3)]">
-            <Heart className="w-4 h-4 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono-tech uppercase tracking-[0.22em] text-cyan-300">
-                ANATOMICAL 3D CARDIAC TELEMETRY STAGE
-              </span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono-tech bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">
-                <Sparkles className="w-2.5 h-2.5" />
-                BodyParts3D • 7 Structures
-              </span>
-            </div>
-            <h2 className="text-sm sm:text-base font-bold font-display tracking-tight text-white">
-              Mô Hình Giải Phẫu Trái Tim Người 3D &amp; 4 Biểu Đồ Kính Nổi
-            </h2>
-          </div>
-        </div>
-
-        {/* Center Live BPM + Cardiac Phase Readout */}
-        <div className="hidden xl:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-500/25">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-mono-tech uppercase text-slate-400">BPM:</span>
-            <span className="text-xl font-bold font-display text-white">
-              {displayedSmoothedBpm}
-            </span>
-            <span className="text-[10px] font-mono-tech text-cyan-300">bpm</span>
-          </div>
-          <div className="h-4 w-px bg-slate-700" />
-          <div className="text-[10px] font-mono-tech text-cyan-300 tracking-wider">
-            {cardiacPhaseLabel}
-          </div>
-        </div>
-
-        {/* Right Controls: DEMO / LIVE ESP32 + 3D Camera Controls */}
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 border-b border-cyan-500/20 bg-slate-950/60 backdrop-blur-md">
+        {/* Controls: DEMO / LIVE ESP32 + 3D Camera Controls */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="inline-flex rounded-xl p-0.5 bg-slate-900/90 border border-slate-700/80">
             <button
@@ -1145,7 +1107,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             title={autoRotate ? 'Tạm dừng tự xoay 360°' : 'Tiếp tục tự xoay 360°'}
           >
             {autoRotate ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{autoRotate ? 'Đang xoay 360°' : 'Đã dừng xoay'}</span>
+            <span>{autoRotate ? 'Đang xoay 360°' : 'Đã dừng xoay'}</span>
           </button>
 
           <button
@@ -1158,6 +1120,21 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Live BPM + Cardiac Phase Readout */}
+        <div className="hidden sm:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-500/25">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs font-mono-tech uppercase text-slate-400">BPM:</span>
+            <span className="text-xl font-bold font-display text-white">
+              {displayedSmoothedBpm}
+            </span>
+            <span className="text-[10px] font-mono-tech text-cyan-300">bpm</span>
+          </div>
+          <div className="h-4 w-px bg-slate-700" />
+          <div className="text-[10px] font-mono-tech text-cyan-300 tracking-wider">
+            {cardiacPhaseLabel}
+          </div>
         </div>
       </div>
 
@@ -1197,7 +1174,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           onClose={() => setFloatingChartsOpen(false)}
         />
 
-        {/* BOTTOM HUD STATUS BAR (Device Status Left, Right-Click Prompt Center, PPG Signal Right) */}
+        {/* BOTTOM HUD STATUS BAR (Device Status Left, PPG Signal Right) */}
         <div className="relative md:absolute md:bottom-4 md:left-5 md:right-5 z-20 w-full md:w-auto px-4 md:px-0 pb-4 md:pb-0 flex flex-col md:flex-row items-center justify-between gap-2.5 pointer-events-none">
           {/* Bottom-Left: Connection & Sync Status Pill */}
           <div className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/80 border border-cyan-500/30 backdrop-blur-md shadow-lg">
@@ -1219,20 +1196,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
               <p className="text-[10px] text-slate-400">{statusBadge.sub}</p>
             </div>
           </div>
-
-          {/* Bottom-Center: Interactive Right-Click Prompt Pill (Matches Reference Image) */}
-          <button
-            type="button"
-            onClick={handleToggleFloatingCharts}
-            className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-950/85 hover:bg-slate-900/95 border border-cyan-400/50 text-xs font-medium text-cyan-100 shadow-[0_0_24px_rgba(0,240,255,0.22)] transition cursor-pointer"
-          >
-            <MousePointerClick className="w-3.5 h-3.5 text-cyan-300" />
-            <span>
-              {floatingChartsOpen
-                ? 'Nhấp chuột phải vào tim 3D để ẩn/hiện 4 biểu đồ'
-                : 'Nhấp chuột phải để xem chi tiết 4 chỉ số'}
-            </span>
-          </button>
 
           {/* Bottom-Right: Live PPG Waveform & Signal Quality Pill */}
           <div className="pointer-events-auto flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 backdrop-blur-md shadow-lg">
