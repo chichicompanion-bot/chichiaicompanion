@@ -250,8 +250,14 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(
 
         {/* Footer */}
         <div className="relative z-10 mt-4 pt-3 border-t border-slate-800/70 flex items-center justify-between text-[11px] font-mono-tech text-slate-400">
-          <span className="truncate max-w-[65%]" title={metric.sensorSource}>
+          <span className="truncate max-w-[60%] group-hover:hidden" title={metric.sensorSource}>
             {metric.sensorSource}
+          </span>
+          <span
+            style={{ color: metric.accentColor }}
+            className="hidden group-hover:inline-flex items-center gap-1 font-semibold truncate max-w-[65%]"
+          >
+            Bấm để mở sơ đồ chi tiết ↗
           </span>
           <span className="flex items-center gap-1 shrink-0 text-slate-400">
             <Clock className="w-3 h-3 text-cyan-400" />

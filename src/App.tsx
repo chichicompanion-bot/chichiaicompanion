@@ -34,6 +34,7 @@ import { SleepAnalytics } from './components/SleepAnalytics';
 import { HealthHistory } from './components/HealthHistory';
 import { DeviceStatusPanel } from './components/DeviceStatusPanel';
 import { HealthMapPanel } from './components/HealthMapPanel';
+import { MetricDetailModal } from './components/MetricDetailModal';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -59,6 +60,7 @@ export const App: React.FC = () => {
   const [dataMode, setDataMode] = useState<DataMode>('demo');
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
   const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetricKey>('heartRate');
+  const [modalMetricKey, setModalMetricKey] = useState<MetricKey | null>(null);
   const [waveTick, setWaveTick] = useState(0);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
 
@@ -161,6 +163,7 @@ export const App: React.FC = () => {
   }, [dataMode, refreshLiveTelemetry]);
 
   const handleSelectCardMetric = (key: MetricKey) => {
+    setModalMetricKey(key);
     if (key === 'heartRate' || key === 'spo2' || key === 'hrv') {
       setSelectedChartMetric(key);
     }
@@ -403,6 +406,8 @@ export const App: React.FC = () => {
                         metric={m}
                         index={idx}
                         reducedMotion={reducedMotion}
+                        isSelected={modalMetricKey === m.key}
+                        onSelect={handleSelectCardMetric}
                       />
                     ))}
                 </div>
@@ -483,7 +488,7 @@ export const App: React.FC = () => {
                         <span>Chế độ Giao diện (Dark / Light Theme)</span>
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        Mặc định sử dụng nền tối Obsidian Navy chuẩn thiết bị y tế tương lai.
+                        Chế độ Sáng (Light Mode) sử dụng bảng trắng tinh khiết (#FFFFFF); Chế độ Tối (Dark Mode) sử dụng nền Obsidian Navy.
                       </p>
                     </div>
                     <button
@@ -491,7 +496,7 @@ export const App: React.FC = () => {
                       onClick={() => setIsLightMode((m) => !m)}
                       className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono-tech text-slate-200 cursor-pointer"
                     >
-                      {isLightMode ? 'Đang dùng: LIGHT MODE' : 'Đang dùng: DARK MODE'}
+                      {isLightMode ? 'Đang dùng: LIGHT MODE (Bảng Trắng)' : 'Đang dùng: DARK MODE'}
                     </button>
                   </div>
 
@@ -551,6 +556,16 @@ export const App: React.FC = () => {
           </footer>
         </div>
       </div>
+
+      {/* Centered Mini-Diagram Popup Modal when clicking any of the 7 Metric Cards */}
+      <MetricDetailModal
+        metric={metrics.find((m) => m.key === modalMetricKey) || null}
+        series={series}
+        timeRange={timeRange}
+        onChangeTimeRange={setTimeRange}
+        onClose={() => setModalMetricKey(null)}
+        isLightMode={isLightMode}
+      />
     </div>
   );
 };

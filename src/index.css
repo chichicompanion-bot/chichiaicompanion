@@ -3,8 +3,8 @@
 :root {
   --bg-primary: #050811;
   --bg-secondary: #090e1d;
-  --bg-panel: rgba(11, 18, 34, 0.92);
-  --bg-panel-hover: rgba(16, 26, 48, 0.96);
+  --bg-panel: rgba(11, 18, 34, 0.94);
+  --bg-panel-hover: rgba(16, 26, 48, 0.98);
   --border-subtle: rgba(148, 163, 184, 0.14);
   --border-glow: rgba(0, 240, 255, 0.38);
   --text-primary: #f0f6fc;
@@ -16,12 +16,13 @@
   --grid-line: rgba(0, 240, 255, 0.04);
 }
 
+/* PURE WHITE BOARD THEME FOR LIGHT MODE */
 html.light {
-  --bg-primary: #f1f5f9;
-  --bg-secondary: #e2e8f0;
-  --bg-panel: rgba(255, 255, 255, 0.94);
-  --bg-panel-hover: rgba(255, 255, 255, 0.99);
-  --border-subtle: rgba(15, 23, 42, 0.12);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #f8fafc;
+  --border-subtle: #e2e8f0;
   --border-glow: rgba(2, 132, 199, 0.45);
   --text-primary: #0f172a;
   --text-secondary: #334155;
@@ -29,7 +30,7 @@ html.light {
   --accent-cyan: #0284c7;
   --accent-teal: #059669;
   --accent-crimson: #e11d48;
-  --grid-line: rgba(2, 132, 199, 0.055);
+  --grid-line: rgba(15, 23, 42, 0.04);
 }
 
 * {
@@ -41,6 +42,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-display {
@@ -59,8 +61,76 @@ body {
   transform: translateZ(0);
 }
 
+/* Sticky Top Header must be solid/opaque so scrolling never bleeds text behind it */
+header.nexus-glass {
+  background: #070c1a;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.55);
+}
+
 html.light .nexus-glass {
-  box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.07), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light header.nexus-glass {
+  background: #ffffff !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Complete Pure White Board overrides for inner utility classes when html.light is active */
+html.light [class*="bg-slate-950"],
+html.light [class*="bg-slate-900"] {
+  background-color: #f8fafc !important;
+}
+
+html.light [class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+}
+
+html.light [class*="border-slate-800"],
+html.light [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .text-white,
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #475569 !important;
+}
+
+html.light .text-cyan-200,
+html.light .text-cyan-300 {
+  color: #0369a1 !important;
+}
+
+html.light .text-emerald-300 {
+  color: #047857 !important;
+}
+
+html.light .text-amber-200,
+html.light .text-amber-300 {
+  color: #b45309 !important;
+}
+
+html.light .text-rose-200,
+html.light .text-rose-300 {
+  color: #be123c !important;
 }
 
 .nexus-tech-grid {
@@ -85,8 +155,8 @@ html.light .nexus-glass {
 
 .nexus-metric-card:hover {
   transform: perspective(900px) translate3d(0, -4px, 0) rotateX(var(--rot-x)) rotateY(var(--rot-y));
-  border-color: var(--card-accent);
-  box-shadow: 0 12px 28px -8px var(--card-glow);
+  border-color: var(--card-accent) !important;
+  box-shadow: 0 12px 28px -8px var(--card-glow) !important;
 }
 
 .nexus-metric-card .nexus-card-spotlight {
@@ -109,9 +179,17 @@ html.light .nexus-glass {
   background: rgba(5, 8, 17, 0.6);
 }
 
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
 ::-webkit-scrollbar-thumb {
   background: rgba(0, 240, 255, 0.25);
   border-radius: 9999px;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
 }
 
 ::-webkit-scrollbar-thumb:hover {
