@@ -120,7 +120,6 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'framer-motion'],
           charts: ['recharts'],
-          three: ['three'],
           icons: ['lucide-react'],
         },
       },
