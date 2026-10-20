@@ -133,9 +133,55 @@ html.light .text-rose-300 {
   color: #be123c !important;
 }
 
-/* Always keep the 4 floating HUD glass panels around the 3D Heart translucent dark-blue glassmorphism */
+/* Always keep the 3D Heart stage and 4 floating HUD glass panels dark-navy glassmorphism */
+.nexus-heart-hud-glass {
+  background: linear-gradient(155deg, rgba(6, 16, 34, 0.78) 0%, rgba(4, 10, 22, 0.68) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.34);
+  box-shadow: 0 14px 36px -8px rgba(0, 0, 0, 0.72), 0 0 22px -6px rgba(0, 240, 255, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html.light .nexus-heart-stage-dark,
+html.light .nexus-heart-stage-dark [class*="bg-slate-950"],
+html.light .nexus-heart-stage-dark [class*="bg-slate-900"] {
+  background-color: #040915 !important;
+}
+
+html.light .nexus-heart-stage-dark .text-white,
+html.light .nexus-heart-stage-dark .text-slate-100,
+html.light .nexus-heart-stage-dark .text-slate-200 {
+  color: #f8fafc !important;
+}
+
+html.light .nexus-heart-stage-dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+html.light .nexus-heart-stage-dark .text-slate-400,
+html.light .nexus-heart-stage-dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.light .nexus-heart-stage-dark .text-cyan-200,
+html.light .nexus-heart-stage-dark .text-cyan-300 {
+  color: #67e8f9 !important;
+}
+
+html.light .nexus-heart-stage-dark .text-emerald-300 {
+  color: #6ee7b7 !important;
+}
+
+html.light .nexus-heart-stage-dark .text-amber-300 {
+  color: #fcd34d !important;
+}
+
+html.light .nexus-heart-stage-dark .text-rose-300 {
+  color: #fda4af !important;
+}
+
 html.light .nexus-heart-hud-glass {
-  background: linear-gradient(145deg, rgba(6, 13, 28, 0.84) 0%, rgba(10, 21, 42, 0.76) 100%) !important;
+  background: linear-gradient(155deg, rgba(6, 16, 34, 0.84) 0%, rgba(4, 10, 22, 0.76) 100%) !important;
   color: #f8fafc !important;
 }
 
