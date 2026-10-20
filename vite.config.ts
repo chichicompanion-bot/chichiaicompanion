@@ -114,11 +114,13 @@ export default defineConfig({
     outDir: 'web',
     emptyOutDir: true,
     sourcemap: false,
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'framer-motion'],
           charts: ['recharts'],
+          three: ['three'],
           icons: ['lucide-react'],
         },
       },

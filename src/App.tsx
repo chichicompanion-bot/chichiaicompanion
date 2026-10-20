@@ -35,6 +35,7 @@ import { HealthHistory } from './components/HealthHistory';
 import { DeviceStatusPanel } from './components/DeviceStatusPanel';
 import { HealthMapPanel } from './components/HealthMapPanel';
 import { MetricDetailModal } from './components/MetricDetailModal';
+import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -263,9 +264,21 @@ export const App: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* VIEW: OVERVIEW (Shows all modules in a cohesive executive layout) */}
+            {/* VIEW: OVERVIEW (Shows 3D Heart Hero Command Center + all modules) */}
             {activeSection === 'overview' && (
               <>
+                {/* 3D ANATOMICAL HEART COMMAND CENTER HERO */}
+                <BiomedicalHeartCommandCenter
+                  metrics={metrics}
+                  deviceStatus={deviceStatus}
+                  dataMode={dataMode}
+                  ppgWave={ppgWaveform}
+                  reducedMotion={reducedMotion}
+                  isLightMode={isLightMode}
+                  onSelectMetricModal={handleSelectCardMetric}
+                  onSwitchDataMode={setDataMode}
+                />
+
                 {/* 7 Health Metric Cards Grid */}
                 <section aria-label="Các chỉ số sức khỏe">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -329,6 +342,16 @@ export const App: React.FC = () => {
             {/* VIEW: LIVE MONITORING */}
             {activeSection === 'live' && (
               <>
+                <BiomedicalHeartCommandCenter
+                  metrics={metrics}
+                  deviceStatus={deviceStatus}
+                  dataMode={dataMode}
+                  ppgWave={ppgWaveform}
+                  reducedMotion={reducedMotion}
+                  isLightMode={isLightMode}
+                  onSelectMetricModal={handleSelectCardMetric}
+                  onSwitchDataMode={setDataMode}
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {metrics.slice(0, 4).map((m, idx) => (
                     <MetricCard
@@ -365,6 +388,16 @@ export const App: React.FC = () => {
             {/* VIEW: HEART ANALYTICS */}
             {activeSection === 'heart' && (
               <>
+                <BiomedicalHeartCommandCenter
+                  metrics={metrics}
+                  deviceStatus={deviceStatus}
+                  dataMode={dataMode}
+                  ppgWave={ppgWaveform}
+                  reducedMotion={reducedMotion}
+                  isLightMode={isLightMode}
+                  onSelectMetricModal={handleSelectCardMetric}
+                  onSwitchDataMode={setDataMode}
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {metrics
                     .filter((m) => m.key === 'heartRate' || m.key === 'spo2' || m.key === 'hrv')

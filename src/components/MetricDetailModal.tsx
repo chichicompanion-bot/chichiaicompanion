@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -7,8 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  BarChart,
-  Bar,
 } from 'recharts';
 import {
   X,
@@ -67,11 +65,20 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   onClose,
   isLightMode,
 }) => {
+  useEffect(() => {
+    if (!metric) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [metric, onClose]);
+
   if (!metric) return null;
 
   const Icon = MODAL_ICONS[metric.key];
 
-  // Build chart data for ANY of the 7 metrics
+  // Build chart data for ANY of the 7 metrics using smooth line/area points
   const chartData =
     metric.key === 'steps' || metric.key === 'sleep'
       ? metric.sparkline.map((pt, idx) => ({
@@ -197,33 +204,31 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
             </div>
           </div>
 
-          {metric.key !== 'sleep' && (
-            <div
-              className={`flex items-center p-1 rounded-xl border ${
-                isLightMode
-                  ? 'bg-slate-100 border-slate-200'
-                  : 'bg-slate-900/90 border-slate-800'
-              }`}
-            >
-              {TIME_RANGES.map((tr) => (
-                <button
-                  key={tr.id}
-                  type="button"
-                  onClick={() => onChangeTimeRange(tr.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono-tech transition-all cursor-pointer ${
-                    timeRange === tr.id
-                      ? 'bg-cyan-500 text-white font-semibold shadow-xs'
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  {tr.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div
+            className={`flex items-center p-1 rounded-xl border ${
+              isLightMode
+                ? 'bg-slate-100 border-slate-200'
+                : 'bg-slate-900/90 border-slate-800'
+            }`}
+          >
+            {TIME_RANGES.map((tr) => (
+              <button
+                key={tr.id}
+                type="button"
+                onClick={() => onChangeTimeRange(tr.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono-tech transition-all cursor-pointer ${
+                  timeRange === tr.id
+                    ? 'bg-cyan-500 text-white font-semibold shadow-xs'
+                    : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                {tr.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Interactive Mini Chart / Diagram inside Modal */}
+        {/* Unified Smooth Line/Area Diagram for ALL 7 Metrics */}
         <div
           className={`mt-4 h-52 w-full rounded-xl border p-3 ${
             isLightMode
@@ -232,94 +237,53 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
           }`}
         >
           <ResponsiveContainer width="100%" height="100%">
-            {metric.key === 'sleep' || metric.key === 'steps' ? (
-              <BarChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={isLightMode ? 'rgba(15,23,42,0.08)' : 'rgba(148,163,184,0.12)'}
-                />
-                <XAxis
-                  dataKey="timeLabel"
-                  tick={{
-                    fill: isLightMode ? '#334155' : '#94a3b8',
-                    fontSize: 11,
-                    fontFamily: 'JetBrains Mono',
-                  }}
-                />
-                <YAxis
-                  tick={{
-                    fill: isLightMode ? '#334155' : '#94a3b8',
-                    fontSize: 11,
-                    fontFamily: 'JetBrains Mono',
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isLightMode ? '#ffffff' : '#090e1d',
-                    borderColor: metric.accentColor,
-                    color: isLightMode ? '#0f172a' : '#f8fafc',
-                    borderRadius: '10px',
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '12px',
-                  }}
-                  formatter={(v: number) => [`${v} ${metric.unit}`, metric.title]}
-                />
-                <Bar
-                  dataKey="value"
-                  fill={metric.accentColor}
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            ) : (
-              <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="modalMetricGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={metric.accentColor} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={metric.accentColor} stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={isLightMode ? 'rgba(15,23,42,0.08)' : 'rgba(148,163,184,0.12)'}
-                />
-                <XAxis
-                  dataKey="timeLabel"
-                  tick={{
-                    fill: isLightMode ? '#334155' : '#94a3b8',
-                    fontSize: 10,
-                    fontFamily: 'JetBrains Mono',
-                  }}
-                />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  tick={{
-                    fill: isLightMode ? '#334155' : '#94a3b8',
-                    fontSize: 10,
-                    fontFamily: 'JetBrains Mono',
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isLightMode ? '#ffffff' : '#090e1d',
-                    borderColor: metric.accentColor,
-                    color: isLightMode ? '#0f172a' : '#f8fafc',
-                    borderRadius: '10px',
-                    fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: '12px',
-                  }}
-                  formatter={(v: number) => [`${v} ${metric.unit}`, metric.title]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={metric.accentColor}
-                  strokeWidth={2.5}
-                  fill="url(#modalMetricGrad)"
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            )}
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="modalMetricGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={metric.accentColor} stopOpacity={0.42} />
+                  <stop offset="95%" stopColor={metric.accentColor} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={isLightMode ? 'rgba(15,23,42,0.08)' : 'rgba(148,163,184,0.12)'}
+              />
+              <XAxis
+                dataKey="timeLabel"
+                tick={{
+                  fill: isLightMode ? '#334155' : '#94a3b8',
+                  fontSize: 10,
+                  fontFamily: 'JetBrains Mono',
+                }}
+              />
+              <YAxis
+                domain={['auto', 'auto']}
+                tick={{
+                  fill: isLightMode ? '#334155' : '#94a3b8',
+                  fontSize: 10,
+                  fontFamily: 'JetBrains Mono',
+                }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isLightMode ? '#ffffff' : '#090e1d',
+                  borderColor: metric.accentColor,
+                  color: isLightMode ? '#0f172a' : '#f8fafc',
+                  borderRadius: '10px',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '12px',
+                }}
+                formatter={(v: number) => [`${v} ${metric.unit}`, metric.title]}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={metric.accentColor}
+                strokeWidth={2.5}
+                fill="url(#modalMetricGrad)"
+                isAnimationActive={false}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 
