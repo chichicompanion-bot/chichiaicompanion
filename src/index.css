@@ -3,8 +3,8 @@
 :root {
   --bg-primary: #050811;
   --bg-secondary: #090e1d;
-  --bg-panel: rgba(12, 19, 36, 0.72);
-  --bg-panel-hover: rgba(17, 27, 50, 0.85);
+  --bg-panel: rgba(11, 18, 34, 0.92);
+  --bg-panel-hover: rgba(16, 26, 48, 0.96);
   --border-subtle: rgba(148, 163, 184, 0.14);
   --border-glow: rgba(0, 240, 255, 0.38);
   --text-primary: #f0f6fc;
@@ -13,14 +13,14 @@
   --accent-cyan: #00f0ff;
   --accent-teal: #00e5a3;
   --accent-crimson: #ff2e54;
-  --grid-line: rgba(0, 240, 255, 0.045);
+  --grid-line: rgba(0, 240, 255, 0.04);
 }
 
 html.light {
   --bg-primary: #f1f5f9;
   --bg-secondary: #e2e8f0;
-  --bg-panel: rgba(255, 255, 255, 0.84);
-  --bg-panel-hover: rgba(255, 255, 255, 0.96);
+  --bg-panel: rgba(255, 255, 255, 0.94);
+  --bg-panel-hover: rgba(255, 255, 255, 0.99);
   --border-subtle: rgba(15, 23, 42, 0.12);
   --border-glow: rgba(2, 132, 199, 0.45);
   --text-primary: #0f172a;
@@ -29,7 +29,7 @@ html.light {
   --accent-cyan: #0284c7;
   --accent-teal: #059669;
   --accent-crimson: #e11d48;
-  --grid-line: rgba(2, 132, 199, 0.06);
+  --grid-line: rgba(2, 132, 199, 0.055);
 }
 
 * {
@@ -40,7 +40,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
 }
 
 .font-display {
@@ -51,23 +51,52 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* High-performance GPU-friendly panel without costly per-card backdrop-filter blur */
 .nexus-glass {
   background: var(--bg-panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  transform: translateZ(0);
 }
 
 html.light .nexus-glass {
-  box-shadow: 0 10px 30px -6px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.07), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
 }
 
 .nexus-tech-grid {
-  background-size: 44px 44px;
+  background-size: 48px 48px;
   background-image: 
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+}
+
+/* Zero-re-render CSS-variable driven Metric Card hover effects */
+.nexus-metric-card {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --rot-x: 0deg;
+  --rot-y: 0deg;
+  --card-accent: #00f0ff;
+  --card-glow: rgba(0, 240, 255, 0.22);
+  will-change: transform;
+  transform: perspective(900px) translate3d(0, 0, 0) rotateX(var(--rot-x)) rotateY(var(--rot-y));
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nexus-metric-card:hover {
+  transform: perspective(900px) translate3d(0, -4px, 0) rotateX(var(--rot-x)) rotateY(var(--rot-y));
+  border-color: var(--card-accent);
+  box-shadow: 0 12px 28px -8px var(--card-glow);
+}
+
+.nexus-metric-card .nexus-card-spotlight {
+  opacity: 0;
+  background: radial-gradient(220px circle at var(--mouse-x) var(--mouse-y), var(--card-glow), transparent 75%);
+  transition: opacity 0.2s ease;
+}
+
+.nexus-metric-card:hover .nexus-card-spotlight {
+  opacity: 1;
 }
 
 /* Custom sleek scrollbar */

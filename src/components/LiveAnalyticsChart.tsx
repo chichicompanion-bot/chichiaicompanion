@@ -313,10 +313,9 @@ export const LiveAnalyticsChart: React.FC<LiveAnalyticsChartProps> = ({
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill={`url(#${cfg.gradientId})`}
-                isAnimationActive={true}
-                animationDuration={900}
+                isAnimationActive={false}
                 activeDot={{
-                  r: 6,
+                  r: 5,
                   fill: cfg.color,
                   stroke: '#fff',
                   strokeWidth: 2,
