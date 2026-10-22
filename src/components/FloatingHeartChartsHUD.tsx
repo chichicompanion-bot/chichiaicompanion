@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   X,
   Heart,
@@ -34,7 +34,7 @@ interface ChartConfig {
   iconBorder: string;
   yTicks: [number, number, number];
   desktopPositionStyle: React.CSSProperties;
-  // Radial offset vector from the 3D Heart center so each panel glides out from (and retracts into) the heart
+  mobilePositionStyle: React.CSSProperties;
   originOffset: { x: string; y: string };
   leaderLine: {
     startX: number;
@@ -61,8 +61,9 @@ const FLOATING_CHART_CONFIGS: ChartConfig[] = [
     iconBg: 'rgba(255, 77, 109, 0.14)',
     iconBorder: 'rgba(255, 77, 109, 0.48)',
     yTicks: [40, 80, 120],
-    desktopPositionStyle: { top: '32px', left: '28px' },
-    originOffset: { x: '68px', y: '38px' },
+    desktopPositionStyle: { top: '32px', left: '24px' },
+    mobilePositionStyle: { top: '10px', left: '8px' },
+    originOffset: { x: '48px', y: '28px' },
     leaderLine: {
       startX: 392,
       startY: 192,
@@ -86,8 +87,9 @@ const FLOATING_CHART_CONFIGS: ChartConfig[] = [
     iconBg: 'rgba(0, 240, 255, 0.14)',
     iconBorder: 'rgba(0, 240, 255, 0.48)',
     yTicks: [90, 95, 100],
-    desktopPositionStyle: { top: '32px', right: '28px' },
-    originOffset: { x: '-68px', y: '38px' },
+    desktopPositionStyle: { top: '32px', right: '24px' },
+    mobilePositionStyle: { top: '10px', right: '8px' },
+    originOffset: { x: '-48px', y: '28px' },
     leaderLine: {
       startX: 608,
       startY: 192,
@@ -111,8 +113,9 @@ const FLOATING_CHART_CONFIGS: ChartConfig[] = [
     iconBg: 'rgba(0, 229, 163, 0.14)',
     iconBorder: 'rgba(0, 229, 163, 0.48)',
     yTicks: [20, 50, 80],
-    desktopPositionStyle: { bottom: '86px', left: '28px' },
-    originOffset: { x: '68px', y: '-38px' },
+    desktopPositionStyle: { bottom: '86px', left: '24px' },
+    mobilePositionStyle: { bottom: '52px', left: '8px' },
+    originOffset: { x: '48px', y: '-28px' },
     leaderLine: {
       startX: 368,
       startY: 388,
@@ -136,8 +139,9 @@ const FLOATING_CHART_CONFIGS: ChartConfig[] = [
     iconBg: 'rgba(245, 158, 11, 0.14)',
     iconBorder: 'rgba(245, 158, 11, 0.48)',
     yTicks: [34, 36, 38],
-    desktopPositionStyle: { bottom: '86px', right: '28px' },
-    originOffset: { x: '-68px', y: '-38px' },
+    desktopPositionStyle: { bottom: '86px', right: '24px' },
+    mobilePositionStyle: { bottom: '52px', right: '8px' },
+    originOffset: { x: '-48px', y: '-28px' },
     leaderLine: {
       startX: 632,
       startY: 388,
@@ -198,37 +202,45 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
     const svgH = 62;
     const padL = 4;
     const padR = 4;
-    const padT = 6;
-    const padB = 6;
+    const padT = 4;
+    const padB = 4;
 
     const geometry = useMemo(() => {
-      if (validPoints.length < 2) return null;
+      const cleanPoints = validPoints.filter((p) => p && Number.isFinite(p.value));
+      if (cleanPoints.length < 2) return null;
       const [minTick, , maxTick] = config.yTicks;
-      const vals = validPoints.map((p) => p.value);
+      const vals = cleanPoints.map((p) => Number(p.value));
       const min = Math.min(minTick, ...vals);
       const max = Math.max(maxTick, ...vals);
-      const span = max - min || 1;
+      const span = max > min ? max - min : 1;
 
-      const coords = validPoints.map((pt, i) => {
+      const coords = cleanPoints.map((pt, i) => {
         const x =
-          padL + (i / (validPoints.length - 1)) * (svgW - padL - padR);
+          padL + (i / (cleanPoints.length - 1)) * (svgW - padL - padR);
         const y =
           svgH - padB - ((pt.value - min) / span) * (svgH - padT - padB);
-        return { x, y, time: pt.time, value: pt.value };
+        return {
+          x: Number.isFinite(x) ? x : 0,
+          y: Number.isFinite(y) ? y : svgH - padB,
+          time: pt.time,
+          value: pt.value,
+        };
       });
 
-      const linePath = coords
+      const safeCoords = coords.filter((c) => Number.isFinite(c.x) && Number.isFinite(c.y));
+      if (safeCoords.length < 2) return null;
+
+      const linePath = safeCoords
         .map(
           (c, idx) =>
             `${idx === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`
         )
         .join(' ');
 
-      const last = coords[coords.length - 1];
-      const first = coords[0];
+      const last = safeCoords[safeCoords.length - 1];
+      const first = safeCoords[0];
       const areaPath = `${linePath} L ${last.x.toFixed(1)} ${svgH} L ${first.x.toFixed(1)} ${svgH} Z`;
 
-      // Pick 4 evenly spaced time labels and format cleanly so they never collide
       const timeLabels = [0, 0.33, 0.66, 1].map((t) => {
         const idx = Math.min(
           coords.length - 1,
@@ -269,11 +281,22 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
     const deltaPercent = metric?.deltaPercent ?? 1.2;
     const deltaText =
       metric?.deltaPercent !== null && metric?.deltaPercent !== undefined
-        ? `${metric.deltaPercent >= 0 ? '+' : ''}${metric.deltaPercent}% so với trước`
+        ? `${metric.deltaPercent >= 0 ? '+' : ''}${metric.deltaPercent}%`
         : config.defaultDelta;
 
+    const [isMobile, setIsMobile] = useState(() =>
+      typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    );
+    useEffect(() => {
+      const handleResize = () => setIsMobile(window.innerWidth < 768);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const posStyle = isMobile ? config.mobilePositionStyle : config.desktopPositionStyle;
+
     const panelVars = {
-      ...config.desktopPositionStyle,
+      ...posStyle,
       '--from-x': reducedMotion ? '0px' : config.originOffset.x,
       '--from-y': reducedMotion ? '0px' : config.originOffset.y,
       '--stagger-open': reducedMotion ? '0ms' : `${config.staggerOpenMs}ms`,
@@ -289,58 +312,48 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
         style={panelVars}
         className={`nexus-heart-hud-glass nexus-heart-hud-panel ${
           visible ? 'is-open' : 'is-closed'
-        } relative md:absolute w-full md:w-[272px] lg:w-[288px] h-[176px] rounded-[14px] p-3.5 flex flex-col justify-between select-none overflow-hidden`}
+        } absolute w-[138px] sm:w-[155px] md:w-[272px] lg:w-[288px] h-[86px] sm:h-[92px] md:h-[176px] p-2 sm:p-2.5 md:p-3.5 rounded-[12px] md:rounded-[14px] flex flex-col justify-between select-none overflow-hidden`}
       >
         {/* Top Glowing Cyan Accent Line */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-6 right-6 h-[1.5px]"
+          className="pointer-events-none absolute top-0 left-4 right-4 h-[1.5px]"
           style={{
             background:
               'linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.85) 50%, transparent 100%)',
           }}
         />
 
-        {/* Subtle Ambient Reflection from the 3D Heart */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -inset-4 opacity-20"
-          style={{
-            background: `radial-gradient(circle at 50% 100%, ${config.strokeColor}55, transparent 68%)`,
-          }}
-        />
-
         {/* Card Header: Circular Icon + Metric Name/Value + DEMO/LIVE Badge */}
-        <div className="relative z-10 flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2.5 min-w-0">
+        <div className="relative z-10 flex items-start justify-between gap-1.5">
+          <div className="flex items-start gap-1.5 sm:gap-2 md:gap-2.5 min-w-0">
             <div
               style={{
                 backgroundColor: config.iconBg,
                 borderColor: config.iconBorder,
-                boxShadow: `0 0 14px -2px ${config.iconBorder}`,
               }}
-              className="w-9 h-9 rounded-full border flex items-center justify-center shrink-0 mt-0.5"
+              className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 rounded-full border flex items-center justify-center shrink-0 mt-0.5"
             >
-              <Icon style={{ color: config.strokeColor }} className="w-4 h-4" />
+              <Icon style={{ color: config.strokeColor }} className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
             </div>
 
             <div className="min-w-0">
-              <div className="text-[12px] font-medium text-slate-200 truncate leading-tight">
+              <div className="text-[10px] sm:text-[11px] md:text-[12px] font-medium text-slate-700 dark:text-slate-200 truncate leading-tight">
                 {config.label}
               </div>
               <div className="mt-0.5 flex items-baseline gap-1">
-                <span className="font-display font-bold text-[24px] leading-none tracking-tight text-white">
+                <span className="font-display font-bold text-[16px] sm:text-[18px] md:text-[24px] leading-none tracking-tight text-slate-900 dark:text-white">
                   {activePoint ? activePoint.value : displayValue}
                 </span>
-                <span className="text-[11px] font-mono-tech font-semibold text-slate-300">
+                <span className="text-[9px] sm:text-[10px] md:text-[11px] font-mono-tech font-semibold text-slate-500 dark:text-slate-300">
                   {config.unit}
                 </span>
               </div>
-              <div className="mt-1 flex items-center gap-1 text-[10px] font-mono-tech text-emerald-400">
+              <div className="hidden md:flex mt-1 items-center gap-1 text-[10px] font-mono-tech text-emerald-500 dark:text-emerald-400">
                 {deltaPercent >= 0 ? (
                   <ArrowUpRight className="w-3 h-3 shrink-0" />
                 ) : (
-                  <ArrowDownRight className="w-3 h-3 shrink-0 text-sky-400" />
+                  <ArrowDownRight className="w-3 h-3 shrink-0 text-sky-500" />
                 )}
                 <span className="truncate">
                   {activePoint ? `Lúc ${activePoint.time}` : deltaText}
@@ -351,32 +364,32 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
 
           {/* DEMO / LIVE Badge */}
           <span
-            className={`px-2 py-0.5 rounded text-[9px] font-mono-tech font-bold tracking-wider border shrink-0 ${
+            className={`px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-mono-tech font-bold tracking-wider border shrink-0 ${
               dataMode === 'demo'
-                ? 'bg-amber-500/15 text-amber-300 border-amber-400/45'
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-400/45'
                 : isLiveConnected
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/45'
-                : 'bg-rose-500/15 text-rose-300 border-rose-400/45'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-400/45'
+                : 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-400/45'
             }`}
           >
             {dataMode === 'demo' ? 'DEMO' : isLiveConnected ? 'LIVE' : 'STANDBY'}
           </span>
         </div>
 
-        {/* Line Chart Area with Y-Axis Ticks & X-Axis Time Labels */}
-        <div className="relative z-10 mt-1 flex flex-col">
+        {/* Line Chart Area */}
+        <div className="relative z-10 mt-0.5 md:mt-1 flex flex-col">
           {geometry ? (
             <>
-              <div className="flex items-center gap-1.5 h-[62px]">
-                {/* Y-Axis Labels */}
-                <div className="flex flex-col justify-between h-full py-0.5 text-[9px] font-mono-tech text-slate-400 text-right w-6 shrink-0">
+              <div className="flex items-center gap-1 h-[28px] sm:h-[34px] md:h-[62px]">
+                {/* Y-Axis Labels (Desktop only) */}
+                <div className="hidden md:flex flex-col justify-between h-full py-0.5 text-[9px] font-mono-tech text-slate-400 text-right w-6 shrink-0">
                   <span>{config.yTicks[2]}</span>
                   <span>{config.yTicks[1]}</span>
                   <span>{config.yTicks[0]}</span>
                 </div>
 
-                {/* SVG Chart (Single MouseMove Handler for Zero DOM Overhead) */}
-                <div className="flex-1 h-full relative border-l border-b border-slate-700/60">
+                {/* SVG Chart */}
+                <div className="flex-1 h-full relative border-b md:border-l border-slate-300 dark:border-slate-700/60">
                   <svg
                     viewBox={`0 0 ${svgW} ${svgH}`}
                     className="w-full h-full overflow-visible cursor-crosshair"
@@ -404,25 +417,6 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
                       </linearGradient>
                     </defs>
 
-                    {/* Subtle Horizontal Grid Lines */}
-                    <line
-                      x1="0"
-                      y1={svgH * 0.2}
-                      x2={svgW}
-                      y2={svgH * 0.2}
-                      stroke="rgba(148, 163, 184, 0.1)"
-                      strokeWidth="1"
-                    />
-                    <line
-                      x1="0"
-                      y1={svgH * 0.55}
-                      x2={svgW}
-                      y2={svgH * 0.55}
-                      stroke="rgba(148, 163, 184, 0.1)"
-                      strokeWidth="1"
-                    />
-
-                    {/* GPU-Accelerated Left-to-Right Telemetry Sweep Group */}
                     <g className="nexus-hud-chart-reveal">
                       <path
                         d={geometry.areaPath}
@@ -432,64 +426,32 @@ const SingleGlassChartPanel: React.FC<SingleGlassChartPanelProps> = React.memo(
                         d={geometry.linePath}
                         fill="none"
                         stroke={config.strokeColor}
-                        strokeWidth="1.9"
+                        strokeWidth="2.2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                       <circle
                         cx={geometry.last.x}
                         cy={geometry.last.y}
-                        r="2.6"
+                        r="3.2"
                         fill={config.strokeColor}
                       />
-                      <circle
-                        cx={geometry.last.x}
-                        cy={geometry.last.y}
-                        r="5.5"
-                        fill="none"
-                        stroke={config.strokeColor}
-                        strokeWidth="1"
-                        opacity="0.55"
-                      />
                     </g>
-
-                    {/* Active Hover Scrub Point */}
-                    {activePoint && (
-                      <>
-                        <line
-                          x1={activePoint.x}
-                          y1={2}
-                          x2={activePoint.x}
-                          y2={svgH - 2}
-                          stroke="rgba(248, 250, 252, 0.4)"
-                          strokeWidth="1"
-                          strokeDasharray="2 2"
-                        />
-                        <circle
-                          cx={activePoint.x}
-                          cy={activePoint.y}
-                          r="3.5"
-                          fill="#ffffff"
-                          stroke={config.strokeColor}
-                          strokeWidth="2"
-                        />
-                      </>
-                    )}
                   </svg>
                 </div>
               </div>
 
-              {/* X-Axis Timestamps Row */}
-              <div className="pl-7 pt-1 flex items-center justify-between text-[9px] font-mono-tech text-slate-400">
+              {/* X-Axis Timestamps (Desktop only) */}
+              <div className="hidden md:flex pl-7 pt-1 items-center justify-between text-[9px] font-mono-tech text-slate-400">
                 {geometry.timeLabels.map((lbl, i) => (
                   <span key={i}>{lbl}</span>
                 ))}
               </div>
             </>
           ) : (
-            <div className="h-[74px] w-full flex items-center justify-center rounded-lg bg-slate-950/50 border border-slate-800/70 px-2 text-center">
-              <span className="text-[10px] font-mono-tech text-slate-400">
-                Chưa đủ dữ liệu LIVE từ cảm biến ESP32
+            <div className="h-[28px] md:h-[74px] w-full flex items-center justify-center rounded bg-slate-100 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800/70 px-1 text-center">
+              <span className="text-[9px] md:text-[10px] font-mono-tech text-slate-400">
+                Chờ dữ liệu...
               </span>
             </div>
           )}
@@ -512,7 +474,7 @@ export const FloatingHeartChartsHUD: React.FC<FloatingHeartChartsHUDProps> =
     }) => {
       return (
         <>
-          {/* Sci-Fi Angled Callout Leader Lines Connecting Orbital Ring to the 4 Floating Panels */}
+          {/* Sci-Fi Angled Callout Leader Lines (Desktop only) */}
           <svg
             aria-hidden="true"
             viewBox="0 0 1000 640"
@@ -539,7 +501,6 @@ export const FloatingHeartChartsHUD: React.FC<FloatingHeartChartsHUDProps> =
                     stroke="rgba(0, 240, 255, 0.58)"
                     strokeWidth="1.4"
                   />
-                  {/* Inner orbital anchor dot */}
                   <circle
                     cx={startX}
                     cy={startY}
@@ -548,37 +509,35 @@ export const FloatingHeartChartsHUD: React.FC<FloatingHeartChartsHUDProps> =
                     stroke={dotColor}
                     strokeWidth="2"
                   />
-                  {/* Panel edge anchor dot */}
                   <circle cx={endX} cy={endY} r="3" fill="#00f0ff" />
                 </g>
               );
             })}
           </svg>
 
-          {/* Subtle Top-Center Close Button */}
+          {/* Close Button */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            title="Đóng 4 biểu đồ (hoặc nhấp chuột phải lần nữa)"
-            className={`absolute top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#051024]/92 hover:bg-[#0a1d3b] border border-cyan-400/45 text-[10px] font-mono-tech text-cyan-200 shadow-lg cursor-pointer transition-all duration-300 ${
+            title="Thu nhỏ 4 biểu đồ"
+            className={`absolute top-2 sm:top-3 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/95 dark:bg-[#051024]/92 hover:bg-slate-100 dark:hover:bg-[#0a1d3b] border border-cyan-500/40 text-[9px] sm:text-[10px] font-mono-tech text-cyan-600 dark:text-cyan-200 shadow-md cursor-pointer transition-all duration-300 ${
               visible
                 ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                 : 'opacity-0 -translate-y-2 scale-90 pointer-events-none'
             }`}
           >
-            <X className="w-3 h-3 text-cyan-400" />
-            <span>Đóng 4 biểu đồ</span>
+            <X className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-500" />
+            <span className="hidden sm:inline">Thu nhỏ 4 biểu đồ</span>
+            <span className="sm:hidden">Thu nhỏ</span>
           </button>
 
-          {/* 4 Floating Glass Panels: Always mounted for 0ms layout cost; collapsed on mobile when closed */}
+          {/* 4 Floating Glass Panels: Absolute in the 4 corners */}
           <div
-            className={`relative md:static z-20 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full px-4 md:p-0 md:block md:pointer-events-none md:absolute md:inset-0 transition-all duration-300 ${
-              visible
-                ? 'pb-16 md:pb-0 max-h-[900px] opacity-100'
-                : 'max-h-0 overflow-hidden opacity-0 md:max-h-none md:overflow-visible md:opacity-100 pointer-events-none'
+            className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-300 ${
+              visible ? 'opacity-100' : 'opacity-0'
             }`}
           >
             {FLOATING_CHART_CONFIGS.map((cfg) => (

@@ -157,7 +157,7 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(
             borderColor: isSelected ? metric.accentColor : undefined,
           } as React.CSSProperties
         }
-        className="nexus-metric-card relative rounded-2xl nexus-glass p-5 overflow-hidden cursor-pointer select-none flex flex-col justify-between group"
+        className="nexus-metric-card relative rounded-2xl nexus-glass p-3.5 sm:p-5 overflow-hidden cursor-pointer select-none flex flex-col justify-between group"
       >
         {/* Pure CSS cursor spotlight */}
         <div

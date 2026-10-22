@@ -9,6 +9,9 @@ import {
   Moon,
   Zap,
   Play,
+  Activity,
+  HeartPulse,
+  History,
 } from 'lucide-react';
 import {
   ChartMetricKey,
@@ -54,7 +57,7 @@ export const App: React.FC = () => {
     return !seen;
   });
 
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<NavSection>('overview');
@@ -229,7 +232,7 @@ export const App: React.FC = () => {
             }
           />
 
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] w-full mx-auto">
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto pb-24 lg:pb-8">
             {/* Scientific Integrity & Hardware Mode Notice Bar */}
             <motion.div
               initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
@@ -280,9 +283,9 @@ export const App: React.FC = () => {
                   onSwitchDataMode={setDataMode}
                 />
 
-                {/* 7 Health Metric Cards Grid */}
+                {/* 7 Health Metric Cards Grid (2 columns on mobile matching Apple Fitness Image 2) */}
                 <section aria-label="Các chỉ số sức khỏe">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {metrics.map((m, idx) => (
                       <MetricCard
                         key={m.key}
@@ -592,6 +595,77 @@ export const App: React.FC = () => {
           </footer>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Apple Fitness Image 2 style) */}
+      <nav aria-label="Điều hướng nhanh điện thoại" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md px-3 py-1.5 flex items-center justify-around text-[10px] font-mono-tech shadow-lg">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSection('overview');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+            activeSection === 'overview'
+              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Tóm tắt</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSection('overview');
+            const el = document.querySelector('section[aria-label="3D Biomedical Body & Heart Command Center"]');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+            activeSection === 'heart'
+              ? 'text-rose-600 dark:text-rose-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+          }`}
+        >
+          <HeartPulse className="w-4 h-4" />
+          <span>Cơ thể 3D</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('live')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+            activeSection === 'live'
+              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Sóng Live</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('history')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+            activeSection === 'history'
+              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Lịch sử</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('settings')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+            activeSection === 'settings'
+              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Cài đặt</span>
+        </button>
+      </nav>
 
       {/* Centered Mini-Diagram Popup Modal when clicking any of the 7 Metric Cards */}
       <MetricDetailModal

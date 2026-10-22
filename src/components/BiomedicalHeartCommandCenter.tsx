@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
+  Maximize2,
+  Minimize2,
   Pause,
   Play,
   Radio,
   RotateCcw,
+  Sparkles,
+  User,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -31,6 +35,10 @@ interface BiomedicalHeartCommandCenterProps {
 }
 
 type AnatomicalGroupName =
+  | 'BodyTorso'
+  | 'Lungs'
+  | 'Liver'
+  | 'Stomach'
   | 'Myocardium'
   | 'Aorta'
   | 'PulmonaryArtery'
@@ -39,12 +47,12 @@ type AnatomicalGroupName =
   | 'CoronaryArteries'
   | 'CardiacVeins';
 
-interface LoadedHeartGeometry {
-  positions: Float32Array; // length = numVerts * 3
-  normals: Float32Array; // length = numVerts * 3
-  vertexGroup: Uint8Array; // 0..6 per vertex
-  vertexAO: Float32Array; // 0.4..1.0 ambient occlusion per vertex
-  indices: Uint32Array; // length = numTris * 3
+interface LoadedAnatomyGeometry {
+  positions: Float32Array;
+  normals: Float32Array;
+  vertexGroup: Uint8Array;
+  vertexAO: Float32Array;
+  indices: Uint32Array;
 }
 
 interface OrbitalParticle3D {
@@ -58,18 +66,19 @@ interface OrbitalParticle3D {
 }
 
 const GROUP_IDS: Record<AnatomicalGroupName, number> = {
-  Myocardium: 0,
-  Aorta: 1,
-  PulmonaryArtery: 2,
-  PulmonaryVeins: 3,
-  VenaCava: 4,
-  CoronaryArteries: 5,
-  CardiacVeins: 6,
+  BodyTorso: 0,
+  Lungs: 1,
+  Liver: 2,
+  Stomach: 3,
+  Myocardium: 4,
+  Aorta: 5,
+  PulmonaryArtery: 6,
+  PulmonaryVeins: 7,
+  VenaCava: 8,
+  CoronaryArteries: 9,
+  CardiacVeins: 10,
 };
 
-/**
- * Evaluates a physiological "lub-dub" cardiac contraction curve for phase in [0, 1).
- */
 function evaluateCardiacCycle(phase: number): {
   ventricularPulse: number;
   atrialPulse: number;
@@ -79,26 +88,22 @@ function evaluateCardiacCycle(phase: number): {
 } {
   const p = ((phase % 1) + 1) % 1;
 
-  // Atrial contraction ("lub" preparation): peaks at p = 0.10
   const atrialDiff = (p - 0.1) / 0.048;
   const atrialPulse = Math.exp(-atrialDiff * atrialDiff);
 
-  // Primary ventricular systole ("LUB" S1 peak): sharp rise around p = 0.21
   const sysDiff = (p - 0.21) / 0.054;
   const primarySystole = Math.exp(-sysDiff * sysDiff);
 
-  // Secondary aortic valve closure / dicrotic notch ("DUB" S2 peak): around p = 0.34
   const dubDiff = (p - 0.34) / 0.05;
   const secondaryDub = 0.52 * Math.exp(-dubDiff * dubDiff);
 
-  // Arterial expansion wave in Aorta & Pulmonary Trunk (slightly delayed after ventricular ejection)
   const artDiff = (p - 0.26) / 0.065;
   const arterialWave = Math.exp(-artDiff * artDiff);
 
   const ventricularPulse = Math.min(1, primarySystole + secondaryDub);
   const shockwavePhase = p >= 0.18 && p <= 0.92 ? (p - 0.18) / 0.74 : 0;
 
-  let phaseLabel = 'DIASTOLE (THƯ GIÃN TÂM TRƯƠNG)';
+  let phaseLabel = 'DIASTOLE (THƯ GIÃN)';
   if (p >= 0.05 && p < 0.15) {
     phaseLabel = 'ATRIAL SYSTOLE (TÂM NHĨ CO)';
   } else if (p >= 0.15 && p < 0.29) {
@@ -110,14 +115,10 @@ function evaluateCardiacCycle(phase: number): {
   return { ventricularPulse, atrialPulse, arterialWave, shockwavePhase, phaseLabel };
 }
 
-/**
- * Parses our binary glTF 2.0 (`public/models/anatomical_heart.glb`) built from
- * BodyParts3D anatomical cardiac meshes into flat typed arrays for ultra-fast rendering.
- */
-async function loadAnatomicalHeartGlb(url: string): Promise<LoadedHeartGeometry> {
+async function loadAnatomicalBodyHeartGlb(url: string): Promise<LoadedAnatomyGeometry> {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to fetch anatomical heart GLB: ${res.status}`);
+    throw new Error(`Failed to fetch anatomical body/heart GLB: ${res.status}`);
   }
   const arrayBuffer = await res.arrayBuffer();
   const view = new DataView(arrayBuffer);
@@ -128,11 +129,6 @@ async function loadAnatomicalHeartGlb(url: string): Promise<LoadedHeartGeometry>
   }
 
   const jsonChunkLength = view.getUint32(12, true);
-  const jsonChunkType = view.getUint32(16, true);
-  if (jsonChunkType !== 0x4e4f534a) {
-    throw new Error('Expected GLB JSON chunk');
-  }
-
   const jsonBytes = new Uint8Array(arrayBuffer, 20, jsonChunkLength);
   const gltf = JSON.parse(new TextDecoder().decode(jsonBytes));
 
@@ -153,7 +149,7 @@ async function loadAnatomicalHeartGlb(url: string): Promise<LoadedHeartGeometry>
 
   for (const mesh of gltf.meshes) {
     const groupName = (mesh.name as AnatomicalGroupName) || 'Myocardium';
-    const groupId = GROUP_IDS[groupName] ?? 0;
+    const groupId = GROUP_IDS[groupName] ?? 4;
 
     for (const prim of mesh.primitives) {
       const posAcc = gltf.accessors[prim.attributes.POSITION];
@@ -219,7 +215,6 @@ async function loadAnatomicalHeartGlb(url: string): Promise<LoadedHeartGeometry>
       const ny = part.nrm[i * 3 + 1];
       const nz = part.nrm[i * 3 + 2];
 
-      // Compute radial outward alignment for natural crevice/sulcus ambient occlusion
       const rLen = Math.hypot(x, y, z) || 1;
       const radialDot = (x * nx + y * ny + z * nz) / rLen;
       const baseAO = 0.58 + 0.42 * Math.max(0, Math.min(1, (radialDot + 0.35) / 1.15));
@@ -237,7 +232,7 @@ async function loadAnatomicalHeartGlb(url: string): Promise<LoadedHeartGeometry>
   return { positions, normals, vertexGroup, vertexAO, indices };
 }
 
-let cachedHeartGeometryPromise: Promise<LoadedHeartGeometry> | null = null;
+let cachedGeometryPromise: Promise<LoadedAnatomyGeometry> | null = null;
 
 export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenterProps> = ({
   metrics,
@@ -246,25 +241,22 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   dataMode,
   ppgWave,
   reducedMotion,
+  isLightMode,
   onSelectMetricModal,
   onSwitchDataMode,
 }) => {
   const stageContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // 'body' = Translucent human body + organs + beating heart (Image 1)
+  // 'heart' = Zoomed-in anatomical heart + 4 floating mini charts (Image 2)
+  const [viewMode, setViewMode] = useState<'body' | 'heart'>('body');
   const [autoRotate, setAutoRotate] = useState(true);
-  // Start with the 4 floating glass charts CLOSED so only the 3D Heart is shown initially;
-  // right-clicking the 3D heart smoothly opens/closes the 4 panels.
-  const [floatingChartsOpen, setFloatingChartsOpen] = useState(false);
   const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('VENTRICULAR SYSTOLE • LUB (S1)');
   const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState<number>(74);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
 
-  // Extract metrics
-  const heartMetric = useMemo(
-    () => metrics.find((m) => m.key === 'heartRate'),
-    [metrics]
-  );
+  const heartMetric = useMemo(() => metrics.find((m) => m.key === 'heartRate'), [metrics]);
 
   const isLiveValid =
     dataMode === 'live' &&
@@ -285,7 +277,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       return {
         code: 'DEMO SIMULATION',
         sub: 'Đồng bộ BPM mô phỏng sinh học',
-        colorClass: 'text-amber-300 border-amber-400/40 bg-amber-500/15',
+        colorClass: 'text-amber-500 border-amber-400/40 bg-amber-500/10',
         dotClass: 'bg-amber-400',
       };
     }
@@ -293,31 +285,23 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       return {
         code: 'CONNECTED • LIVE ESP32',
         sub: 'Đồng bộ BPM thực từ MAX30102',
-        colorClass: 'text-emerald-300 border-emerald-400/40 bg-emerald-500/15',
+        colorClass: 'text-emerald-500 border-emerald-400/40 bg-emerald-500/10',
         dotClass: 'bg-emerald-400',
-      };
-    }
-    if (deviceStatus.connectionState === 'reconnecting') {
-      return {
-        code: 'STALE / RECONNECTING',
-        sub: 'Đang chờ gói tin mới từ mạch...',
-        colorClass: 'text-amber-300 border-amber-400/40 bg-amber-500/15',
-        dotClass: 'bg-amber-400',
       };
     }
     return {
       code: 'DISCONNECTED • STANDBY',
-      sub: 'Chưa có dữ liệu thực — Nhịp chờ 60 BPM',
-      colorClass: 'text-rose-300 border-rose-400/40 bg-rose-500/15',
+      sub: 'Chưa có tín hiệu — Nhịp chờ 60 BPM',
+      colorClass: 'text-rose-500 border-rose-400/40 bg-rose-500/10',
       dotClass: 'bg-rose-400',
     };
-  }, [dataMode, isLiveValid, deviceStatus.connectionState]);
+  }, [dataMode, isLiveValid]);
 
   const signalQualityInfo = useMemo(() => {
     if (dataMode === 'demo') {
       return {
         value: '98.4%',
-        detail: `PPG Optical Lock • RSSI ${deviceStatus.wifiRssi ?? -54} dBm`,
+        detail: `PPG Lock • RSSI ${deviceStatus.wifiRssi ?? -54} dBm`,
       };
     }
     if (isLiveValid && deviceStatus.wifiRssi !== null) {
@@ -325,20 +309,22 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const pct = Math.max(10, Math.min(100, Math.round(100 + (rssi + 45) * 1.2)));
       return {
         value: `${pct}%`,
-        detail: `ESP32 Wi-Fi RSSI ${rssi} dBm`,
+        detail: `ESP32 Wi-Fi ${rssi} dBm`,
       };
     }
     return {
       value: 'N/A',
-      detail: 'Chưa nhận tín hiệu từ cảm biến',
+      detail: 'Chưa nhận tín hiệu',
     };
   }, [dataMode, isLiveValid, deviceStatus.wifiRssi]);
 
-  // Refs synced into the single rAF loop
+  // Sync refs into rAF render loop
   const targetBpmRef = useRef<number>(rawTargetBpm);
   const smoothedBpmRef = useRef<number>(rawTargetBpm);
   const autoRotateRef = useRef<boolean>(autoRotate);
   const reducedMotionRef = useRef<boolean>(reducedMotion);
+  const isLightModeRef = useRef<boolean>(isLightMode);
+  const viewModeRef = useRef<'body' | 'heart'>(viewMode);
   const resetCameraTriggerRef = useRef<boolean>(false);
   const rightClickWavePhaseRef = useRef<number>(0);
 
@@ -354,22 +340,29 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     reducedMotionRef.current = reducedMotion;
   }, [reducedMotion]);
 
-  // Trigger right-click cyan activation shockwave & toggle 4 floating charts
-  const handleToggleFloatingCharts = useCallback(() => {
+  useEffect(() => {
+    isLightModeRef.current = isLightMode;
+  }, [isLightMode]);
+
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  const handleToggleViewMode = useCallback(() => {
     rightClickWavePhaseRef.current = 0.01;
-    setFloatingChartsOpen((prev) => !prev);
+    setViewMode((prev) => (prev === 'body' ? 'heart' : 'body'));
   }, []);
 
-  const handleCloseFloatingCharts = useCallback(() => {
+  const handleCloseDetail = useCallback(() => {
     rightClickWavePhaseRef.current = 0.01;
-    setFloatingChartsOpen(false);
+    setViewMode('body');
   }, []);
 
-  // Build SVG path for mini PPG waveform in bottom-right HUD pill
+  // Mini PPG wave
   const ppgPath = useMemo(() => {
     if (!ppgWave || ppgWave.length < 2) return '';
-    const w = 150;
-    const h = 28;
+    const w = 120;
+    const h = 24;
     const vals = ppgWave.map((p) => p.opticalIr);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
@@ -383,7 +376,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       .join(' ');
   }, [ppgWave]);
 
-  // Load BodyParts3D anatomical_heart.glb and run Per-Pixel Smooth Phong + Subsurface Scattering 3D Renderer
+  // Load anatomical_body_heart.glb and run 60FPS dual-mode Z-buffer rasterizer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -391,9 +384,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     if (!ctx) return;
 
     let isCancelled = false;
-    let geometry: LoadedHeartGeometry | null = null;
+    let geometry: LoadedAnatomyGeometry | null = null;
 
-    // Pre-allocated vertex transformation buffers (populated once GLB loads)
     let txArr = new Float32Array(0);
     let tyArr = new Float32Array(0);
     let tzArr = new Float32Array(0);
@@ -403,12 +395,13 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let crArr = new Float32Array(0);
     let cgArr = new Float32Array(0);
     let cbArr = new Float32Array(0);
+    let caArr = new Float32Array(0); // Alpha per vertex
 
-    if (!cachedHeartGeometryPromise) {
-      cachedHeartGeometryPromise = loadAnatomicalHeartGlb('./models/anatomical_heart.glb');
+    if (!cachedGeometryPromise) {
+      cachedGeometryPromise = loadAnatomicalBodyHeartGlb('./models/anatomical_body_heart.glb');
     }
 
-    cachedHeartGeometryPromise
+    cachedGeometryPromise
       .then((loaded) => {
         if (isCancelled) return;
         geometry = loaded;
@@ -422,15 +415,15 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         crArr = new Float32Array(numVerts);
         cgArr = new Float32Array(numVerts);
         cbArr = new Float32Array(numVerts);
+        caArr = new Float32Array(numVerts);
         setModelLoaded(true);
       })
       .catch((err) => {
-        console.error('Failed to load anatomical_heart.glb:', err);
+        console.error('Failed to load anatomical_body_heart.glb:', err);
       });
 
-    // Offscreen Z-buffer & pixel buffer for real 3D anatomical heart rendering
-    const BUF_W = 440;
-    const BUF_H = 440;
+    const BUF_W = 460;
+    const BUF_H = 520;
     const offscreen = document.createElement('canvas');
     offscreen.width = BUF_W;
     offscreen.height = BUF_H;
@@ -439,34 +432,30 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     const pixelBuf32 = imgData ? new Uint32Array(imgData.data.buffer) : null;
     const zBuffer = new Float32Array(BUF_W * BUF_H);
 
-    // 48 3D orbital particles around the heart
-    const orbitalParticles: OrbitalParticle3D[] = Array.from({ length: 48 }, (_, i) => ({
-      angle: (i / 48) * Math.PI * 2,
-      radius: 1.48 + (i % 4) * 0.14,
-      speed: (0.28 + (i % 5) * 0.07) * (i % 2 === 0 ? 1 : -1),
-      tiltX: (i % 3 === 0 ? 0.42 : i % 3 === 1 ? -0.36 : 0.14),
-      tiltZ: (i % 2 === 0 ? 0.18 : -0.22),
-      size: 1.4 + (i % 3) * 0.7,
-      isCyan: i % 5 !== 0,
-    }));
+    // Camera orbit & zoom interpolation
+    let rotY = -0.12;
+    let rotX = 0.04;
+    let targetRotX = 0.04;
+    let currZoom = 0.75;
+    let targetZoom = 0.75;
+    let currCenterY = -0.12;
+    let targetCenterY = -0.12;
+    let currOrganAlpha = 1.0;
+    let targetOrganAlpha = 1.0;
 
-    // Interactive camera orbit state
-    let rotY = -0.18;
-    let rotX = 0.08;
-    let targetRotX = 0.08;
-    let zoom = 1.0;
-    let targetZoom = 1.0;
     let isDragging = false;
     let lastMouseX = 0;
     let lastMouseY = 0;
+    let touchDistance = 0;
 
     const onPointerDown = (e: PointerEvent) => {
-      if (e.button !== 0) return; // Only left-click drags; right-click toggles floating HUD charts
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
       isDragging = true;
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
       canvas.setPointerCapture(e.pointerId);
     };
+
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging) return;
       const dx = e.clientX - lastMouseX;
@@ -474,8 +463,9 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
       rotY += dx * 0.0085;
-      targetRotX = Math.max(-0.48, Math.min(0.52, targetRotX + dy * 0.0065));
+      targetRotX = Math.max(-0.45, Math.min(0.48, targetRotX + dy * 0.0065));
     };
+
     const onPointerUp = (e: PointerEvent) => {
       if (!isDragging) return;
       isDragging = false;
@@ -485,75 +475,100 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         // ignore
       }
     };
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      targetZoom = Math.max(0.84, Math.min(1.28, targetZoom - e.deltaY * 0.0008));
+      targetZoom = Math.max(0.42, Math.min(1.35, targetZoom - e.deltaY * 0.0008));
+    };
+
+    // Touch pinch to zoom
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        touchDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const diff = dist - touchDistance;
+        touchDistance = dist;
+        targetZoom = Math.max(0.42, Math.min(1.35, targetZoom + diff * 0.004));
+      }
     };
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
 
     let animId = 0;
     let lastTime = performance.now();
     let beatPhase = 0;
     let lastUiSyncTime = 0;
 
-    // Normalized 3-point biomedical studio lighting vectors
-    // Key light: warm front-top-left studio light
-    const L1x = -0.44,
-      L1y = 0.56,
-      L1z = 0.7;
-    // Half-vector H1 for Key Light + View (0, 0, 1)
+    // 3-Point Medical Studio Lighting
+    const L1x = -0.42, L1y = 0.54, L1z = 0.72;
     const H1Len = Math.hypot(L1x, L1y, L1z + 1);
-    const H1x = L1x / H1Len,
-      H1y = L1y / H1Len,
-      H1z = (L1z + 1) / H1Len;
+    const H1x = L1x / H1Len, H1y = L1y / H1Len, H1z = (L1z + 1) / H1Len;
 
-    // Fill/Rim light: cool cyan right-side laboratory rim light
-    const L2x = 0.78,
-      L2y = 0.18,
-      L2z = 0.6;
+    const L2x = 0.75, L2y = 0.16, L2z = 0.64;
     const H2Len = Math.hypot(L2x, L2y, L2z + 1);
-    const H2x = L2x / H2Len,
-      H2y = L2y / H2Len,
-      H2z = (L2z + 1) / H2Len;
-
-    // Bottom pedestal cyan uplight
-    const L3x = 0.0,
-      L3y = -0.92,
-      L3z = 0.39;
+    const H2x = L2x / H2Len, H2y = L2y / H2Len, H2z = (L2z + 1) / H2Len;
 
     const renderFrame = (now: number) => {
       if (isCancelled) return;
       const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
 
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const rect = canvas.getBoundingClientRect();
+      const cw = Math.max(280, Math.floor(rect.width));
+      const ch = Math.max(380, Math.floor(rect.height));
+      if (canvas.width !== cw * dpr || canvas.height !== ch * dpr) {
+        canvas.width = cw * dpr;
+        canvas.height = ch * dpr;
+      }
+
+      const isMobileScreen = cw < 640;
+      const isBodyView = viewModeRef.current === 'body';
+      targetZoom = isBodyView ? (isMobileScreen ? 0.30 : 0.32) : (isMobileScreen ? 0.66 : 0.96);
+      targetCenterY = isBodyView ? -0.40 : 0.04;
+      targetOrganAlpha = isBodyView ? 1.0 : 0.0;
+
       if (resetCameraTriggerRef.current) {
         resetCameraTriggerRef.current = false;
-        rotY = -0.18;
-        targetRotX = 0.08;
-        targetZoom = 1.0;
+        rotY = -0.15;
+        targetRotX = 0.05;
       }
+
+      // Smooth camera interpolation
+      currZoom += (targetZoom - currZoom) * Math.min(1, dt * 5.5);
+      currCenterY += (targetCenterY - currCenterY) * Math.min(1, dt * 5.5);
+      currOrganAlpha += (targetOrganAlpha - currOrganAlpha) * Math.min(1, dt * 6.0);
+      rotX += (targetRotX - rotX) * Math.min(1, dt * 7.0);
 
       // Smooth BPM interpolation
       const targetBpm = Math.max(42, Math.min(195, targetBpmRef.current));
       smoothedBpmRef.current += (targetBpm - smoothedBpmRef.current) * Math.min(1, dt * 4.0);
       const currentBpm = smoothedBpmRef.current;
 
-      // Advance cardiac cycle phase
       const beatsPerSec = currentBpm / 60;
       beatPhase = (beatPhase + dt * beatsPerSec) % 1;
       const { ventricularPulse, atrialPulse, arterialWave, shockwavePhase, phaseLabel } =
         evaluateCardiacCycle(beatPhase);
 
-      // Advance right-click activation wave if active
       if (rightClickWavePhaseRef.current > 0) {
         rightClickWavePhaseRef.current += dt * 1.45;
-        if (rightClickWavePhaseRef.current > 1) {
-          rightClickWavePhaseRef.current = 0;
-        }
+        if (rightClickWavePhaseRef.current > 1) rightClickWavePhaseRef.current = 0;
       }
 
       if (now - lastUiSyncTime > 240) {
@@ -562,149 +577,58 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         setDisplayedSmoothedBpm(Math.round(currentBpm));
       }
 
-      // Continuous 360-degree Y-axis rotation (~25 seconds per full turn)
+      // Auto rotation
       if (!isDragging && autoRotateRef.current && !reducedMotionRef.current) {
-        rotY += dt * ((Math.PI * 2) / 25.0);
-      }
-      rotX += (targetRotX - rotX) * Math.min(1, dt * 7);
-      zoom += (targetZoom - zoom) * Math.min(1, dt * 7);
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = canvas.getBoundingClientRect();
-      const cw = Math.max(300, Math.floor(rect.width));
-      const ch = Math.max(300, Math.floor(rect.height));
-      if (canvas.width !== cw * dpr || canvas.height !== ch * dpr) {
-        canvas.width = cw * dpr;
-        canvas.height = ch * dpr;
+        rotY += dt * ((Math.PI * 2) / 28.0);
       }
 
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, cw, ch);
 
+      const isLight = isLightModeRef.current;
       const cx = cw * 0.5;
-      const cy = ch * 0.47;
-      const baseScale = Math.min(cw, ch) * 0.255 * zoom;
+      const cy = ch * 0.5;
+      const baseScale = Math.min(cw, ch) * 0.44;
 
-      // --- 1. VOLUMETRIC BIOMEDICAL STAGE LIGHTING & HOLOGRAPHIC EMITTER PEDESTAL ---
-      // Central crimson + cyan volumetric aura behind the heart
-      const auraRadius = baseScale * (2.15 + ventricularPulse * 0.14);
-      const auraGrad = ctx.createRadialGradient(cx, cy, baseScale * 0.12, cx, cy, auraRadius);
-      auraGrad.addColorStop(0, `rgba(195, 22, 48, ${0.28 + ventricularPulse * 0.14})`);
-      auraGrad.addColorStop(0.45, `rgba(0, 210, 255, ${0.12 + ventricularPulse * 0.06})`);
-      auraGrad.addColorStop(0.75, 'rgba(6, 18, 42, 0.05)');
-      auraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = auraGrad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, auraRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Holographic Projector Pedestal at bottom of stage (matching reference image)
-      const pedY = cy + baseScale * 1.42;
-      const pedRx = baseScale * 1.32;
-      const pedRy = baseScale * 0.31;
-
-      // Vertical volumetric cyan light cone rising from emitter base through the heart
-      const coneGrad = ctx.createLinearGradient(cx, pedY, cx, cy - baseScale * 1.15);
-      coneGrad.addColorStop(0, `rgba(0, 240, 255, ${0.24 + ventricularPulse * 0.08})`);
-      coneGrad.addColorStop(0.35, 'rgba(0, 210, 255, 0.08)');
-      coneGrad.addColorStop(1, 'rgba(0, 210, 255, 0)');
-      ctx.fillStyle = coneGrad;
-      ctx.beginPath();
-      ctx.moveTo(cx - pedRx * 0.82, pedY);
-      ctx.lineTo(cx + pedRx * 0.82, pedY);
-      ctx.lineTo(cx + pedRx * 1.12, cy - baseScale * 1.05);
-      ctx.lineTo(cx - pedRx * 1.12, cy - baseScale * 1.05);
-      ctx.closePath();
-      ctx.fill();
-
-      // Pedestal glowing concentric ellipses & radial tick marks
-      const pedGlow = ctx.createRadialGradient(cx, pedY, 4, cx, pedY, pedRx * 1.15);
-      pedGlow.addColorStop(0, `rgba(0, 240, 255, ${0.38 + ventricularPulse * 0.15})`);
-      pedGlow.addColorStop(0.55, 'rgba(0, 185, 245, 0.14)');
-      pedGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.save();
-      ctx.translate(cx, pedY);
-      ctx.scale(1, pedRy / pedRx);
-      ctx.fillStyle = pedGlow;
-      ctx.beginPath();
-      ctx.arc(0, 0, pedRx * 1.15, 0, Math.PI * 2);
-      ctx.fill();
-
-      for (const rFrac of [1.0, 0.82, 0.62, 0.38]) {
-        ctx.strokeStyle =
-          rFrac === 0.82
-            ? `rgba(0, 240, 255, ${0.65 + ventricularPulse * 0.2})`
-            : 'rgba(0, 240, 255, 0.32)';
-        ctx.lineWidth = rFrac === 0.82 ? 2.0 : 1.1;
+      // 1. Clean Background & Volumetric Light
+      if (isLight) {
+        // Pure White Medical Aura (MediFlex style)
+        const aura = ctx.createRadialGradient(cx, cy, baseScale * 0.1, cx, cy, baseScale * 2.4);
+        aura.addColorStop(0, 'rgba(186, 230, 253, 0.42)');
+        aura.addColorStop(0.55, 'rgba(224, 242, 254, 0.22)');
+        aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = aura;
         ctx.beginPath();
-        ctx.arc(0, 0, pedRx * rFrac, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.arc(cx, cy, baseScale * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Dark Studio Aura
+        const aura = ctx.createRadialGradient(cx, cy, baseScale * 0.1, cx, cy, baseScale * 2.4);
+        aura.addColorStop(0, `rgba(195, 22, 48, ${0.25 + ventricularPulse * 0.12})`);
+        aura.addColorStop(0.5, `rgba(0, 210, 255, ${0.12 + ventricularPulse * 0.05})`);
+        aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = aura;
+        ctx.beginPath();
+        ctx.arc(cx, cy, baseScale * 2.4, 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      // Radial degree ticks on pedestal
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
-      ctx.lineWidth = 1.2;
-      for (let t = 0; t < 36; t++) {
-        const ang = (t / 36) * Math.PI * 2 + now * 0.00025;
-        const inner = pedRx * (t % 3 === 0 ? 0.84 : 0.88);
-        const outer = pedRx * 0.96;
+      // 2. Holographic Rings (in Heart Detail Mode)
+      if (!isBodyView || currOrganAlpha < 0.6) {
+        const ringAlpha = (1 - currOrganAlpha) * (isLight ? 0.35 : 0.6);
+        ctx.save();
+        ctx.translate(cx, cy + baseScale * 0.12);
+        ctx.rotate(-0.22);
         ctx.beginPath();
-        ctx.moveTo(Math.cos(ang) * inner, Math.sin(ang) * inner);
-        ctx.lineTo(Math.cos(ang) * outer, Math.sin(ang) * outer);
+        ctx.ellipse(0, 0, baseScale * 1.48, baseScale * 0.44, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = isLight ? `rgba(2, 132, 199, ${ringAlpha})` : `rgba(0, 240, 255, ${ringAlpha})`;
+        ctx.lineWidth = 1.3;
         ctx.stroke();
+        ctx.restore();
       }
-      ctx.restore();
 
-      // --- 2. BACK HALF OF TILTED 3D ORBITAL RINGS AROUND THE HEART ---
-      const drawOrbitalArcs = (frontHalf: boolean) => {
-        const rings = [
-          { rx: baseScale * 1.48, ry: baseScale * 0.44, tilt: -0.24, speed: 0.35, alpha: 0.48 },
-          { rx: baseScale * 1.34, ry: baseScale * 0.38, tilt: 0.32, speed: -0.28, alpha: 0.34 },
-          { rx: baseScale * 1.62, ry: baseScale * 0.26, tilt: 0.08, speed: 0.18, alpha: 0.26 },
-        ];
-        for (const ring of rings) {
-          ctx.save();
-          ctx.translate(cx, cy + baseScale * 0.1);
-          ctx.rotate(ring.tilt);
-          ctx.beginPath();
-          // Back half is [PI, 2*PI], front half is [0, PI]
-          ctx.ellipse(
-            0,
-            0,
-            ring.rx,
-            ring.ry,
-            0,
-            frontHalf ? 0 : Math.PI,
-            frontHalf ? Math.PI : Math.PI * 2
-          );
-          ctx.strokeStyle = `rgba(0, 240, 255, ${
-            frontHalf ? ring.alpha : ring.alpha * 0.45
-          })`;
-          ctx.lineWidth = frontHalf ? 1.5 : 1.0;
-          ctx.stroke();
-
-          // Orbiting bright cyan node on each ring
-          const nodeAngle = ((now * 0.001 * ring.speed) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-          const isFrontNode = nodeAngle >= 0 && nodeAngle <= Math.PI;
-          if (isFrontNode === frontHalf) {
-            const nx = Math.cos(nodeAngle) * ring.rx;
-            const ny = Math.sin(nodeAngle) * ring.ry;
-            ctx.fillStyle = '#00f0ff';
-            ctx.shadowColor = '#00f0ff';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.arc(nx, ny, frontHalf ? 3.4 : 2.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-          }
-          ctx.restore();
-        }
-      };
-
-      drawOrbitalArcs(false);
-
-      // --- 3. REAL BODYPARTS3D ANATOMICAL HEART RASTERIZATION (Z-BUFFER GOURAUD/PHONG + SSS) ---
+      // 3. 3D Body & Organs Rasterization
       if (geometry && offCtx && imgData && pixelBuf32) {
         pixelBuf32.fill(0);
         zBuffer.fill(-1e9);
@@ -723,10 +647,9 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         const numIndices = idxArr.length;
 
         const halfW = BUF_W * 0.5;
-        const halfH = BUF_H * 0.6;
-        const bufScale = BUF_W * 0.248;
+        const halfH = BUF_H * 0.5;
+        const bufScale = BUF_W * 0.22 * currZoom;
 
-        // Traveling pulse wave position along coronary vessels
         const vesselWavePhase = (now * 0.0028) % 1;
 
         for (let i = 0; i < numVerts; i++) {
@@ -736,43 +659,44 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           let pz = pos[i3 + 2];
           const gId = grp[i];
 
-          // Physiological cardiac contraction deformation in anatomical coordinates:
-          // py < 0.15 is ventricular region; py >= 0.15 is atrial & great vessel region
-          if (py < 0.18) {
-            const vWeight = Math.min(1, Math.max(0, (0.18 - py) / 0.95));
-            const squeeze = 1 - ventricularPulse * 0.078 * vWeight;
-            const twist = ventricularPulse * 0.055 * vWeight;
-            const rx = px * Math.cos(twist) - pz * Math.sin(twist);
-            const rz = px * Math.sin(twist) + pz * Math.cos(twist);
-            px = rx * squeeze;
-            pz = rz * squeeze;
-            py *= 1 - ventricularPulse * 0.032 * vWeight;
-          } else if (gId === 0 || gId === 3) {
-            // Atria & pulmonary veins contract during atrial systole
-            const aWeight = Math.min(1, (py - 0.18) / 0.55);
-            const aSqueeze = 1 - atrialPulse * 0.055 * aWeight;
-            px *= aSqueeze;
-            pz *= aSqueeze;
-          } else if (gId === 1 || gId === 2) {
-            // Aorta & Pulmonary Trunk distend slightly with arterial systolic pressure wave
-            const expand = 1 + arterialWave * 0.042;
-            px *= expand;
-            pz *= expand;
+          // Cardiac contraction (only affects heart meshes: groups 4..10)
+          if (gId >= 4) {
+            if (py < 0.18) {
+              const vWeight = Math.min(1, Math.max(0, (0.18 - py) / 0.95));
+              const squeeze = 1 - ventricularPulse * 0.078 * vWeight;
+              const twist = ventricularPulse * 0.055 * vWeight;
+              const rx = px * Math.cos(twist) - pz * Math.sin(twist);
+              const rz = px * Math.sin(twist) + pz * Math.cos(twist);
+              px = rx * squeeze;
+              pz = rz * squeeze;
+              py *= 1 - ventricularPulse * 0.032 * vWeight;
+            } else if (gId === 4 || gId === 7) {
+              const aWeight = Math.min(1, (py - 0.18) / 0.55);
+              const aSqueeze = 1 - atrialPulse * 0.055 * aWeight;
+              px *= aSqueeze;
+              pz *= aSqueeze;
+            } else if (gId === 5 || gId === 6) {
+              const expand = 1 + arterialWave * 0.042;
+              px *= expand;
+              pz *= expand;
+            }
           }
 
-          // Rotate vertex position around Y then X
+          // Camera Y offset
+          const pyShifted = py - currCenterY;
+
+          // Rotation around Y then X
           const x1 = px * cosY + pz * sinY;
           const z1 = -px * sinY + pz * cosY;
-          const y2 = py * cosX - z1 * sinX;
-          const z2 = py * sinX + z1 * cosX;
+          const y2 = pyShifted * cosX - z1 * sinX;
+          const z2 = pyShifted * sinX + z1 * cosX;
 
-          // Perspective projection (note: -y2 because +Y is superior/up in glTF)
-          const persp = 1 / (1 - z2 * 0.16);
+          const persp = 1 / (1 - z2 * 0.14);
           txArr[i] = halfW + x1 * bufScale * persp;
           tyArr[i] = halfH - y2 * bufScale * persp;
           tzArr[i] = z2;
 
-          // Rotate vertex normal
+          // Rotate normals
           const vnx = nrm[i3];
           const vny = nrm[i3 + 1];
           const vnz = nrm[i3 + 2];
@@ -785,198 +709,209 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           nyArr[i] = ny2;
           nzArr[i] = nz2;
 
-          // --- COMPUTE PHYSICALLY-INSPIRED BIOLOGICAL TISSUE SHADING PER VERTEX ---
-          // (With 31,598 triangles, each triangle is ~1.8px wide, so vertex lighting + barycentric interpolation is ultra-smooth!)
-          // Flip inward-pointing normals on double-sided vessel walls
-          const sign = nz2 < -0.15 && (gId === 1 || gId === 2 || gId === 3 || gId === 4) ? -1 : 1;
-          const N_x = nx1 * sign;
-          const N_y = ny2 * sign;
-          const N_z = nz2 * sign;
+          const fresnel = Math.pow(1 - Math.max(0, Math.min(1, Math.abs(nz2))), 2.2);
 
-          // Select biological tissue albedo & material properties by anatomical group
-          let baseR = 148,
-            baseG = 16,
-            baseB = 30;
-          let roughness = 0.32;
-          let cyanRimBoost = 0.42;
+          // Shading per group
+          let baseR = 148, baseG = 16, baseB = 30;
+          let alpha = 1.0;
+          let isTranslucentBody = false;
 
           if (gId === 0) {
-            // Myocardium (Ventricles, Atria, Auricles) — rich oxygenated deep crimson-burgundy
-            // Subtle natural variation across epicardial surface
-            const epiVar = Math.sin(px * 4.2 + py * 3.1) * Math.cos(pz * 3.8);
-            baseR = 152 + epiVar * 14;
-            baseG = 17 + Math.max(0, epiVar) * 12;
-            baseB = 31 + Math.max(0, epiVar) * 10;
-            roughness = 0.3;
-            cyanRimBoost = 0.45;
+            // BodyTorso: Translucent glass human body (Image 1 style)
+            isTranslucentBody = true;
+            // High transparency in center (0.04), glowing cyan/silver rim at silhouette (0.68)
+            alpha = currOrganAlpha * (0.04 + fresnel * 0.65);
+            if (isLight) {
+              baseR = 14;
+              baseG = 138;
+              baseB = 205;
+            } else {
+              baseR = 0;
+              baseG = 220;
+              baseB = 255;
+            }
           } else if (gId === 1) {
-            // Aorta & Supra-aortic branches — bright arterial crimson-scarlet
-            baseR = 186;
-            baseG = 24;
-            baseB = 40;
-            roughness = 0.26;
-            cyanRimBoost = 0.5;
+            // Lungs: soft sky-blue
+            baseR = 56;
+            baseG = 168;
+            baseB = 224;
+            alpha = currOrganAlpha * 0.88;
           } else if (gId === 2) {
-            // Pulmonary Artery & Trunk — deep burgundy-violet with cyan-blue rim
-            baseR = 116;
-            baseG = 28;
-            baseB = 64;
-            roughness = 0.28;
-            cyanRimBoost = 0.85;
+            // Liver: warm terracotta-ruby
+            baseR = 188;
+            baseG = 65;
+            baseB = 52;
+            alpha = currOrganAlpha * 0.88;
           } else if (gId === 3) {
-            // Pulmonary Veins — rich deep arterial rose-crimson
-            baseR = 164;
-            baseG = 22;
-            baseB = 42;
-            roughness = 0.32;
-            cyanRimBoost = 0.48;
+            // Stomach: coral-rose
+            baseR = 218;
+            baseG = 96;
+            baseB = 114;
+            alpha = currOrganAlpha * 0.88;
           } else if (gId === 4) {
-            // Superior & Inferior Vena Cava — deep venous crimson-blue with strong cyan rim
-            baseR = 96;
-            baseG = 32;
-            baseB = 74;
-            roughness = 0.28;
-            cyanRimBoost = 0.92;
+            // Myocardium: vivid crimson-red (pops out prominently!)
+            baseR = isBodyView ? 245 : 160;
+            baseG = isBodyView ? 22 : 18;
+            baseB = isBodyView ? 48 : 32;
+            alpha = 1.0;
           } else if (gId === 5) {
-            // Coronary Arteries — glowing arterial scarlet with systolic pulse wave
+            // Aorta: arterial scarlet
+            baseR = 225;
+            baseG = 28;
+            baseB = 44;
+            alpha = 1.0;
+          } else if (gId === 6 || gId === 8) {
+            // Pulmonary Artery & Vena Cava: deep venous blue-burgundy
+            baseR = 118;
+            baseG = 32;
+            baseB = 82;
+            alpha = 1.0;
+          } else if (gId === 7) {
+            // Pulmonary Veins: rose-crimson
+            baseR = 180;
+            baseG = 26;
+            baseB = 48;
+            alpha = 1.0;
+          } else if (gId === 9) {
+            // Coronary Arteries: bright glowing crimson with pulse wave
             const wave = Math.max(0, Math.sin((py * 1.4 + vesselWavePhase) * Math.PI * 2));
-            baseR = 224 + wave * 30;
-            baseG = 38 + wave * 36;
-            baseB = 52 + wave * 28;
-            roughness = 0.2;
-            cyanRimBoost = 0.55;
-          } else if (gId === 6) {
-            // Cardiac Veins — bioluminescent cyan-blue epicardial vessels matching reference image!
-            const wave = Math.max(0, Math.sin((-py * 1.4 + vesselWavePhase) * Math.PI * 2));
-            baseR = 28 + wave * 45;
-            baseG = 165 + wave * 65;
-            baseB = 225 + wave * 30;
-            roughness = 0.2;
-            cyanRimBoost = 1.1;
+            baseR = 248 + wave * 7;
+            baseG = 45 + wave * 30;
+            baseB = 58 + wave * 20;
+            alpha = 1.0;
+          } else if (gId === 10) {
+            // Cardiac Veins: glowing cyan-blue
+            baseR = 24;
+            baseG = 185;
+            baseB = 245;
+            alpha = 1.0;
           }
 
           const ao = aoArr[i];
+          const ndotl1 = Math.max(0, nx1 * L1x + ny2 * L1y + nz2 * L1z);
 
-          // 1. Key Light diffuse + wrapped subsurface scattering (warm crimson translucency)
-          const ndotl1 = N_x * L1x + N_y * L1y + N_z * L1z;
-          const diff1 = Math.max(0, ndotl1);
-          const wrapSSS = Math.max(0, (ndotl1 + 0.48) / 1.48) * 0.42;
+          let r: number, g: number, b: number;
 
-          // 2. Cyan Rim/Fill Light
-          const ndotl2 = Math.max(0, N_x * L2x + N_y * L2y + N_z * L2z);
-
-          // 3. Pedestal Cyan Uplight (stronger on inferior apex/base)
-          const ndotl3 = Math.max(0, N_x * L3x + N_y * L3y + N_z * L3z);
-
-          // 4. Wet epicardial dual-lobe specular reflection (Blinn-Phong)
-          const ndoth1 = Math.max(0, N_x * H1x + N_y * H1y + N_z * H1z);
-          const ndoth2 = Math.max(0, N_x * H2x + N_y * H2y + N_z * H2z);
-          const specPower = roughness < 0.25 ? 42 : 28;
-          const spec1 = Math.pow(ndoth1, specPower) * (0.58 + ventricularPulse * 0.14);
-          const spec2 = Math.pow(ndoth2, 22) * 0.42;
-
-          // 5. Fresnel rim grazing angle (1 - N.z) for subtle cyan holographic edge illumination
-          const fresnel = Math.pow(1 - Math.max(0, Math.min(1, Math.abs(N_z))), 2.65);
-
-          const directLight = (0.26 + diff1 * 0.78) * ao;
-          let r =
-            baseR * directLight +
-            205 * wrapSSS * ao +
-            spec1 * 255 +
-            spec2 * 70 +
-            fresnel * 24 * cyanRimBoost;
-          let g =
-            baseG * directLight +
-            24 * wrapSSS * ao +
-            ndotl2 * 38 * ao +
-            ndotl3 * 28 * ao +
-            spec1 * 185 +
-            spec2 * 225 +
-            fresnel * 195 * cyanRimBoost;
-          let b =
-            baseB * directLight +
-            36 * wrapSSS * ao +
-            ndotl2 * 56 * ao +
-            ndotl3 * 45 * ao +
-            spec1 * 195 +
-            spec2 * 255 +
-            fresnel * 245 * cyanRimBoost;
-
-          // Boost emissive glow on CardiacVeins (group 6) and CoronaryArteries (group 5)
-          if (gId === 6) {
-            r += 18;
-            g += 75;
-            b += 115;
-          } else if (gId === 5) {
-            r += 42 + ventricularPulse * 28;
-            g += 10;
-            b += 16;
+          if (isTranslucentBody) {
+            // Translucent glass silhouette
+            const rim = fresnel * 0.90;
+            if (isLight) {
+              r = 232 * (1 - rim) + 14 * rim;
+              g = 244 * (1 - rim) + 140 * rim;
+              b = 254 * (1 - rim) + 215 * rim;
+            } else {
+              r = 4 * (1 - rim) + 0 * rim;
+              g = 18 * (1 - rim) + 230 * rim;
+              b = 40 * (1 - rim) + 255 * rim;
+            }
+          } else {
+            const direct = (0.32 + ndotl1 * 0.72) * ao;
+            const sss = Math.max(0, (ndotl1 + 0.4) / 1.4) * 0.28;
+            if (gId >= 4 && isBodyView) {
+              // Heart stands out with bioluminescent pulse warmth in body view
+              const heartGlow = 0.22 + ventricularPulse * 0.12;
+              r = baseR * (direct + heartGlow) + 60 * sss + fresnel * 40;
+              g = baseG * (direct + heartGlow * 0.2) + 15 * sss + fresnel * 25;
+              b = baseB * (direct + heartGlow * 0.2) + 20 * sss + fresnel * 35;
+            } else {
+              r = baseR * direct + 180 * sss + fresnel * 35;
+              g = baseG * direct + 20 * sss + fresnel * 55;
+              b = baseB * direct + 30 * sss + fresnel * 75;
+            }
           }
 
           crArr[i] = Math.min(255, Math.max(0, r));
           cgArr[i] = Math.min(255, Math.max(0, g));
           cbArr[i] = Math.min(255, Math.max(0, b));
+          caArr[i] = alpha;
         }
 
-        // Rasterize all 31,598 triangles into the Z-buffer with barycentric color interpolation
-        for (let t = 0; t < numIndices; t += 3) {
-          const i0 = idxArr[t];
-          const i1 = idxArr[t + 1];
-          const i2 = idxArr[t + 2];
+        // Two-pass rasterizer:
+        // Pass 1: Opaque organs & heart (grp >= 1)
+        // Pass 2: Translucent BodyTorso (grp === 0)
+        for (let pass = 1; pass <= 2; pass++) {
+          for (let t = 0; t < numIndices; t += 3) {
+            const i0 = idxArr[t], i1 = idxArr[t + 1], i2 = idxArr[t + 2];
+            const gId = grp[i0];
+            const isTorso = gId === 0;
 
-          const x0 = txArr[i0],
-            y0 = tyArr[i0],
-            z0 = tzArr[i0];
-          const x1 = txArr[i1],
-            y1 = tyArr[i1],
-            z1 = tzArr[i1];
-          const x2 = txArr[i2],
-            y2 = tyArr[i2],
-            z2 = tzArr[i2];
+            if (pass === 1 && isTorso) continue;
+            if (pass === 2 && !isTorso) continue;
 
-          // 2D signed area (note screen Y is downward)
-          const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
-          if (Math.abs(area) < 0.05) continue;
+            // If in heart detail mode and organ is fully faded, skip torso/lungs/liver/stomach
+            if (!isBodyView && gId < 4 && currOrganAlpha < 0.05) continue;
 
-          // Back-face culling for closed Myocardium (group 0) to double rasterization speed;
-          // keep double-sided for thin vessel walls
-          if (grp[i0] === 0 && area > 0) continue;
+            const x0 = txArr[i0], y0 = tyArr[i0], z0 = tzArr[i0];
+            const x1 = txArr[i1], y1 = tyArr[i1], z1 = tzArr[i1];
+            const x2 = txArr[i2], y2 = tyArr[i2], z2 = tzArr[i2];
 
-          const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
-          const maxX = Math.min(BUF_W - 1, Math.ceil(Math.max(x0, x1, x2)));
-          const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2)));
-          const maxY = Math.min(BUF_H - 1, Math.ceil(Math.max(y0, y1, y2)));
-          if (minX > maxX || minY > maxY) continue;
+            const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+            if (Math.abs(area) < 0.05) continue;
 
-          const invArea = 1 / area;
-          const r0 = crArr[i0],
-            g0 = cgArr[i0],
-            b0 = cbArr[i0];
-          const r1 = crArr[i1],
-            g1 = cgArr[i1],
-            b1 = cbArr[i1];
-          const r2 = crArr[i2],
-            g2 = cgArr[i2],
-            b2 = cbArr[i2];
+            // Backface culling for opaque organs; torso backface culling keeps clean silhouette
+            if (area > 0 && (gId >= 4 || isTorso)) continue;
 
-          for (let py = minY; py <= maxY; py++) {
-            const cySample = py + 0.5;
-            const rowOffset = py * BUF_W;
-            for (let px = minX; px <= maxX; px++) {
-              const cxSample = px + 0.5;
-              const w0 = ((x1 - cxSample) * (y2 - cySample) - (x2 - cxSample) * (y1 - cySample)) * invArea;
-              const w1 = ((x2 - cxSample) * (y0 - cySample) - (x0 - cxSample) * (y2 - cySample)) * invArea;
-              const w2 = 1 - w0 - w1;
+            const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
+            const maxX = Math.min(BUF_W - 1, Math.ceil(Math.max(x0, x1, x2)));
+            const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2)));
+            const maxY = Math.min(BUF_H - 1, Math.ceil(Math.max(y0, y1, y2)));
+            if (minX > maxX || minY > maxY) continue;
 
-              if (w0 >= -0.001 && w1 >= -0.001 && w2 >= -0.001) {
-                const z = w0 * z0 + w1 * z1 + w2 * z2;
-                const bufIdx = rowOffset + px;
-                if (z > zBuffer[bufIdx]) {
-                  zBuffer[bufIdx] = z;
-                  const rr = (w0 * r0 + w1 * r1 + w2 * r2) | 0;
-                  const gg = (w0 * g0 + w1 * g1 + w2 * g2) | 0;
-                  const bb = (w0 * b0 + w1 * b1 + w2 * b2) | 0;
-                  pixelBuf32[bufIdx] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
+            const invArea = 1 / area;
+            const r0 = crArr[i0], g0 = cgArr[i0], b0 = cbArr[i0], a0 = caArr[i0];
+            const r1 = crArr[i1], g1 = cgArr[i1], b1 = cbArr[i1], a1 = caArr[i1];
+            const r2 = crArr[i2], g2 = cgArr[i2], b2 = cbArr[i2], a2 = caArr[i2];
+
+            for (let py = minY; py <= maxY; py++) {
+              const cySample = py + 0.5;
+              const rowOffset = py * BUF_W;
+              for (let px = minX; px <= maxX; px++) {
+                const cxSample = px + 0.5;
+                const w0 = ((x1 - cxSample) * (y2 - cySample) - (x2 - cxSample) * (y1 - cySample)) * invArea;
+                const w1 = ((x2 - cxSample) * (y0 - cySample) - (x0 - cxSample) * (y2 - cySample)) * invArea;
+                const w2 = 1 - w0 - w1;
+
+                if (w0 >= -0.001 && w1 >= -0.001 && w2 >= -0.001) {
+                  const z = w0 * z0 + w1 * z1 + w2 * z2;
+                  const bufIdx = rowOffset + px;
+
+                  if (pass === 1) {
+                    // Opaque organs & heart
+                    if (z > zBuffer[bufIdx]) {
+                      zBuffer[bufIdx] = z;
+                      const rr = (w0 * r0 + w1 * r1 + w2 * r2) | 0;
+                      const gg = (w0 * g0 + w1 * g1 + w2 * g2) | 0;
+                      const bb = (w0 * b0 + w1 * b1 + w2 * b2) | 0;
+                      pixelBuf32[bufIdx] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
+                    }
+                  } else {
+                    // Pass 2: Translucent BodyTorso glass blend
+                    if (z > zBuffer[bufIdx] - 0.2) {
+                      const cur = pixelBuf32[bufIdx];
+                      const curA = (cur >> 24) & 0xff;
+                      const curB = (cur >> 16) & 0xff;
+                      const curG = (cur >> 8) & 0xff;
+                      const curR = cur & 0xff;
+
+                      const tr = (w0 * r0 + w1 * r1 + w2 * r2) | 0;
+                      const tg = (w0 * g0 + w1 * g1 + w2 * g2) | 0;
+                      const tb = (w0 * b0 + w1 * b1 + w2 * b2) | 0;
+                      const interpAlpha = w0 * a0 + w1 * a1 + w2 * a2;
+                      const ta = Math.min(0.72, Math.max(0.02, interpAlpha));
+
+                      if (curA === 0) {
+                        // Empty background
+                        const finalA = (ta * 255) | 0;
+                        pixelBuf32[bufIdx] = (finalA << 24) | (tb << 16) | (tg << 8) | tr;
+                      } else {
+                        // Over organ: alpha blend
+                        const outR = (tr * ta + curR * (1 - ta)) | 0;
+                        const outG = (tg * ta + curG * (1 - ta)) | 0;
+                        const outB = (tb * ta + curB * (1 - ta)) | 0;
+                        pixelBuf32[bufIdx] = (255 << 24) | (outB << 16) | (outG << 8) | outR;
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -985,57 +920,55 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
         offCtx.putImageData(imgData, 0, 0);
 
-        // Draw the rendered 3D anatomical heart centered on the stage
-        const drawSize = baseScale * 3.48;
+        const drawSize = Math.min(cw, ch);
+        const drawW = drawSize;
+        const drawH = drawSize;
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(
-          offscreen,
-          cx - drawSize * 0.5,
-          cy - drawSize * 0.53,
-          drawSize,
-          drawSize
-        );
+        ctx.drawImage(offscreen, cx - drawW * 0.5, cy - drawH * 0.5, drawW, drawH);
         ctx.restore();
+
+        // 4. Hotspot Target over Heart in Body View (Image 1 Style)
+        if (isBodyView && currOrganAlpha > 0.6) {
+          const heartShiftedY = -currCenterY;
+          const heartRotY = heartShiftedY * cosX;
+          const heartBufX = halfW;
+          const heartBufY = halfH - heartRotY * bufScale;
+          const heartScreenX = cx - (drawW * 0.5) + (heartBufX / BUF_W) * drawW;
+          const heartScreenY = cy - (drawH * 0.5) + (heartBufY / BUF_H) * drawH;
+
+          ctx.save();
+          // Pulsing radar ring
+          const pRing = ((now * 0.0018) % 1);
+          ctx.strokeStyle = `rgba(225, 29, 72, ${(1 - pRing) * 0.85})`;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(heartScreenX, heartScreenY, 8 + pRing * 18, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Solid inner red/white dot
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(heartScreenX, heartScreenY, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#e11d48';
+          ctx.beginPath();
+          ctx.arc(heartScreenX, heartScreenY, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
 
-      // --- 4. FRONT HALF OF TILTED 3D ORBITAL RINGS & FLOATING BIOPHOTON PARTICLES ---
-      drawOrbitalArcs(true);
-
-      for (const pt of orbitalParticles) {
-        pt.angle = (pt.angle + dt * pt.speed) % (Math.PI * 2);
-        const ox = Math.cos(pt.angle) * pt.radius;
-        const oz = Math.sin(pt.angle) * pt.radius;
-        const oy = ox * Math.sin(pt.tiltX) + oz * Math.sin(pt.tiltZ);
-        const sx = cx + ox * baseScale;
-        const sy = cy + oy * baseScale;
-        const alpha = 0.35 + 0.45 * ((oz + 1.6) / 3.2);
-        ctx.fillStyle = pt.isCyan
-          ? `rgba(0, 240, 255, ${alpha.toFixed(2)})`
-          : `rgba(255, 65, 105, ${alpha.toFixed(2)})`;
-        ctx.beginPath();
-        ctx.arc(sx, sy, pt.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // --- 5. SYSTOLIC PULSE RING & RIGHT-CLICK ACTIVATION SHOCKWAVE ---
-      if (shockwavePhase > 0) {
-        const pRadius = baseScale * (0.95 + shockwavePhase * 0.65);
-        const pAlpha = (1 - shockwavePhase) * 0.26;
-        ctx.strokeStyle = `rgba(0, 240, 255, ${pAlpha.toFixed(3)})`;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, pRadius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
+      // 5. Right-click wave
       if (rightClickWavePhaseRef.current > 0) {
         const rw = rightClickWavePhaseRef.current;
-        const rwRadius = baseScale * (0.55 + rw * 1.45);
-        const rwAlpha = (1 - rw) * 0.72;
-        ctx.strokeStyle = `rgba(0, 240, 255, ${rwAlpha.toFixed(3)})`;
-        ctx.lineWidth = 2.6;
+        const rwRadius = baseScale * (0.45 + rw * 1.5);
+        ctx.strokeStyle = isLight
+          ? `rgba(2, 132, 199, ${(1 - rw) * 0.75})`
+          : `rgba(0, 240, 255, ${(1 - rw) * 0.75})`;
+        ctx.lineWidth = 2.4;
         ctx.beginPath();
         ctx.arc(cx, cy, rwRadius, 0, Math.PI * 2);
         ctx.stroke();
@@ -1054,65 +987,110 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
     };
   }, []);
 
   return (
     <section
-      aria-label="3D Cardiac Biomedical Command Center"
-      className="nexus-heart-stage-dark relative rounded-2xl overflow-hidden border border-cyan-500/30 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)]"
+      aria-label="3D Biomedical Body & Heart Command Center"
+      className="nexus-heart-stage-card relative rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200 dark:border-cyan-500/30 transition-all duration-300"
       style={{
-        background:
-          'radial-gradient(ellipse at 50% 46%, #0b1b36 0%, #060e1f 52%, #030711 100%)',
+        background: isLightMode
+          ? 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
+          : 'radial-gradient(ellipse at 50% 46%, #0b1b36 0%, #060e1f 52%, #030711 100%)',
       }}
     >
-      {/* Subtle holographic grid background */}
+      {/* Subtle grid background */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-25"
+        className="pointer-events-none absolute inset-0 opacity-20"
         style={{
-          backgroundSize: '44px 44px',
-          backgroundImage:
-            'linear-gradient(to right, rgba(0, 240, 255, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 240, 255, 0.06) 1px, transparent 1px)',
+          backgroundSize: '36px 36px',
+          backgroundImage: isLightMode
+            ? 'linear-gradient(to right, rgba(2, 132, 199, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(2, 132, 199, 0.08) 1px, transparent 1px)'
+            : 'linear-gradient(to right, rgba(0, 240, 255, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 240, 255, 0.06) 1px, transparent 1px)',
         }}
       />
 
-      {/* TOP COMMAND HEADER BAR */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 border-b border-cyan-500/20 bg-slate-950/60 backdrop-blur-md">
-        {/* Controls: DEMO / LIVE ESP32 + 3D Camera Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex rounded-xl p-0.5 bg-slate-900/90 border border-slate-700/80">
+      {/* TOP COMMAND BAR */}
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-2.5 px-3.5 sm:px-6 py-2.5 border-b border-slate-200/80 dark:border-cyan-500/20 bg-white/70 dark:bg-slate-950/60 backdrop-blur-md">
+        {/* View Mode Toggle: Body Overview vs Heart Focus */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80">
+          <button
+            type="button"
+            onClick={() => setViewMode('body')}
+            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-[11px] font-mono-tech font-semibold transition cursor-pointer ${
+              viewMode === 'body'
+                ? 'bg-white dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-200 shadow-sm border border-slate-200 dark:border-cyan-400/50'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Mô hình Cơ thể</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('heart')}
+            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-[11px] font-mono-tech font-semibold transition cursor-pointer ${
+              viewMode === 'heart'
+                ? 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-200 shadow-sm border border-rose-200 dark:border-rose-400/50'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Cận cảnh Trái Tim</span>
+          </button>
+        </div>
+
+        {/* Live BPM & Cardiac Phase Readout */}
+        <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-cyan-500/25">
+          <div className="flex items-baseline gap-1">
+            <span className="text-[10px] font-mono-tech uppercase text-slate-500 dark:text-slate-400">BPM:</span>
+            <span className="text-base sm:text-lg font-bold font-display text-slate-900 dark:text-white">
+              {displayedSmoothedBpm}
+            </span>
+          </div>
+          <div className="h-3 w-px bg-slate-300 dark:bg-slate-700" />
+          <div className="text-[10px] font-mono-tech text-cyan-600 dark:text-cyan-300 truncate max-w-[130px] sm:max-w-none">
+            {cardiacPhaseLabel}
+          </div>
+        </div>
+
+        {/* Right Controls: DEMO/LIVE + 360 Rotate + Reset */}
+        <div className="hidden sm:flex items-center gap-2">
+          <div className="inline-flex rounded-xl p-0.5 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80">
             <button
               type="button"
               onClick={() => onSwitchDataMode('demo')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono-tech font-semibold transition cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono-tech font-semibold transition cursor-pointer ${
                 dataMode === 'demo'
-                  ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/50 shadow-[0_0_12px_rgba(0,240,255,0.25)]'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-400/50'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
               }`}
             >
-              DEMO MODE
+              DEMO
             </button>
             <button
               type="button"
               onClick={() => onSwitchDataMode('live')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono-tech font-semibold transition cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono-tech font-semibold transition cursor-pointer ${
                 dataMode === 'live'
-                  ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-400/50'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
               }`}
             >
-              LIVE ESP32
+              LIVE
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => setAutoRotate((v) => !v)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-mono-tech bg-slate-900/80 hover:bg-slate-800 text-cyan-200 border border-cyan-500/30 transition cursor-pointer"
-            title={autoRotate ? 'Tạm dừng tự xoay 360°' : 'Tiếp tục tự xoay 360°'}
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-cyan-200 border border-slate-200 dark:border-cyan-500/30 transition cursor-pointer"
+            title={autoRotate ? 'Dừng tự xoay' : 'Tiếp tục tự xoay'}
           >
             {autoRotate ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{autoRotate ? 'Đang xoay 360°' : 'Đã dừng xoay'}</span>
           </button>
 
           <button
@@ -1120,108 +1098,117 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             onClick={() => {
               resetCameraTriggerRef.current = true;
             }}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono-tech bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition cursor-pointer"
-            title="Đặt lại góc nhìn 3D mặc định"
+            className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 transition cursor-pointer"
+            title="Đặt lại góc nhìn"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        {/* Live BPM + Cardiac Phase Readout */}
-        <div className="hidden sm:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-500/25">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-mono-tech uppercase text-slate-400">BPM:</span>
-            <span className="text-xl font-bold font-display text-white">
-              {displayedSmoothedBpm}
-            </span>
-            <span className="text-[10px] font-mono-tech text-cyan-300">bpm</span>
-          </div>
-          <div className="h-4 w-px bg-slate-700" />
-          <div className="text-[10px] font-mono-tech text-cyan-300 tracking-wider">
-            {cardiacPhaseLabel}
-          </div>
-        </div>
       </div>
 
-      {/* DEDICATED FULL-WIDTH 3D HEART + 4 FLOATING CHARTS STAGE */}
+      {/* DEDICATED VISUALIZATION STAGE */}
       <div
         ref={stageContainerRef}
         onContextMenu={(e) => {
           e.preventDefault();
-          handleToggleFloatingCharts();
+          handleToggleViewMode();
         }}
-        className="relative w-full min-h-[560px] md:min-h-[640px] flex flex-col items-center justify-center select-none overflow-hidden"
+        onClick={(e) => {
+          // If in body mode, clicking near the center/heart zooms into heart mode
+          if (viewMode === 'body') {
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (rect) {
+              const clickY = e.clientY - rect.top;
+              const midY = rect.height * 0.45;
+              if (Math.abs(clickY - midY) < rect.height * 0.35) {
+                handleToggleViewMode();
+              }
+            }
+          }
+        }}
+        className="relative w-full min-h-[460px] sm:min-h-[520px] md:min-h-[580px] flex flex-col items-center justify-center select-none overflow-hidden cursor-pointer"
       >
-        {/* Central 3D Anatomical Heart Canvas */}
-        <div className="relative z-10 w-full h-[460px] md:h-[620px] flex items-center justify-center">
+        {/* 3D Canvas */}
+        <div className="relative z-10 w-full h-[460px] sm:h-[520px] md:h-[580px] flex items-center justify-center">
           <canvas
             ref={canvasRef}
-            className="w-full h-full max-w-[780px] max-h-[620px] cursor-grab active:cursor-grabbing"
+            className="w-full h-full max-w-[780px] cursor-grab active:cursor-grabbing"
           />
 
           {!modelLoaded && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="px-4 py-2 rounded-xl bg-slate-950/85 border border-cyan-400/40 text-xs font-mono-tech text-cyan-300 shadow-lg">
-                Đang tải mô hình giải phẫu 3D (BodyParts3D)...
+              <div className="px-4 py-2 rounded-xl bg-white/90 dark:bg-slate-950/85 border border-cyan-400/40 text-xs font-mono-tech text-cyan-600 dark:text-cyan-300 shadow-lg">
+                Đang nạp mô hình cơ thể người 3D &amp; nội tạng...
               </div>
+            </div>
+          )}
+
+          {/* Prompt in Body Mode: Tap on Heart to Zoom */}
+          {viewMode === 'body' && (
+            <div className="pointer-events-none absolute bottom-12 md:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-950/85 border border-rose-300 dark:border-rose-400/40 text-[11px] font-medium text-rose-600 dark:text-rose-200 shadow-md">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span>Chạm vào Trái Tim để phóng to &amp; xem 4 biểu đồ</span>
             </div>
           )}
         </div>
 
-        {/* FOUR FLOATING GLASSMORPHISM CHARTS AROUND THE 3D HEART (2 Left, 2 Right on Desktop) */}
+        {/* 4 FLOATING GLASSMORPHISM CHARTS (Active in 'heart' mode) */}
         <FloatingHeartChartsHUD
-          visible={floatingChartsOpen}
+          visible={viewMode === 'heart'}
           metrics={metrics}
           series={series}
           dataMode={dataMode}
           isLiveConnected={isLiveValid}
           reducedMotion={reducedMotion}
-          onClose={handleCloseFloatingCharts}
+          onClose={handleCloseDetail}
         />
 
-        {/* BOTTOM HUD STATUS BAR (Device Status Left, PPG Signal Right) */}
-        <div className="relative md:absolute md:bottom-4 md:left-5 md:right-5 z-20 w-full md:w-auto px-4 md:px-0 pb-4 md:pb-0 flex flex-col md:flex-row items-center justify-between gap-2.5 pointer-events-none">
-          {/* Bottom-Left: Connection & Sync Status Pill */}
-          <div className="pointer-events-auto flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/80 border border-cyan-500/30 backdrop-blur-md shadow-lg">
-            <span className={`w-2.5 h-2.5 rounded-full animate-ping ${statusBadge.dotClass}`} />
-            <span className={`w-2.5 h-2.5 rounded-full -ml-5 ${statusBadge.dotClass}`} />
+        {/* BOTTOM STATUS BAR */}
+        <div className="absolute bottom-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
+          {/* Connection Pill */}
+          <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-950/80 border border-slate-200 dark:border-cyan-500/30 backdrop-blur-md shadow-sm">
+            <span className={`w-2 h-2 rounded-full ${statusBadge.dotClass}`} />
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 {dataMode === 'live' && isLiveValid ? (
-                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                  <Wifi className="w-3 h-3 text-emerald-500" />
                 ) : dataMode === 'demo' ? (
-                  <Radio className="w-3.5 h-3.5 text-amber-400" />
+                  <Radio className="w-3 h-3 text-amber-500" />
                 ) : (
-                  <WifiOff className="w-3.5 h-3.5 text-rose-400" />
+                  <WifiOff className="w-3 h-3 text-rose-500" />
                 )}
-                <span className="text-[11px] font-mono-tech font-bold tracking-wider text-white">
+                <span className="text-[10px] font-mono-tech font-bold text-slate-800 dark:text-white">
                   {statusBadge.code}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">{statusBadge.sub}</p>
             </div>
           </div>
 
-          {/* Bottom-Right: Live PPG Waveform & Signal Quality Pill */}
-          <div className="pointer-events-auto flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 backdrop-blur-md shadow-lg">
+          {/* Return to Body button when in Heart mode */}
+          {viewMode === 'heart' && (
+            <button
+              type="button"
+              onClick={handleCloseDetail}
+              className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-cyan-400/40 text-[11px] font-medium text-cyan-700 dark:text-cyan-200 shadow-md cursor-pointer transition"
+            >
+              <Minimize2 className="w-3.5 h-3.5 text-cyan-500" />
+              <span>Xem toàn bộ cơ thể</span>
+            </button>
+          )}
+
+          {/* PPG Signal Pill */}
+          <div className="hidden sm:flex pointer-events-auto items-center gap-2 px-3 py-1 rounded-xl bg-white/85 dark:bg-slate-950/80 border border-slate-200 dark:border-cyan-500/30 backdrop-blur-md shadow-sm">
             <div>
-              <div className="flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[10px] font-mono-tech uppercase tracking-wider text-slate-300">
-                  PPG SIGNAL: <strong className="text-cyan-300">{signalQualityInfo.value}</strong>
+              <div className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-cyan-500" />
+                <span className="text-[9px] font-mono-tech text-slate-500 dark:text-slate-300">
+                  PPG: <strong className="text-cyan-600 dark:text-cyan-300">{signalQualityInfo.value}</strong>
                 </span>
               </div>
-              <p className="text-[9px] font-mono-tech text-slate-400">{signalQualityInfo.detail}</p>
             </div>
             {ppgPath && (
-              <svg width="110" height="26" viewBox="0 0 150 28" className="overflow-visible">
-                <path
-                  d={ppgPath}
-                  fill="none"
-                  stroke="#00f0ff"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
+              <svg width="80" height="20" viewBox="0 0 120 24" className="overflow-visible">
+                <path d={ppgPath} fill="none" stroke="#0284c7" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
             )}
           </div>

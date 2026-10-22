@@ -73,10 +73,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {!collapsed && (
               <div>
-                <div className="font-display font-bold text-base tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-teal-300">
+                <div className="font-display font-bold text-base tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-cyan-700 to-teal-700 dark:from-white dark:via-cyan-200 dark:to-teal-300">
                   CHICHI HEALTH
                 </div>
-                <div className="text-[11px] font-mono-tech text-slate-400 tracking-wider">
+                <div className="text-[11px] font-mono-tech text-slate-500 dark:text-slate-400 tracking-wider">
                   CHICHI COMPANION OS
                 </div>
               </div>
