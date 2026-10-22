@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   Activity,
-  Maximize2,
   Minimize2,
   Pause,
   Play,
@@ -33,51 +34,6 @@ interface BiomedicalHeartCommandCenterProps {
   onSelectMetricModal: (key: MetricKey) => void;
   onSwitchDataMode: (mode: DataMode) => void;
 }
-
-type AnatomicalGroupName =
-  | 'BodyTorso'
-  | 'Lungs'
-  | 'Liver'
-  | 'Stomach'
-  | 'Myocardium'
-  | 'Aorta'
-  | 'PulmonaryArtery'
-  | 'PulmonaryVeins'
-  | 'VenaCava'
-  | 'CoronaryArteries'
-  | 'CardiacVeins';
-
-interface LoadedAnatomyGeometry {
-  positions: Float32Array;
-  normals: Float32Array;
-  vertexGroup: Uint8Array;
-  vertexAO: Float32Array;
-  indices: Uint32Array;
-}
-
-interface OrbitalParticle3D {
-  angle: number;
-  radius: number;
-  speed: number;
-  tiltX: number;
-  tiltZ: number;
-  size: number;
-  isCyan: boolean;
-}
-
-const GROUP_IDS: Record<AnatomicalGroupName, number> = {
-  BodyTorso: 0,
-  Lungs: 1,
-  Liver: 2,
-  Stomach: 3,
-  Myocardium: 4,
-  Aorta: 5,
-  PulmonaryArtery: 6,
-  PulmonaryVeins: 7,
-  VenaCava: 8,
-  CoronaryArteries: 9,
-  CardiacVeins: 10,
-};
 
 function evaluateCardiacCycle(phase: number): {
   ventricularPulse: number;
@@ -115,124 +71,23 @@ function evaluateCardiacCycle(phase: number): {
   return { ventricularPulse, atrialPulse, arterialWave, shockwavePhase, phaseLabel };
 }
 
-async function loadAnatomicalBodyHeartGlb(url: string): Promise<LoadedAnatomyGeometry> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch anatomical body/heart GLB: ${res.status}`);
-  }
-  const arrayBuffer = await res.arrayBuffer();
-  const view = new DataView(arrayBuffer);
-
-  const magic = view.getUint32(0, true);
-  if (magic !== 0x46546c67) {
-    throw new Error('Invalid GLB magic header');
-  }
-
-  const jsonChunkLength = view.getUint32(12, true);
-  const jsonBytes = new Uint8Array(arrayBuffer, 20, jsonChunkLength);
-  const gltf = JSON.parse(new TextDecoder().decode(jsonBytes));
-
-  const binHeaderOffset = 20 + jsonChunkLength;
-  const binByteOffset = binHeaderOffset + 8;
-
-  let totalVerts = 0;
-  let totalIndices = 0;
-
-  interface ParsedMeshPart {
-    groupId: number;
-    pos: Float32Array;
-    nrm: Float32Array;
-    idx: Uint16Array | Uint32Array;
-  }
-
-  const parts: ParsedMeshPart[] = [];
-
-  for (const mesh of gltf.meshes) {
-    const groupName = (mesh.name as AnatomicalGroupName) || 'Myocardium';
-    const groupId = GROUP_IDS[groupName] ?? 4;
-
-    for (const prim of mesh.primitives) {
-      const posAcc = gltf.accessors[prim.attributes.POSITION];
-      const nrmAcc = gltf.accessors[prim.attributes.NORMAL];
-      const idxAcc = gltf.accessors[prim.indices];
-
-      const posBV = gltf.bufferViews[posAcc.bufferView];
-      const nrmBV = gltf.bufferViews[nrmAcc.bufferView];
-      const idxBV = gltf.bufferViews[idxAcc.bufferView];
-
-      const pos = new Float32Array(
-        arrayBuffer,
-        binByteOffset + (posBV.byteOffset || 0) + (posAcc.byteOffset || 0),
-        posAcc.count * 3
+let cachedGltfPromise: Promise<THREE.Group> | null = null;
+function getAnatomicalModel(): Promise<THREE.Group> {
+  if (!cachedGltfPromise) {
+    cachedGltfPromise = new Promise((resolve, reject) => {
+      const loader = new GLTFLoader();
+      loader.load(
+        './models/anatomical_body_heart.glb',
+        (gltf) => {
+          resolve(gltf.scene);
+        },
+        undefined,
+        (err) => reject(err)
       );
-      const nrm = new Float32Array(
-        arrayBuffer,
-        binByteOffset + (nrmBV.byteOffset || 0) + (nrmAcc.byteOffset || 0),
-        nrmAcc.count * 3
-      );
-
-      const idx =
-        idxAcc.componentType === 5123
-          ? new Uint16Array(
-              arrayBuffer,
-              binByteOffset + (idxBV.byteOffset || 0) + (idxAcc.byteOffset || 0),
-              idxAcc.count
-            )
-          : new Uint32Array(
-              arrayBuffer,
-              binByteOffset + (idxBV.byteOffset || 0) + (idxAcc.byteOffset || 0),
-              idxAcc.count
-            );
-
-      parts.push({ groupId, pos, nrm, idx });
-      totalVerts += posAcc.count;
-      totalIndices += idxAcc.count;
-    }
+    });
   }
-
-  const positions = new Float32Array(totalVerts * 3);
-  const normals = new Float32Array(totalVerts * 3);
-  const vertexGroup = new Uint8Array(totalVerts);
-  const vertexAO = new Float32Array(totalVerts);
-  const indices = new Uint32Array(totalIndices);
-
-  let vOffset = 0;
-  let iOffset = 0;
-
-  for (const part of parts) {
-    positions.set(part.pos, vOffset * 3);
-    normals.set(part.nrm, vOffset * 3);
-    const vCount = part.pos.length / 3;
-
-    for (let i = 0; i < vCount; i++) {
-      const vi = vOffset + i;
-      vertexGroup[vi] = part.groupId;
-
-      const x = part.pos[i * 3];
-      const y = part.pos[i * 3 + 1];
-      const z = part.pos[i * 3 + 2];
-      const nx = part.nrm[i * 3];
-      const ny = part.nrm[i * 3 + 1];
-      const nz = part.nrm[i * 3 + 2];
-
-      const rLen = Math.hypot(x, y, z) || 1;
-      const radialDot = (x * nx + y * ny + z * nz) / rLen;
-      const baseAO = 0.58 + 0.42 * Math.max(0, Math.min(1, (radialDot + 0.35) / 1.15));
-      vertexAO[vi] = baseAO;
-    }
-
-    for (let j = 0; j < part.idx.length; j++) {
-      indices[iOffset + j] = part.idx[j] + vOffset;
-    }
-
-    vOffset += vCount;
-    iOffset += part.idx.length;
-  }
-
-  return { positions, normals, vertexGroup, vertexAO, indices };
+  return cachedGltfPromise;
 }
-
-let cachedGeometryPromise: Promise<LoadedAnatomyGeometry> | null = null;
 
 export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenterProps> = ({
   metrics,
@@ -245,120 +100,77 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   onSelectMetricModal,
   onSwitchDataMode,
 }) => {
-  const stageContainerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const stageContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // 'body' = Translucent human body + organs + beating heart (Image 1)
-  // 'heart' = Zoomed-in anatomical heart + 4 floating mini charts (Image 2)
+  // Dual view mode: 'body' (translucent body overview) vs 'heart' (zoomed heart detail)
   const [viewMode, setViewMode] = useState<'body' | 'heart'>('body');
+  const viewModeRef = useRef<'body' | 'heart'>('body');
+  viewModeRef.current = viewMode;
+
+  const [modelLoaded, setModelLoaded] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
-  const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('VENTRICULAR SYSTOLE • LUB (S1)');
-  const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState<number>(74);
-  const [modelLoaded, setModelLoaded] = useState<boolean>(false);
+  const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('DIASTOLE (THƯ GIÃN)');
+  const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState(74);
 
-  const heartMetric = useMemo(() => metrics.find((m) => m.key === 'heartRate'), [metrics]);
+  const resetCameraTriggerRef = useRef(false);
+  const autoRotateRef = useRef(autoRotate);
+  autoRotateRef.current = autoRotate;
 
-  const isLiveValid =
-    dataMode === 'live' &&
-    deviceStatus.connectionState === 'connected' &&
-    !deviceStatus.isSimulated &&
-    heartMetric?.value !== null &&
-    (heartMetric?.value ?? 0) > 30;
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
 
-  const rawTargetBpm =
-    dataMode === 'demo'
-      ? heartMetric?.value ?? 74
-      : isLiveValid
-      ? heartMetric?.value ?? 72
-      : 60;
+  const isLightModeRef = useRef(isLightMode);
+  isLightModeRef.current = isLightMode;
 
+  // External refs for raycasting hit testing
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const heartGroupRef = useRef<THREE.Group | null>(null);
+  const hotspotGroupRef = useRef<THREE.Group | null>(null);
+  const targetRotYRef = useRef(-0.12);
+  const targetRotXRef = useRef(0.04);
+
+  // Heart rate source
+  const targetBpm = useMemo(() => {
+    if (dataMode === 'live') {
+      const liveHr = metrics.find((m) => m.key === 'heartRate')?.value;
+      if (liveHr && typeof liveHr === 'number' && liveHr >= 40 && liveHr <= 200) {
+        return liveHr;
+      }
+      return 76;
+    }
+    const demoHr = metrics.find((m) => m.key === 'heartRate')?.value;
+    return typeof demoHr === 'number' ? demoHr : 74;
+  }, [dataMode, metrics]);
+
+  const targetBpmRef = useRef(targetBpm);
+  targetBpmRef.current = targetBpm;
+  const smoothedBpmRef = useRef(targetBpm);
+
+  const isLiveValid = dataMode === 'live' && deviceStatus.connected;
   const statusBadge = useMemo(() => {
-    if (dataMode === 'demo') {
-      return {
-        code: 'DEMO SIMULATION',
-        sub: 'Đồng bộ BPM mô phỏng sinh học',
-        colorClass: 'text-amber-500 border-amber-400/40 bg-amber-500/10',
-        dotClass: 'bg-amber-400',
-      };
+    if (dataMode === 'live') {
+      return isLiveValid
+        ? { label: 'LIVE ESP32 HOẠT ĐỘNG', dotClass: 'bg-emerald-400 animate-pulse', code: 'ESP32 ONLINE' }
+        : { label: 'ESP32 MẤT KẾT NỐI', dotClass: 'bg-rose-500', code: 'ESP32 OFFLINE' };
     }
-    if (isLiveValid) {
-      return {
-        code: 'CONNECTED • LIVE ESP32',
-        sub: 'Đồng bộ BPM thực từ MAX30102',
-        colorClass: 'text-emerald-500 border-emerald-400/40 bg-emerald-500/10',
-        dotClass: 'bg-emerald-400',
-      };
-    }
-    return {
-      code: 'DISCONNECTED • STANDBY',
-      sub: 'Chưa có tín hiệu — Nhịp chờ 60 BPM',
-      colorClass: 'text-rose-500 border-rose-400/40 bg-rose-500/10',
-      dotClass: 'bg-rose-400',
-    };
+    return { label: 'DEMO SIMULATION', dotClass: 'bg-amber-400 animate-pulse', code: 'DEMO MODE' };
   }, [dataMode, isLiveValid]);
 
   const signalQualityInfo = useMemo(() => {
-    if (dataMode === 'demo') {
-      return {
-        value: '98.4%',
-        detail: `PPG Lock • RSSI ${deviceStatus.wifiRssi ?? -54} dBm`,
-      };
-    }
-    if (isLiveValid && deviceStatus.wifiRssi !== null) {
-      const rssi = deviceStatus.wifiRssi;
-      const pct = Math.max(10, Math.min(100, Math.round(100 + (rssi + 45) * 1.2)));
-      return {
-        value: `${pct}%`,
-        detail: `ESP32 Wi-Fi ${rssi} dBm`,
-      };
-    }
-    return {
-      value: 'N/A',
-      detail: 'Chưa nhận tín hiệu',
-    };
-  }, [dataMode, isLiveValid, deviceStatus.wifiRssi]);
-
-  // Sync refs into rAF render loop
-  const targetBpmRef = useRef<number>(rawTargetBpm);
-  const smoothedBpmRef = useRef<number>(rawTargetBpm);
-  const autoRotateRef = useRef<boolean>(autoRotate);
-  const reducedMotionRef = useRef<boolean>(reducedMotion);
-  const isLightModeRef = useRef<boolean>(isLightMode);
-  const viewModeRef = useRef<'body' | 'heart'>(viewMode);
-  const resetCameraTriggerRef = useRef<boolean>(false);
-  const rightClickWavePhaseRef = useRef<number>(0);
-
-  useEffect(() => {
-    targetBpmRef.current = rawTargetBpm;
-  }, [rawTargetBpm]);
-
-  useEffect(() => {
-    autoRotateRef.current = autoRotate;
-  }, [autoRotate]);
-
-  useEffect(() => {
-    reducedMotionRef.current = reducedMotion;
-  }, [reducedMotion]);
-
-  useEffect(() => {
-    isLightModeRef.current = isLightMode;
-  }, [isLightMode]);
-
-  useEffect(() => {
-    viewModeRef.current = viewMode;
-  }, [viewMode]);
+    if (dataMode === 'live' && !isLiveValid) return { text: 'Mất tín hiệu', value: '0%' };
+    return { text: 'Tín hiệu xuất sắc', value: '98.6%' };
+  }, [dataMode, isLiveValid]);
 
   const handleToggleViewMode = useCallback(() => {
-    rightClickWavePhaseRef.current = 0.01;
     setViewMode((prev) => (prev === 'body' ? 'heart' : 'body'));
   }, []);
 
   const handleCloseDetail = useCallback(() => {
-    rightClickWavePhaseRef.current = 0.01;
     setViewMode('body');
   }, []);
 
-  // Mini PPG wave
+  // Mini PPG waveform
   const ppgPath = useMemo(() => {
     if (!ppgWave || ppgWave.length < 2) return '';
     const w = 120;
@@ -376,605 +188,457 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       .join(' ');
   }, [ppgWave]);
 
-  // Load anatomical_body_heart.glb and run 60FPS dual-mode Z-buffer rasterizer
+  // Main Three.js WebGL GPU Engine (60-120 FPS hardware accelerated)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
     let isCancelled = false;
-    let geometry: LoadedAnatomyGeometry | null = null;
+    let animId = 0;
 
-    let txArr = new Float32Array(0);
-    let tyArr = new Float32Array(0);
-    let tzArr = new Float32Array(0);
-    let nxArr = new Float32Array(0);
-    let nyArr = new Float32Array(0);
-    let nzArr = new Float32Array(0);
-    let crArr = new Float32Array(0);
-    let cgArr = new Float32Array(0);
-    let cbArr = new Float32Array(0);
-    let caArr = new Float32Array(0); // Alpha per vertex
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = isLightModeRef.current ? 1.05 : 1.18;
 
-    if (!cachedGeometryPromise) {
-      cachedGeometryPromise = loadAnatomicalBodyHeartGlb('./models/anatomical_body_heart.glb');
+    const scene = new THREE.Scene();
+
+    // Responsive camera setup
+    const rect = canvas.getBoundingClientRect();
+    const cw = Math.max(280, Math.floor(rect.width));
+    const ch = Math.max(380, Math.floor(rect.height));
+    renderer.setSize(cw, ch, false);
+
+    const isInitialMobile = cw < 640;
+    const camera = new THREE.PerspectiveCamera(36, cw / ch, 0.1, 100);
+    const initialCamPos = new THREE.Vector3(0, -0.4, isInitialMobile ? 18.0 : 15.0);
+    const initialLookAt = new THREE.Vector3(0, -0.4, 0);
+    camera.position.copy(initialCamPos);
+    camera.lookAt(initialLookAt);
+    cameraRef.current = camera;
+
+    // Studio Lighting
+    const isLight = isLightModeRef.current;
+    const ambientLight = new THREE.AmbientLight(0xffffff, isLight ? 1.5 : 0.7);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, isLight ? 1.8 : 1.6);
+    keyLight.position.set(4, 6, 8);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(isLight ? 0x0284c7 : 0x00f0ff, isLight ? 1.2 : 1.8);
+    rimLight.position.set(-5, 3, -6);
+    scene.add(rimLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffedd5, isLight ? 0.9 : 0.6);
+    fillLight.position.set(0, -4, 6);
+    scene.add(fillLight);
+
+    // Root model group (handles rotation)
+    const modelGroup = new THREE.Group();
+    modelGroup.rotation.y = targetRotYRef.current;
+    modelGroup.rotation.x = targetRotXRef.current;
+    scene.add(modelGroup);
+
+    // Subgroups for clean isolation and animation
+    const heartGroup = new THREE.Group();
+    heartGroupRef.current = heartGroup;
+    modelGroup.add(heartGroup);
+
+    const organGroup = new THREE.Group();
+    modelGroup.add(organGroup);
+
+    let torsoMesh: THREE.Mesh | null = null;
+    let coronaryMesh: THREE.Mesh | null = null;
+    const coronaryMat = new THREE.MeshStandardMaterial({
+      color: 0xff3b52,
+      roughness: 0.2,
+      emissive: 0xff1e38,
+      emissiveIntensity: 0.6,
+    });
+
+    // Torso Glass Shader
+    const torsoMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uRimColor: { value: new THREE.Color(isLight ? 0x0284c7 : 0x00f0ff) },
+        uBaseColor: { value: new THREE.Color(isLight ? 0xf0f9ff : 0x020b18) },
+        uOrganAlpha: { value: 1.0 },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uRimColor;
+        uniform vec3 uBaseColor;
+        uniform float uOrganAlpha;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        void main() {
+          vec3 normal = normalize(vNormal);
+          vec3 viewDir = normalize(vViewPosition);
+          float fresnel = pow(1.0 - max(0.0, dot(normal, viewDir)), 2.2);
+          vec3 col = mix(uBaseColor, uRimColor, fresnel * 0.92);
+          float alpha = (0.04 + fresnel * 0.65) * uOrganAlpha;
+          gl_FragColor = vec4(col, alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.FrontSide,
+    });
+
+    // 3D Chest Hotspot Target
+    const hotspotGroup = new THREE.Group();
+    hotspotGroup.position.set(0.0, -0.05, 1.05);
+    hotspotGroupRef.current = hotspotGroup;
+
+    const centerDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.07, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xe11d48 })
+    );
+    hotspotGroup.add(centerDot);
+
+    const innerWhiteDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    innerWhiteDot.position.z = 0.05;
+    hotspotGroup.add(innerWhiteDot);
+
+    const ringGeo = new THREE.RingGeometry(0.12, 0.15, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xe11d48,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    hotspotGroup.add(ringMesh);
+    modelGroup.add(hotspotGroup);
+
+    // Holographic Orbit Rings & Particles in Heart Mode
+    const orbitGroup = new THREE.Group();
+    const orbitRingGeo = new THREE.RingGeometry(1.68, 1.70, 64);
+    const orbitRingMat = new THREE.MeshBasicMaterial({
+      color: isLight ? 0x0284c7 : 0x00f0ff,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide,
+    });
+    const orbitRing = new THREE.Mesh(orbitRingGeo, orbitRingMat);
+    orbitRing.rotation.x = Math.PI * 0.42;
+    orbitRing.rotation.y = -0.15;
+    orbitGroup.add(orbitRing);
+
+    const particleCount = 28;
+    const particleGeo = new THREE.BufferGeometry();
+    const pPositions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      pPositions[i * 3] = Math.cos(angle) * 1.69;
+      pPositions[i * 3 + 1] = Math.sin(angle) * 0.28;
+      pPositions[i * 3 + 2] = Math.sin(angle) * 1.69;
     }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: isLight ? 0x0284c7 : 0x00f0ff,
+      size: 0.08,
+      transparent: true,
+      opacity: 0.75,
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    orbitGroup.add(particles);
+    heartGroup.add(orbitGroup);
 
-    cachedGeometryPromise
-      .then((loaded) => {
+    // Load master anatomical GLB
+    getAnatomicalModel()
+      .then((loadedScene) => {
         if (isCancelled) return;
-        geometry = loaded;
-        const numVerts = loaded.positions.length / 3;
-        txArr = new Float32Array(numVerts);
-        tyArr = new Float32Array(numVerts);
-        tzArr = new Float32Array(numVerts);
-        nxArr = new Float32Array(numVerts);
-        nyArr = new Float32Array(numVerts);
-        nzArr = new Float32Array(numVerts);
-        crArr = new Float32Array(numVerts);
-        cgArr = new Float32Array(numVerts);
-        cbArr = new Float32Array(numVerts);
-        caArr = new Float32Array(numVerts);
+        const cloned = loadedScene.clone(true);
+        const allMeshes: THREE.Mesh[] = [];
+        cloned.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            allMeshes.push(child as THREE.Mesh);
+          }
+        });
+
+        allMeshes.forEach((mesh) => {
+          if (mesh.name === 'BodyTorso') {
+            mesh.material = torsoMaterial;
+            torsoMesh = mesh;
+            modelGroup.add(mesh);
+          } else if (mesh.name === 'Lungs') {
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: 0x38bdf8,
+              roughness: 0.35,
+              metalness: 0.05,
+              transparent: true,
+              opacity: 0.88,
+            });
+            organGroup.add(mesh);
+          } else if (mesh.name === 'Liver') {
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: 0xbc4134,
+              roughness: 0.4,
+              metalness: 0.1,
+              transparent: true,
+              opacity: 0.88,
+            });
+            organGroup.add(mesh);
+          } else if (mesh.name === 'Stomach') {
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: 0xda6072,
+              roughness: 0.4,
+              metalness: 0.1,
+              transparent: true,
+              opacity: 0.88,
+            });
+            organGroup.add(mesh);
+          } else {
+            // Heart structures: vivid crimson biological shading
+            if (mesh.name === 'Myocardium') {
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0xe11d48,
+                roughness: 0.28,
+                metalness: 0.15,
+                emissive: 0x4a000d,
+                emissiveIntensity: 0.45,
+              });
+            } else if (mesh.name === 'Aorta') {
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0xd71c2c,
+                roughness: 0.25,
+                metalness: 0.1,
+              });
+            } else if (mesh.name === 'PulmonaryArtery' || mesh.name === 'VenaCava') {
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x762052,
+                roughness: 0.3,
+                metalness: 0.1,
+              });
+            } else if (mesh.name === 'PulmonaryVeins') {
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0xb41830,
+                roughness: 0.3,
+                metalness: 0.1,
+              });
+            } else if (mesh.name === 'CoronaryArteries') {
+              mesh.material = coronaryMat;
+              coronaryMesh = mesh;
+            } else if (mesh.name === 'CardiacVeins') {
+              mesh.material = new THREE.MeshStandardMaterial({
+                color: 0x18b9f5,
+                roughness: 0.2,
+                emissive: 0x00c8ff,
+                emissiveIntensity: 0.7,
+              });
+            }
+            heartGroup.add(mesh);
+          }
+        });
+
         setModelLoaded(true);
       })
       .catch((err) => {
-        console.error('Failed to load anatomical_body_heart.glb:', err);
+        console.error('Failed to load master anatomical model:', err);
       });
 
-    const BUF_W = 460;
-    const BUF_H = 520;
-    const offscreen = document.createElement('canvas');
-    offscreen.width = BUF_W;
-    offscreen.height = BUF_H;
-    const offCtx = offscreen.getContext('2d');
-    const imgData = offCtx ? offCtx.createImageData(BUF_W, BUF_H) : null;
-    const pixelBuf32 = imgData ? new Uint32Array(imgData.data.buffer) : null;
-    const zBuffer = new Float32Array(BUF_W * BUF_H);
+    // Camera animation state
+    const currentCamPos = initialCamPos.clone();
+    const currentLookAt = initialLookAt.clone();
+    let currentOrganAlpha = 1.0;
+    let rotY = targetRotYRef.current;
+    let rotX = targetRotXRef.current;
+    let beatPhase = 0;
+    let lastTime = performance.now();
+    let lastUiSync = 0;
 
-    // Camera orbit & zoom interpolation
-    let rotY = -0.12;
-    let rotX = 0.04;
-    let targetRotX = 0.04;
-    let currZoom = 0.75;
-    let targetZoom = 0.75;
-    let currCenterY = -0.12;
-    let targetCenterY = -0.12;
-    let currOrganAlpha = 1.0;
-    let targetOrganAlpha = 1.0;
-
-    let isDragging = false;
-    let lastMouseX = 0;
-    let lastMouseY = 0;
-    let touchDistance = 0;
+    // Pointer Drag vs Click State (Rock-solid fix for drag zooming!)
+    let isPointerDown = false;
+    let startX = 0, startY = 0;
+    let prevX = 0, prevY = 0;
+    let startTime = 0;
+    let hasDragged = false;
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType === 'mouse') return;
-      isDragging = true;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
+      isPointerDown = true;
+      hasDragged = false;
+      startX = prevX = e.clientX;
+      startY = prevY = e.clientY;
+      startTime = performance.now();
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {}
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - lastMouseX;
-      const dy = e.clientY - lastMouseY;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-      rotY += dx * 0.0085;
-      targetRotX = Math.max(-0.45, Math.min(0.48, targetRotX + dy * 0.0065));
+      if (!isPointerDown) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      prevX = e.clientX;
+      prevY = e.clientY;
+
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+        hasDragged = true;
+      }
+
+      // Smooth 60-120 FPS rotation directly updating target rotations
+      targetRotYRef.current += dx * 0.0075;
+      targetRotXRef.current = Math.max(-0.55, Math.min(0.55, targetRotXRef.current + dy * 0.0065));
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!isDragging) return;
-      isDragging = false;
+      if (!isPointerDown) return;
+      isPointerDown = false;
       try {
         canvas.releasePointerCapture(e.pointerId);
-      } catch {
-        // ignore
+      } catch {}
+
+      const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+      const elapsed = performance.now() - startTime;
+
+      // IF USER DRAGGED TO ROTATE, NEVER ZOOM!
+      if (hasDragged || totalDist > 5 || elapsed > 350) {
+        return;
       }
-    };
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      targetZoom = Math.max(0.42, Math.min(1.35, targetZoom - e.deltaY * 0.0008));
-    };
-
-    // Touch pinch to zoom
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        touchDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
+      // Clean tap/click: ONLY zoom if clicking directly on the HEART or Hotspot!
+      if (viewModeRef.current === 'body' && cameraRef.current && heartGroupRef.current) {
+        const cRect = canvas.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+          ((e.clientX - cRect.left) / cRect.width) * 2 - 1,
+          -(((e.clientY - cRect.top) / cRect.height) * 2 - 1)
         );
-      }
-    };
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, cameraRef.current);
+        const targets: THREE.Object3D[] = [...heartGroupRef.current.children];
+        if (hotspotGroupRef.current) targets.push(hotspotGroupRef.current);
+        const hits = raycaster.intersectObjects(targets, true);
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const diff = dist - touchDistance;
-        touchDistance = dist;
-        targetZoom = Math.max(0.42, Math.min(1.35, targetZoom + diff * 0.004));
+        if (hits.length > 0) {
+          handleToggleViewMode();
+        }
       }
     };
 
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
-    canvas.addEventListener('wheel', onWheel, { passive: false });
-    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: true });
+    canvas.addEventListener('pointercancel', onPointerUp);
 
-    let animId = 0;
-    let lastTime = performance.now();
-    let beatPhase = 0;
-    let lastUiSyncTime = 0;
-
-    // 3-Point Medical Studio Lighting
-    const L1x = -0.42, L1y = 0.54, L1z = 0.72;
-    const H1Len = Math.hypot(L1x, L1y, L1z + 1);
-    const H1x = L1x / H1Len, H1y = L1y / H1Len, H1z = (L1z + 1) / H1Len;
-
-    const L2x = 0.75, L2y = 0.16, L2z = 0.64;
-    const H2Len = Math.hypot(L2x, L2y, L2z + 1);
-    const H2x = L2x / H2Len, H2y = L2y / H2Len, H2z = (L2z + 1) / H2Len;
-
+    // Main 60-120 FPS Hardware Render Loop
     const renderFrame = (now: number) => {
       if (isCancelled) return;
       const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = canvas.getBoundingClientRect();
-      const cw = Math.max(280, Math.floor(rect.width));
-      const ch = Math.max(380, Math.floor(rect.height));
-      if (canvas.width !== cw * dpr || canvas.height !== ch * dpr) {
-        canvas.width = cw * dpr;
-        canvas.height = ch * dpr;
+      // Handle resize
+      const cRect = canvas.getBoundingClientRect();
+      const currentWidth = Math.max(280, Math.floor(cRect.width));
+      const currentHeight = Math.max(380, Math.floor(cRect.height));
+      if (canvas.width !== currentWidth * renderer.getPixelRatio() || canvas.height !== currentHeight * renderer.getPixelRatio()) {
+        renderer.setSize(currentWidth, currentHeight, false);
+        camera.aspect = currentWidth / currentHeight;
+        camera.updateProjectionMatrix();
       }
 
-      const isMobileScreen = cw < 640;
+      const isMobile = currentWidth < 640;
       const isBodyView = viewModeRef.current === 'body';
-      targetZoom = isBodyView ? (isMobileScreen ? 0.30 : 0.32) : (isMobileScreen ? 0.66 : 0.96);
-      targetCenterY = isBodyView ? -0.40 : 0.04;
-      targetOrganAlpha = isBodyView ? 1.0 : 0.0;
 
+      // Reset camera trigger
       if (resetCameraTriggerRef.current) {
         resetCameraTriggerRef.current = false;
-        rotY = -0.15;
-        targetRotX = 0.05;
+        targetRotYRef.current = -0.12;
+        targetRotXRef.current = 0.04;
       }
+
+      // Smooth auto-rotation
+      if (!isPointerDown && autoRotateRef.current && !reducedMotionRef.current) {
+        targetRotYRef.current += dt * ((Math.PI * 2) / 28.0);
+      }
+
+      // Smooth rotation dampening
+      rotY += (targetRotYRef.current - rotY) * Math.min(1, dt * 9.0);
+      rotX += (targetRotXRef.current - rotX) * Math.min(1, dt * 9.0);
+      modelGroup.rotation.y = rotY;
+      modelGroup.rotation.x = rotX;
 
       // Smooth camera interpolation
-      currZoom += (targetZoom - currZoom) * Math.min(1, dt * 5.5);
-      currCenterY += (targetCenterY - currCenterY) * Math.min(1, dt * 5.5);
-      currOrganAlpha += (targetOrganAlpha - currOrganAlpha) * Math.min(1, dt * 6.0);
-      rotX += (targetRotX - rotX) * Math.min(1, dt * 7.0);
+      const targetCamPos = isBodyView
+        ? new THREE.Vector3(0, -0.4, isMobile ? 18.0 : 15.0)
+        : new THREE.Vector3(0, 0.05, isMobile ? 6.2 : 4.8);
+      const targetLookAt = isBodyView
+        ? new THREE.Vector3(0, -0.4, 0)
+        : new THREE.Vector3(0, 0.05, 0);
+      const targetAlpha = isBodyView ? 1.0 : 0.0;
 
-      // Smooth BPM interpolation
-      const targetBpm = Math.max(42, Math.min(195, targetBpmRef.current));
-      smoothedBpmRef.current += (targetBpm - smoothedBpmRef.current) * Math.min(1, dt * 4.0);
+      currentCamPos.lerp(targetCamPos, Math.min(1, dt * 5.5));
+      currentLookAt.lerp(targetLookAt, Math.min(1, dt * 5.5));
+      camera.position.copy(currentCamPos);
+      camera.lookAt(currentLookAt);
+
+      // Smooth organ alpha dissolve
+      currentOrganAlpha += (targetAlpha - currentOrganAlpha) * Math.min(1, dt * 6.0);
+      torsoMaterial.uniforms.uOrganAlpha.value = currentOrganAlpha;
+      if (torsoMesh) torsoMesh.visible = currentOrganAlpha > 0.01;
+
+      organGroup.children.forEach((child) => {
+        const m = child as THREE.Mesh;
+        if (m.material) {
+          (m.material as THREE.MeshStandardMaterial).opacity = 0.88 * currentOrganAlpha;
+          m.visible = currentOrganAlpha > 0.01;
+        }
+      });
+
+      // Hotspot target in body view
+      hotspotGroup.visible = currentOrganAlpha > 0.4;
+      const pRing = (now * 0.0018) % 1;
+      ringMesh.scale.setScalar(1 + pRing * 2.2);
+      ringMat.opacity = (1 - pRing) * 0.85;
+
+      // Orbit ring & particles in heart view
+      orbitGroup.visible = currentOrganAlpha < 0.6;
+      orbitRingMat.opacity = (1 - currentOrganAlpha) * 0.55;
+      particles.rotation.y += dt * 0.8;
+
+      // Cardiac rhythm animation
+      const targetBpmVal = Math.max(42, Math.min(195, targetBpmRef.current));
+      smoothedBpmRef.current += (targetBpmVal - smoothedBpmRef.current) * Math.min(1, dt * 4.0);
       const currentBpm = smoothedBpmRef.current;
-
       const beatsPerSec = currentBpm / 60;
       beatPhase = (beatPhase + dt * beatsPerSec) % 1;
-      const { ventricularPulse, atrialPulse, arterialWave, shockwavePhase, phaseLabel } =
-        evaluateCardiacCycle(beatPhase);
 
-      if (rightClickWavePhaseRef.current > 0) {
-        rightClickWavePhaseRef.current += dt * 1.45;
-        if (rightClickWavePhaseRef.current > 1) rightClickWavePhaseRef.current = 0;
-      }
+      const { ventricularPulse, arterialWave, phaseLabel } = evaluateCardiacCycle(beatPhase);
 
-      if (now - lastUiSyncTime > 240) {
-        lastUiSyncTime = now;
+      // Heartbeat organic scale pulse & twist
+      const vScale = 1 - ventricularPulse * 0.058;
+      heartGroup.scale.set(vScale, 1 - ventricularPulse * 0.026, vScale);
+      heartGroup.rotation.z = ventricularPulse * 0.038;
+
+      // Coronary bioluminescent pulse
+      coronaryMat.emissiveIntensity = 0.5 + ventricularPulse * 0.65;
+
+      if (now - lastUiSync > 240) {
+        lastUiSync = now;
         setCardiacPhaseLabel(phaseLabel);
         setDisplayedSmoothedBpm(Math.round(currentBpm));
       }
 
-      // Auto rotation
-      if (!isDragging && autoRotateRef.current && !reducedMotionRef.current) {
-        rotY += dt * ((Math.PI * 2) / 28.0);
-      }
-
-      ctx.save();
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, cw, ch);
-
-      const isLight = isLightModeRef.current;
-      const cx = cw * 0.5;
-      const cy = ch * 0.5;
-      const baseScale = Math.min(cw, ch) * 0.44;
-
-      // 1. Clean Background & Volumetric Light
-      if (isLight) {
-        // Pure White Medical Aura (MediFlex style)
-        const aura = ctx.createRadialGradient(cx, cy, baseScale * 0.1, cx, cy, baseScale * 2.4);
-        aura.addColorStop(0, 'rgba(186, 230, 253, 0.42)');
-        aura.addColorStop(0.55, 'rgba(224, 242, 254, 0.22)');
-        aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = aura;
-        ctx.beginPath();
-        ctx.arc(cx, cy, baseScale * 2.4, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        // Dark Studio Aura
-        const aura = ctx.createRadialGradient(cx, cy, baseScale * 0.1, cx, cy, baseScale * 2.4);
-        aura.addColorStop(0, `rgba(195, 22, 48, ${0.25 + ventricularPulse * 0.12})`);
-        aura.addColorStop(0.5, `rgba(0, 210, 255, ${0.12 + ventricularPulse * 0.05})`);
-        aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = aura;
-        ctx.beginPath();
-        ctx.arc(cx, cy, baseScale * 2.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // 2. Holographic Rings (in Heart Detail Mode)
-      if (!isBodyView || currOrganAlpha < 0.6) {
-        const ringAlpha = (1 - currOrganAlpha) * (isLight ? 0.35 : 0.6);
-        ctx.save();
-        ctx.translate(cx, cy + baseScale * 0.12);
-        ctx.rotate(-0.22);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, baseScale * 1.48, baseScale * 0.44, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = isLight ? `rgba(2, 132, 199, ${ringAlpha})` : `rgba(0, 240, 255, ${ringAlpha})`;
-        ctx.lineWidth = 1.3;
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // 3. 3D Body & Organs Rasterization
-      if (geometry && offCtx && imgData && pixelBuf32) {
-        pixelBuf32.fill(0);
-        zBuffer.fill(-1e9);
-
-        const sinY = Math.sin(rotY);
-        const cosY = Math.cos(rotY);
-        const sinX = Math.sin(rotX);
-        const cosX = Math.cos(rotX);
-
-        const pos = geometry.positions;
-        const nrm = geometry.normals;
-        const grp = geometry.vertexGroup;
-        const aoArr = geometry.vertexAO;
-        const idxArr = geometry.indices;
-        const numVerts = pos.length / 3;
-        const numIndices = idxArr.length;
-
-        const halfW = BUF_W * 0.5;
-        const halfH = BUF_H * 0.5;
-        const bufScale = BUF_W * 0.22 * currZoom;
-
-        const vesselWavePhase = (now * 0.0028) % 1;
-
-        for (let i = 0; i < numVerts; i++) {
-          const i3 = i * 3;
-          let px = pos[i3];
-          let py = pos[i3 + 1];
-          let pz = pos[i3 + 2];
-          const gId = grp[i];
-
-          // Cardiac contraction (only affects heart meshes: groups 4..10)
-          if (gId >= 4) {
-            if (py < 0.18) {
-              const vWeight = Math.min(1, Math.max(0, (0.18 - py) / 0.95));
-              const squeeze = 1 - ventricularPulse * 0.078 * vWeight;
-              const twist = ventricularPulse * 0.055 * vWeight;
-              const rx = px * Math.cos(twist) - pz * Math.sin(twist);
-              const rz = px * Math.sin(twist) + pz * Math.cos(twist);
-              px = rx * squeeze;
-              pz = rz * squeeze;
-              py *= 1 - ventricularPulse * 0.032 * vWeight;
-            } else if (gId === 4 || gId === 7) {
-              const aWeight = Math.min(1, (py - 0.18) / 0.55);
-              const aSqueeze = 1 - atrialPulse * 0.055 * aWeight;
-              px *= aSqueeze;
-              pz *= aSqueeze;
-            } else if (gId === 5 || gId === 6) {
-              const expand = 1 + arterialWave * 0.042;
-              px *= expand;
-              pz *= expand;
-            }
-          }
-
-          // Camera Y offset
-          const pyShifted = py - currCenterY;
-
-          // Rotation around Y then X
-          const x1 = px * cosY + pz * sinY;
-          const z1 = -px * sinY + pz * cosY;
-          const y2 = pyShifted * cosX - z1 * sinX;
-          const z2 = pyShifted * sinX + z1 * cosX;
-
-          const persp = 1 / (1 - z2 * 0.14);
-          txArr[i] = halfW + x1 * bufScale * persp;
-          tyArr[i] = halfH - y2 * bufScale * persp;
-          tzArr[i] = z2;
-
-          // Rotate normals
-          const vnx = nrm[i3];
-          const vny = nrm[i3 + 1];
-          const vnz = nrm[i3 + 2];
-          const nx1 = vnx * cosY + vnz * sinY;
-          const nz1 = -vnx * sinY + vnz * cosY;
-          const ny2 = vny * cosX - nz1 * sinX;
-          const nz2 = vny * sinX + nz1 * cosX;
-
-          nxArr[i] = nx1;
-          nyArr[i] = ny2;
-          nzArr[i] = nz2;
-
-          const fresnel = Math.pow(1 - Math.max(0, Math.min(1, Math.abs(nz2))), 2.2);
-
-          // Shading per group
-          let baseR = 148, baseG = 16, baseB = 30;
-          let alpha = 1.0;
-          let isTranslucentBody = false;
-
-          if (gId === 0) {
-            // BodyTorso: Translucent glass human body (Image 1 style)
-            isTranslucentBody = true;
-            // High transparency in center (0.04), glowing cyan/silver rim at silhouette (0.68)
-            alpha = currOrganAlpha * (0.04 + fresnel * 0.65);
-            if (isLight) {
-              baseR = 14;
-              baseG = 138;
-              baseB = 205;
-            } else {
-              baseR = 0;
-              baseG = 220;
-              baseB = 255;
-            }
-          } else if (gId === 1) {
-            // Lungs: soft sky-blue
-            baseR = 56;
-            baseG = 168;
-            baseB = 224;
-            alpha = currOrganAlpha * 0.88;
-          } else if (gId === 2) {
-            // Liver: warm terracotta-ruby
-            baseR = 188;
-            baseG = 65;
-            baseB = 52;
-            alpha = currOrganAlpha * 0.88;
-          } else if (gId === 3) {
-            // Stomach: coral-rose
-            baseR = 218;
-            baseG = 96;
-            baseB = 114;
-            alpha = currOrganAlpha * 0.88;
-          } else if (gId === 4) {
-            // Myocardium: vivid crimson-red (pops out prominently!)
-            baseR = isBodyView ? 245 : 160;
-            baseG = isBodyView ? 22 : 18;
-            baseB = isBodyView ? 48 : 32;
-            alpha = 1.0;
-          } else if (gId === 5) {
-            // Aorta: arterial scarlet
-            baseR = 225;
-            baseG = 28;
-            baseB = 44;
-            alpha = 1.0;
-          } else if (gId === 6 || gId === 8) {
-            // Pulmonary Artery & Vena Cava: deep venous blue-burgundy
-            baseR = 118;
-            baseG = 32;
-            baseB = 82;
-            alpha = 1.0;
-          } else if (gId === 7) {
-            // Pulmonary Veins: rose-crimson
-            baseR = 180;
-            baseG = 26;
-            baseB = 48;
-            alpha = 1.0;
-          } else if (gId === 9) {
-            // Coronary Arteries: bright glowing crimson with pulse wave
-            const wave = Math.max(0, Math.sin((py * 1.4 + vesselWavePhase) * Math.PI * 2));
-            baseR = 248 + wave * 7;
-            baseG = 45 + wave * 30;
-            baseB = 58 + wave * 20;
-            alpha = 1.0;
-          } else if (gId === 10) {
-            // Cardiac Veins: glowing cyan-blue
-            baseR = 24;
-            baseG = 185;
-            baseB = 245;
-            alpha = 1.0;
-          }
-
-          const ao = aoArr[i];
-          const ndotl1 = Math.max(0, nx1 * L1x + ny2 * L1y + nz2 * L1z);
-
-          let r: number, g: number, b: number;
-
-          if (isTranslucentBody) {
-            // Translucent glass silhouette
-            const rim = fresnel * 0.90;
-            if (isLight) {
-              r = 232 * (1 - rim) + 14 * rim;
-              g = 244 * (1 - rim) + 140 * rim;
-              b = 254 * (1 - rim) + 215 * rim;
-            } else {
-              r = 4 * (1 - rim) + 0 * rim;
-              g = 18 * (1 - rim) + 230 * rim;
-              b = 40 * (1 - rim) + 255 * rim;
-            }
-          } else {
-            const direct = (0.32 + ndotl1 * 0.72) * ao;
-            const sss = Math.max(0, (ndotl1 + 0.4) / 1.4) * 0.28;
-            if (gId >= 4 && isBodyView) {
-              // Heart stands out with bioluminescent pulse warmth in body view
-              const heartGlow = 0.22 + ventricularPulse * 0.12;
-              r = baseR * (direct + heartGlow) + 60 * sss + fresnel * 40;
-              g = baseG * (direct + heartGlow * 0.2) + 15 * sss + fresnel * 25;
-              b = baseB * (direct + heartGlow * 0.2) + 20 * sss + fresnel * 35;
-            } else {
-              r = baseR * direct + 180 * sss + fresnel * 35;
-              g = baseG * direct + 20 * sss + fresnel * 55;
-              b = baseB * direct + 30 * sss + fresnel * 75;
-            }
-          }
-
-          crArr[i] = Math.min(255, Math.max(0, r));
-          cgArr[i] = Math.min(255, Math.max(0, g));
-          cbArr[i] = Math.min(255, Math.max(0, b));
-          caArr[i] = alpha;
-        }
-
-        // Two-pass rasterizer:
-        // Pass 1: Opaque organs & heart (grp >= 1)
-        // Pass 2: Translucent BodyTorso (grp === 0)
-        for (let pass = 1; pass <= 2; pass++) {
-          for (let t = 0; t < numIndices; t += 3) {
-            const i0 = idxArr[t], i1 = idxArr[t + 1], i2 = idxArr[t + 2];
-            const gId = grp[i0];
-            const isTorso = gId === 0;
-
-            if (pass === 1 && isTorso) continue;
-            if (pass === 2 && !isTorso) continue;
-
-            // If in heart detail mode and organ is fully faded, skip torso/lungs/liver/stomach
-            if (!isBodyView && gId < 4 && currOrganAlpha < 0.05) continue;
-
-            const x0 = txArr[i0], y0 = tyArr[i0], z0 = tzArr[i0];
-            const x1 = txArr[i1], y1 = tyArr[i1], z1 = tzArr[i1];
-            const x2 = txArr[i2], y2 = tyArr[i2], z2 = tzArr[i2];
-
-            const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
-            if (Math.abs(area) < 0.05) continue;
-
-            // Backface culling for opaque organs; torso backface culling keeps clean silhouette
-            if (area > 0 && (gId >= 4 || isTorso)) continue;
-
-            const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
-            const maxX = Math.min(BUF_W - 1, Math.ceil(Math.max(x0, x1, x2)));
-            const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2)));
-            const maxY = Math.min(BUF_H - 1, Math.ceil(Math.max(y0, y1, y2)));
-            if (minX > maxX || minY > maxY) continue;
-
-            const invArea = 1 / area;
-            const r0 = crArr[i0], g0 = cgArr[i0], b0 = cbArr[i0], a0 = caArr[i0];
-            const r1 = crArr[i1], g1 = cgArr[i1], b1 = cbArr[i1], a1 = caArr[i1];
-            const r2 = crArr[i2], g2 = cgArr[i2], b2 = cbArr[i2], a2 = caArr[i2];
-
-            for (let py = minY; py <= maxY; py++) {
-              const cySample = py + 0.5;
-              const rowOffset = py * BUF_W;
-              for (let px = minX; px <= maxX; px++) {
-                const cxSample = px + 0.5;
-                const w0 = ((x1 - cxSample) * (y2 - cySample) - (x2 - cxSample) * (y1 - cySample)) * invArea;
-                const w1 = ((x2 - cxSample) * (y0 - cySample) - (x0 - cxSample) * (y2 - cySample)) * invArea;
-                const w2 = 1 - w0 - w1;
-
-                if (w0 >= -0.001 && w1 >= -0.001 && w2 >= -0.001) {
-                  const z = w0 * z0 + w1 * z1 + w2 * z2;
-                  const bufIdx = rowOffset + px;
-
-                  if (pass === 1) {
-                    // Opaque organs & heart
-                    if (z > zBuffer[bufIdx]) {
-                      zBuffer[bufIdx] = z;
-                      const rr = (w0 * r0 + w1 * r1 + w2 * r2) | 0;
-                      const gg = (w0 * g0 + w1 * g1 + w2 * g2) | 0;
-                      const bb = (w0 * b0 + w1 * b1 + w2 * b2) | 0;
-                      pixelBuf32[bufIdx] = (255 << 24) | (bb << 16) | (gg << 8) | rr;
-                    }
-                  } else {
-                    // Pass 2: Translucent BodyTorso glass blend
-                    if (z > zBuffer[bufIdx] - 0.2) {
-                      const cur = pixelBuf32[bufIdx];
-                      const curA = (cur >> 24) & 0xff;
-                      const curB = (cur >> 16) & 0xff;
-                      const curG = (cur >> 8) & 0xff;
-                      const curR = cur & 0xff;
-
-                      const tr = (w0 * r0 + w1 * r1 + w2 * r2) | 0;
-                      const tg = (w0 * g0 + w1 * g1 + w2 * g2) | 0;
-                      const tb = (w0 * b0 + w1 * b1 + w2 * b2) | 0;
-                      const interpAlpha = w0 * a0 + w1 * a1 + w2 * a2;
-                      const ta = Math.min(0.72, Math.max(0.02, interpAlpha));
-
-                      if (curA === 0) {
-                        // Empty background
-                        const finalA = (ta * 255) | 0;
-                        pixelBuf32[bufIdx] = (finalA << 24) | (tb << 16) | (tg << 8) | tr;
-                      } else {
-                        // Over organ: alpha blend
-                        const outR = (tr * ta + curR * (1 - ta)) | 0;
-                        const outG = (tg * ta + curG * (1 - ta)) | 0;
-                        const outB = (tb * ta + curB * (1 - ta)) | 0;
-                        pixelBuf32[bufIdx] = (255 << 24) | (outB << 16) | (outG << 8) | outR;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        offCtx.putImageData(imgData, 0, 0);
-
-        const drawSize = Math.min(cw, ch);
-        const drawW = drawSize;
-        const drawH = drawSize;
-        ctx.save();
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(offscreen, cx - drawW * 0.5, cy - drawH * 0.5, drawW, drawH);
-        ctx.restore();
-
-        // 4. Hotspot Target over Heart in Body View (Image 1 Style)
-        if (isBodyView && currOrganAlpha > 0.6) {
-          const heartShiftedY = -currCenterY;
-          const heartRotY = heartShiftedY * cosX;
-          const heartBufX = halfW;
-          const heartBufY = halfH - heartRotY * bufScale;
-          const heartScreenX = cx - (drawW * 0.5) + (heartBufX / BUF_W) * drawW;
-          const heartScreenY = cy - (drawH * 0.5) + (heartBufY / BUF_H) * drawH;
-
-          ctx.save();
-          // Pulsing radar ring
-          const pRing = ((now * 0.0018) % 1);
-          ctx.strokeStyle = `rgba(225, 29, 72, ${(1 - pRing) * 0.85})`;
-          ctx.lineWidth = 1.6;
-          ctx.beginPath();
-          ctx.arc(heartScreenX, heartScreenY, 8 + pRing * 18, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Solid inner red/white dot
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(heartScreenX, heartScreenY, 4.5, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#e11d48';
-          ctx.beginPath();
-          ctx.arc(heartScreenX, heartScreenY, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-      }
-
-      // 5. Right-click wave
-      if (rightClickWavePhaseRef.current > 0) {
-        const rw = rightClickWavePhaseRef.current;
-        const rwRadius = baseScale * (0.45 + rw * 1.5);
-        ctx.strokeStyle = isLight
-          ? `rgba(2, 132, 199, ${(1 - rw) * 0.75})`
-          : `rgba(0, 240, 255, ${(1 - rw) * 0.75})`;
-        ctx.lineWidth = 2.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, rwRadius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.restore();
+      // Hardware render
+      renderer.render(scene, camera);
       animId = requestAnimationFrame(renderFrame);
     };
 
@@ -986,9 +650,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
-      canvas.removeEventListener('wheel', onWheel);
-      canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('pointercancel', onPointerUp);
+      renderer.dispose();
     };
   }, []);
 
@@ -1113,26 +776,13 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           e.preventDefault();
           handleToggleViewMode();
         }}
-        onClick={(e) => {
-          // If in body mode, clicking near the center/heart zooms into heart mode
-          if (viewMode === 'body') {
-            const rect = canvasRef.current?.getBoundingClientRect();
-            if (rect) {
-              const clickY = e.clientY - rect.top;
-              const midY = rect.height * 0.45;
-              if (Math.abs(clickY - midY) < rect.height * 0.35) {
-                handleToggleViewMode();
-              }
-            }
-          }
-        }}
-        className="relative w-full min-h-[460px] sm:min-h-[520px] md:min-h-[580px] flex flex-col items-center justify-center select-none overflow-hidden cursor-pointer"
+        className="relative w-full min-h-[460px] sm:min-h-[520px] md:min-h-[580px] flex flex-col items-center justify-center select-none overflow-hidden"
       >
-        {/* 3D Canvas */}
+        {/* 3D WebGL Canvas */}
         <div className="relative z-10 w-full h-[460px] sm:h-[520px] md:h-[580px] flex items-center justify-center">
           <canvas
             ref={canvasRef}
-            className="w-full h-full max-w-[780px] cursor-grab active:cursor-grabbing"
+            className="w-full h-full max-w-[780px] cursor-grab active:cursor-grabbing touch-none"
           />
 
           {!modelLoaded && (

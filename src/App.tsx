@@ -567,7 +567,7 @@ export const App: React.FC = () => {
                         <span>Cinematic Intro Animation</span>
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        Xem lại hiệu ứng khởi động hệ thống CHICHI HEALTH (2.5 giây).
+                        Xem lại hiệu ứng khởi động hệ thống SMARTWATCH HEALTH (2.5 giây).
                       </p>
                     </div>
                     <button
@@ -587,7 +587,7 @@ export const App: React.FC = () => {
           {/* Footer */}
           <footer className="px-6 py-4 border-t border-slate-800/60 text-[11px] font-mono-tech text-slate-400 flex flex-wrap items-center justify-between gap-2">
             <span>
-              CHICHI HEALTH BIOMEDICAL DASHBOARD • DỰ ÁN KHOA HỌC KỸ THUẬT VÒNG TAY THÔNG MINH ESP32 + MAX30102
+              SMARTWATCH HEALTH BIOMEDICAL DASHBOARD • DỰ ÁN KHOA HỌC KỸ THUẬT VÒNG TAY THÔNG MINH ESP32 + MAX30102
             </span>
             <span>
               CHẾ ĐỘ HIỆN TẠI: {dataMode.toUpperCase()} • CỔNG API: /api/telemetry

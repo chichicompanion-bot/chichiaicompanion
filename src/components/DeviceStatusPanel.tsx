@@ -26,7 +26,7 @@ const ESP32_FIRMWARE_SNIPPET = `// Sketch mẫu cho ESP32 + MAX30102 gửi dữ 
 
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
-const char* SERVER_URL = "https://chichiaicompanion.com/api/telemetry";
+const char* SERVER_URL = "https://smartwatchhealth.com/api/telemetry";
 
 void sendHealthPacket(float bpm, float spo2, int hrvMs, float skinTemp, int steps, int battery) {
   if (WiFi.status() != WL_CONNECTED) return;

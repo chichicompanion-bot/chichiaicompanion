@@ -72,7 +72,7 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({
               transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="font-display text-4xl sm:text-6xl font-bold tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-teal-300 drop-shadow-[0_0_28px_rgba(0,240,255,0.35)]"
             >
-              CHICHI HEALTH
+              SMARTWATCH HEALTH
             </motion.h1>
 
             <motion.p
