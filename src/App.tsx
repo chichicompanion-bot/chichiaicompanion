@@ -39,6 +39,7 @@ import { DeviceStatusPanel } from './components/DeviceStatusPanel';
 import { HealthMapPanel } from './components/HealthMapPanel';
 import { MetricDetailModal } from './components/MetricDetailModal';
 import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
+import { HealthInsightNotificationCards } from './components/HealthInsightNotificationCards';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -67,6 +68,7 @@ export const App: React.FC = () => {
   const [modalMetricKey, setModalMetricKey] = useState<MetricKey | null>(null);
   const [waveTick, setWaveTick] = useState(0);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initial state from DemoDataProvider
   const initialTick = useMemo(() => demoProviderRef.current.tickSimulation(), []);
@@ -221,6 +223,9 @@ export const App: React.FC = () => {
             isLightMode={isLightMode}
             onToggleTheme={() => setIsLightMode((m) => !m)}
             onOpenMobileMenu={() => setMobileMenuOpen(true)}
+            onOpenSettings={() => setActiveSection('settings')}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             onTriggerReconnect={
               dataMode === 'live'
                 ? refreshLiveTelemetry
@@ -270,6 +275,13 @@ export const App: React.FC = () => {
             {/* VIEW: OVERVIEW (Shows 3D Heart Hero Command Center + all modules) */}
             {activeSection === 'overview' && (
               <>
+                {/* 5 HORIZONTAL NOTIFICATION / HEALTH INSIGHT CARDS (Swipeable on Mobile) */}
+                <HealthInsightNotificationCards
+                  onSelectMetric={handleSelectCardMetric}
+                  onOpenSection={(sec) => setActiveSection(sec)}
+                  isLightMode={isLightMode}
+                />
+
                 {/* 3D ANATOMICAL HEART COMMAND CENTER HERO */}
                 <BiomedicalHeartCommandCenter
                   metrics={metrics}
@@ -285,18 +297,47 @@ export const App: React.FC = () => {
 
                 {/* 7 Health Metric Cards Grid (2 columns on mobile matching Apple Fitness Image 2) */}
                 <section aria-label="Các chỉ số sức khỏe">
+                  {searchQuery && (
+                    <div className="mb-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                      <span>Kết quả tìm kiếm cho: &ldquo;<strong className="text-cyan-500">{searchQuery}</strong>&rdquo;</span>
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
+                      >
+                        Xóa tìm kiếm
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                    {metrics.map((m, idx) => (
-                      <MetricCard
-                        key={m.key}
-                        metric={m}
-                        index={idx}
-                        reducedMotion={reducedMotion}
-                        isSelected={selectedChartMetric === m.key}
-                        onSelect={handleSelectCardMetric}
-                      />
-                    ))}
+                    {metrics
+                      .filter((m) => {
+                        if (!searchQuery.trim()) return true;
+                        const q = searchQuery.toLowerCase().trim();
+                        return (
+                          m.label.toLowerCase().includes(q) ||
+                          m.key.toLowerCase().includes(q) ||
+                          m.unit.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((m, idx) => (
+                        <MetricCard
+                          key={m.key}
+                          metric={m}
+                          index={idx}
+                          reducedMotion={reducedMotion}
+                          isSelected={selectedChartMetric === m.key}
+                          onSelect={handleSelectCardMetric}
+                        />
+                      ))}
                   </div>
+                  {searchQuery && metrics.filter((m) => {
+                    const q = searchQuery.toLowerCase().trim();
+                    return m.label.toLowerCase().includes(q) || m.key.toLowerCase().includes(q) || m.unit.toLowerCase().includes(q);
+                  }).length === 0 && (
+                    <div className="p-6 text-center text-sm text-slate-400 nexus-card rounded-2xl">
+                      Không tìm thấy chỉ số sinh tồn nào khớp với từ khóa &ldquo;{searchQuery}&rdquo;.
+                    </div>
+                  )}
                 </section>
 
                 {/* Live Health Analytics Chart + PPG Waveform */}

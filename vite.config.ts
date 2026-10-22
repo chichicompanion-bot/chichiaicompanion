@@ -118,6 +118,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          three: ['three'],
           vendor: ['react', 'react-dom', 'framer-motion'],
           charts: ['recharts'],
           icons: ['lucide-react'],

@@ -118,19 +118,21 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(
 
     const sparkPath = useMemo(() => {
       const sparkPoints = metric.sparkline;
-      if (sparkPoints.length <= 1) return '';
-      const vals = sparkPoints.map((p) => p.value);
+      if (!sparkPoints || sparkPoints.length <= 1) return '';
+      const clean = sparkPoints.filter((p) => p && Number.isFinite(p.value));
+      if (clean.length <= 1) return '';
+      const vals = clean.map((p) => Number(p.value));
       const min = Math.min(...vals);
       const max = Math.max(...vals);
-      const span = max - min || 1;
+      const span = max > min ? max - min : 1;
       const width = 120;
       const height = 34;
 
-      return sparkPoints
+      return clean
         .map((pt, i) => {
-          const px = (i / (sparkPoints.length - 1)) * width;
+          const px = (i / (clean.length - 1)) * width;
           const py = height - ((pt.value - min) / span) * (height - 8) - 4;
-          return `${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`;
+          return `${i === 0 ? 'M' : 'L'} ${Number.isFinite(px) ? px.toFixed(1) : '0'} ${Number.isFinite(py) ? py.toFixed(1) : '0'}`;
         })
         .join(' ');
     }, [metric.sparkline]);

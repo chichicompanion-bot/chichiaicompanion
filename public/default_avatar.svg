@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="100%" stop-color="#fbd38d" />
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Circle -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgGrad)" />
+
+  <!-- Body / Shirt -->
+  <path d="M 24 128 C 24 98 42 92 64 92 C 86 92 104 98 104 128 Z" fill="url(#shirtGrad)" />
+  <!-- Collar -->
+  <path d="M 52 92 L 64 104 L 76 92 Z" fill="#334155" />
+
+  <!-- Neck -->
+  <rect x="56" y="74" width="16" height="22" rx="4" fill="url(#skinGrad)" />
+
+  <!-- Head / Face -->
+  <ellipse cx="64" cy="56" rx="22" ry="26" fill="url(#skinGrad)" />
+
+  <!-- Hair -->
+  <path d="M 42 54 C 40 34 50 24 64 24 C 78 24 88 34 86 54 C 84 38 78 30 64 30 C 50 30 44 38 42 54 Z" fill="url(#hairGrad)" />
+
+  <!-- Eyes -->
+  <circle cx="55" cy="54" r="2.5" fill="#1e293b" />
+  <circle cx="73" cy="54" r="2.5" fill="#1e293b" />
+
+  <!-- Subtle Smile -->
+  <path d="M 58 68 Q 64 73 70 68" fill="none" stroke="#9a3412" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Medical Smart Cross Badge -->
+  <circle cx="100" cy="100" r="16" fill="#0284c7" stroke="#ffffff" stroke-width="2.5" />
+  <path d="M 100 93 L 100 107 M 93 100 L 107 100" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+</svg>

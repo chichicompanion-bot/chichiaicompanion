@@ -173,17 +173,19 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   // Mini PPG waveform
   const ppgPath = useMemo(() => {
     if (!ppgWave || ppgWave.length < 2) return '';
+    const clean = ppgWave.filter((p) => p && Number.isFinite(p.opticalIr));
+    if (clean.length < 2) return '';
     const w = 120;
     const h = 24;
-    const vals = ppgWave.map((p) => p.opticalIr);
+    const vals = clean.map((p) => Number(p.opticalIr));
     const min = Math.min(...vals);
     const max = Math.max(...vals);
-    const span = max - min || 1;
-    return ppgWave
+    const span = max > min ? max - min : 1;
+    return clean
       .map((pt, idx) => {
-        const x = (idx / (ppgWave.length - 1)) * w;
+        const x = (idx / (clean.length - 1)) * w;
         const y = h - ((pt.opticalIr - min) / span) * (h - 6) - 3;
-        return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+        return `${idx === 0 ? 'M' : 'L'} ${Number.isFinite(x) ? x.toFixed(1) : '0'} ${Number.isFinite(y) ? y.toFixed(1) : '0'}`;
       })
       .join(' ');
   }, [ppgWave]);
