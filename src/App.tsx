@@ -42,6 +42,7 @@ import { DeviceStatusPanel } from './components/DeviceStatusPanel';
 import { HealthMapPanel } from './components/HealthMapPanel';
 import { MetricDetailModal } from './components/MetricDetailModal';
 import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
+import { DeviceGpsTelemetryCard } from './components/DeviceGpsTelemetryCard';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -371,6 +372,9 @@ export const App: React.FC = () => {
                     />
                     <SleepAnalytics sleep={sleepSummary} />
                   </section>
+
+                  {/* Device GPS Telemetry & Online Map (Auto updates every 5 mins) */}
+                  <DeviceGpsTelemetryCard />
                 </motion.div>
               )}
 

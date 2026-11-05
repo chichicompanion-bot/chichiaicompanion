@@ -71,22 +71,27 @@ function evaluateCardiacCycle(phase: number): {
   return { ventricularPulse, atrialPulse, arterialWave, shockwavePhase, phaseLabel };
 }
 
-let cachedGltfPromise: Promise<THREE.Group> | null = null;
-function getAnatomicalModel(): Promise<THREE.Group> {
-  if (!cachedGltfPromise) {
-    cachedGltfPromise = new Promise((resolve, reject) => {
-      const loader = new GLTFLoader();
-      loader.load(
+let cachedGlbBufferPromise: Promise<ArrayBuffer> | null = null;
+async function getAnatomicalGlbBuffer(): Promise<ArrayBuffer> {
+  if (!cachedGlbBufferPromise) {
+    cachedGlbBufferPromise = (async () => {
+      const candidates = [
+        '/models/anatomical_body_heart.glb',
         './models/anatomical_body_heart.glb',
-        (gltf) => {
-          resolve(gltf.scene);
-        },
-        undefined,
-        (err) => reject(err)
-      );
-    });
+        'models/anatomical_body_heart.glb',
+      ];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            return await res.arrayBuffer();
+          }
+        } catch {}
+      }
+      throw new Error('Failed to load anatomical_body_heart.glb');
+    })();
   }
-  return cachedGltfPromise;
+  return cachedGlbBufferPromise;
 }
 
 export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenterProps> = ({
@@ -274,38 +279,44 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let coronaryMesh: THREE.Mesh | null = null;
     let vesselsMesh: THREE.Mesh | null = null;
     let brainMesh: THREE.Mesh | null = null;
+    let ribCageMesh: THREE.Mesh | null = null;
 
+    // Ultra-Realistic Human Dermis & Subcutaneous Vascular Shaders
     const coronaryMat = new THREE.MeshStandardMaterial({
-      color: 0xff3b52,
-      roughness: 0.2,
-      emissive: 0xff1e38,
-      emissiveIntensity: 0.6,
-    });
-
-    const vesselsMat = new THREE.MeshStandardMaterial({
-      color: 0xff1e38,
-      roughness: 0.2,
-      emissive: 0xff0033,
-      emissiveIntensity: 0.75,
-      transparent: true,
-      opacity: 0.96,
-    });
-
-    const brainMat = new THREE.MeshStandardMaterial({
-      color: isLight ? 0x6366f1 : 0x818cf8,
-      roughness: 0.32,
-      metalness: 0.15,
-      emissive: isLight ? 0x4338ca : 0x3730a3,
+      color: 0xe02235,
+      roughness: 0.24,
+      metalness: 0.1,
+      emissive: 0xb30e20,
       emissiveIntensity: 0.55,
+    });
+
+    // SINGLE THIN CAROTID VESSEL: Arterial scarlet blood traveling from heart to brain
+    const vesselsMat = new THREE.MeshStandardMaterial({
+      color: 0xd6182c,
+      roughness: 0.22,
+      metalness: 0.12,
+      emissive: 0xaa1020,
+      emissiveIntensity: 0.7,
+      transparent: true,
+      opacity: 0.98,
+    });
+
+    // Real human brain cortex: authentic pinkish-tan with pia mater wetness sheen
+    const brainMat = new THREE.MeshStandardMaterial({
+      color: isLight ? 0xdcaea0 : 0xd09a8c,
+      roughness: 0.38,
+      metalness: 0.05,
+      emissive: 0x78251e,
+      emissiveIntensity: 0.3,
       transparent: true,
       opacity: 0.96,
     });
 
-    // Torso Glass Shader
+    // Ultra-Realistic Human Body Subsurface Dermis Shader (Anatomical Human Skin)
     const torsoMaterial = new THREE.ShaderMaterial({
       uniforms: {
-        uRimColor: { value: new THREE.Color(isLight ? 0x0284c7 : 0x00f0ff) },
-        uBaseColor: { value: new THREE.Color(isLight ? 0xf0f9ff : 0x020b18) },
+        uSkinTone: { value: new THREE.Color(isLight ? 0xdfb29b : 0xd2a38b) },
+        uSubsurface: { value: new THREE.Color(0xb54338) },
         uOrganAlpha: { value: 1.0 },
       },
       vertexShader: `
@@ -319,17 +330,22 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         }
       `,
       fragmentShader: `
-        uniform vec3 uRimColor;
-        uniform vec3 uBaseColor;
+        uniform vec3 uSkinTone;
+        uniform vec3 uSubsurface;
         uniform float uOrganAlpha;
         varying vec3 vNormal;
         varying vec3 vViewPosition;
         void main() {
-          vec3 normal = normalize(vNormal);
-          vec3 viewDir = normalize(vViewPosition);
-          float fresnel = pow(1.0 - max(0.0, dot(normal, viewDir)), 2.2);
-          vec3 col = mix(uBaseColor, uRimColor, fresnel * 0.92);
-          float alpha = (0.04 + fresnel * 0.65) * uOrganAlpha;
+          vec3 N = normalize(vNormal);
+          vec3 V = normalize(vViewPosition);
+          float NdotV = max(0.0, dot(N, V));
+          float fresnel = pow(1.0 - NdotV, 2.1);
+          
+          // Realistic human flesh: warm skin tone on body contours, subcutaneous blood scattering
+          vec3 col = mix(uSkinTone, uSubsurface, fresnel * 0.75);
+          
+          // Soft organic dermis translucency to inspect internal organs & beating heart
+          float alpha = (0.16 + fresnel * 0.62) * uOrganAlpha;
           gl_FragColor = vec4(col, alpha);
         }
       `,
@@ -401,125 +417,151 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     orbitGroup.add(particles);
     heartGroup.add(orbitGroup);
 
-    // Load master anatomical GLB
-    getAnatomicalModel()
-      .then((loadedScene) => {
+    // Load master anatomical GLB via ArrayBuffer parsing (100% immune to WebGL context disposal bugs)
+    getAnatomicalGlbBuffer()
+      .then((rawBuffer) => {
         if (isCancelled) return;
-        const cloned = loadedScene.clone(true);
-        const allMeshes: THREE.Mesh[] = [];
-        cloned.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            allMeshes.push(child as THREE.Mesh);
-          }
-        });
+        const loader = new GLTFLoader();
+        // Parse a fresh slice of the buffer so geometries and materials are brand-new for this active renderer
+        loader.parse(
+          rawBuffer.slice(0),
+          '',
+          (gltf) => {
+            if (isCancelled) return;
+            const allMeshes: THREE.Mesh[] = [];
+            gltf.scene.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                allMeshes.push(child as THREE.Mesh);
+              }
+            });
 
-        allMeshes.forEach((mesh) => {
-          if (mesh.name === 'BodyTorso') {
-            mesh.material = torsoMaterial;
-            torsoMesh = mesh;
-            modelGroup.add(mesh);
-          } else if (mesh.name === 'Brain') {
-            mesh.material = brainMat;
-            brainMesh = mesh;
-            organGroup.add(mesh);
-          } else if (mesh.name === 'Trachea') {
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: 0x38bdf8,
-              roughness: 0.3,
-              metalness: 0.08,
-              transparent: true,
-              opacity: 0.9,
+            allMeshes.forEach((mesh) => {
+              if (mesh.name === 'BodyTorso') {
+                mesh.material = torsoMaterial;
+                torsoMesh = mesh;
+                modelGroup.add(mesh);
+              } else if (mesh.name === 'Brain') {
+                mesh.material = brainMat;
+                brainMesh = mesh;
+                organGroup.add(mesh);
+              } else if (mesh.name === 'RibCage') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0xebe3d5,
+                  roughness: 0.42,
+                  metalness: 0.05,
+                  transparent: true,
+                  opacity: 0.86,
+                });
+                ribCageMesh = mesh;
+                organGroup.add(mesh);
+              } else if (mesh.name === 'Trachea') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0xe0d6cb,
+                  roughness: 0.32,
+                  metalness: 0.05,
+                  transparent: true,
+                  opacity: 0.92,
+                });
+                organGroup.add(mesh);
+              } else if (mesh.name === 'Lungs') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0xc67c7c,
+                  roughness: 0.42,
+                  metalness: 0.04,
+                  transparent: true,
+                  opacity: 0.88,
+                });
+                organGroup.add(mesh);
+              } else if (mesh.name === 'Liver') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0x70241e,
+                  roughness: 0.35,
+                  metalness: 0.06,
+                  transparent: true,
+                  opacity: 0.92,
+                });
+                organGroup.add(mesh);
+              } else if (mesh.name === 'Stomach') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0xa04c54,
+                  roughness: 0.36,
+                  metalness: 0.05,
+                  transparent: true,
+                  opacity: 0.88,
+                });
+                organGroup.add(mesh);
+              } else if (mesh.name === 'Intestines') {
+                mesh.material = new THREE.MeshStandardMaterial({
+                  color: 0xb05a50,
+                  roughness: 0.36,
+                  metalness: 0.05,
+                  transparent: true,
+                  opacity: 0.90,
+                });
+                organGroup.add(mesh);
+              } else if (mesh.name === 'BloodVessels') {
+                // EXACTLY ONE THIN CAROTID VESSEL from Heart to Brain
+                mesh.material = vesselsMat;
+                vesselsMesh = mesh;
+                organGroup.add(mesh);
+              } else {
+                // Anatomical Heart structures: deep crimson biological shading
+                if (mesh.name === 'Myocardium') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x9e1a2b,
+                    roughness: 0.3,
+                    metalness: 0.12,
+                    emissive: 0x38050c,
+                    emissiveIntensity: 0.4,
+                  });
+                } else if (mesh.name === 'Aorta') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0xb8202e,
+                    roughness: 0.26,
+                    metalness: 0.08,
+                  });
+                } else if (mesh.name === 'PulmonaryArtery') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x344f6e, // Venous deoxygenated navy
+                    roughness: 0.3,
+                    metalness: 0.08,
+                  });
+                } else if (mesh.name === 'VenaCava') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x293e56,
+                    roughness: 0.32,
+                    metalness: 0.08,
+                  });
+                } else if (mesh.name === 'PulmonaryVeins') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x981e2b,
+                    roughness: 0.3,
+                    metalness: 0.08,
+                  });
+                } else if (mesh.name === 'CoronaryArteries') {
+                  mesh.material = coronaryMat;
+                  coronaryMesh = mesh;
+                } else if (mesh.name === 'CardiacVeins') {
+                  mesh.material = new THREE.MeshStandardMaterial({
+                    color: 0x2382b3,
+                    roughness: 0.22,
+                    emissive: 0x0e5d87,
+                    emissiveIntensity: 0.5,
+                  });
+                }
+                heartGroup.add(mesh);
+              }
             });
-            organGroup.add(mesh);
-          } else if (mesh.name === 'Lungs') {
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: 0x38bdf8,
-              roughness: 0.35,
-              metalness: 0.05,
-              transparent: true,
-              opacity: 0.88,
-            });
-            organGroup.add(mesh);
-          } else if (mesh.name === 'Liver') {
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: 0xbc4134,
-              roughness: 0.4,
-              metalness: 0.1,
-              transparent: true,
-              opacity: 0.88,
-            });
-            organGroup.add(mesh);
-          } else if (mesh.name === 'Stomach') {
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: 0xda6072,
-              roughness: 0.4,
-              metalness: 0.1,
-              transparent: true,
-              opacity: 0.88,
-            });
-            organGroup.add(mesh);
-          } else if (mesh.name === 'Intestines') {
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: isLight ? 0xf43f5e : 0xe11d48,
-              roughness: 0.35,
-              metalness: 0.1,
-              emissive: 0x881337,
-              emissiveIntensity: 0.45,
-              transparent: true,
-              opacity: 0.92,
-            });
-            organGroup.add(mesh);
-          } else if (mesh.name === 'BloodVessels') {
-            mesh.material = vesselsMat;
-            vesselsMesh = mesh;
-            organGroup.add(mesh);
-          } else {
-            // Heart structures: vivid crimson biological shading
-            if (mesh.name === 'Myocardium') {
-              mesh.material = new THREE.MeshStandardMaterial({
-                color: 0xe11d48,
-                roughness: 0.28,
-                metalness: 0.15,
-                emissive: 0x4a000d,
-                emissiveIntensity: 0.45,
-              });
-            } else if (mesh.name === 'Aorta') {
-              mesh.material = new THREE.MeshStandardMaterial({
-                color: 0xd71c2c,
-                roughness: 0.25,
-                metalness: 0.1,
-              });
-            } else if (mesh.name === 'PulmonaryArtery' || mesh.name === 'VenaCava') {
-              mesh.material = new THREE.MeshStandardMaterial({
-                color: 0x762052,
-                roughness: 0.3,
-                metalness: 0.1,
-              });
-            } else if (mesh.name === 'PulmonaryVeins') {
-              mesh.material = new THREE.MeshStandardMaterial({
-                color: 0xb41830,
-                roughness: 0.3,
-                metalness: 0.1,
-              });
-            } else if (mesh.name === 'CoronaryArteries') {
-              mesh.material = coronaryMat;
-              coronaryMesh = mesh;
-            } else if (mesh.name === 'CardiacVeins') {
-              mesh.material = new THREE.MeshStandardMaterial({
-                color: 0x18b9f5,
-                roughness: 0.2,
-                emissive: 0x00c8ff,
-                emissiveIntensity: 0.7,
-              });
-            }
-            heartGroup.add(mesh);
-          }
-        });
 
-        setModelLoaded(true);
+            setModelLoaded(true);
+          },
+          (err) => {
+            console.error('Failed to parse anatomical model GLB:', err);
+          }
+        );
       })
       .catch((err) => {
-        console.error('Failed to load master anatomical model:', err);
+        console.error('Failed to download master anatomical GLB:', err);
       });
 
     // Camera animation state
@@ -605,6 +647,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerUp);
+    canvas.addEventListener('dblclick', handleToggleViewMode);
 
     // Main 60-120 FPS Hardware Render Loop
     const renderFrame = (now: number) => {
@@ -721,6 +764,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('dblclick', handleToggleViewMode);
       renderer.dispose();
     };
   }, []);
