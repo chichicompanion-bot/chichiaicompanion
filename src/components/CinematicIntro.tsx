@@ -18,19 +18,27 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({
   useEffect(() => {
     if (!visible) return;
     if (reducedMotion) {
-      const fastTimer = setTimeout(onComplete, 350);
+      const fastTimer = setTimeout(onComplete, 250);
       return () => clearTimeout(fastTimer);
     }
 
     setStep(1);
-    const t1 = setTimeout(() => setStep(2), 550);
-    const t2 = setTimeout(() => setStep(3), 1250);
-    const t3 = setTimeout(() => onComplete(), 2550);
+    const t1 = setTimeout(() => setStep(2), 500);
+    const t2 = setTimeout(() => setStep(3), 1150);
+    const t3 = setTimeout(() => onComplete(), 2350);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+        onComplete();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      window.removeEventListener('keydown', onKeyDown);
     };
   }, [visible, onComplete, reducedMotion]);
 
@@ -41,7 +49,8 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({
           key="nexus-cinematic-intro"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, filter: 'blur(10px)', transition: { duration: 0.45, ease: 'easeInOut' } }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#040710] text-[#F0F6FC] overflow-hidden select-none"
+          onClick={onComplete}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#040710] text-[#F0F6FC] overflow-hidden select-none cursor-pointer"
         >
           {/* 1. Slow moving cyan light sweep */}
           <motion.div

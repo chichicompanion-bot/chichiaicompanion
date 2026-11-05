@@ -33,13 +33,13 @@ const NAV_ITEMS: Array<{
   sublabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { id: 'overview', label: 'Overview', sublabel: 'Tổng quan sinh học', icon: LayoutDashboard },
-  { id: 'live', label: 'Live Monitoring', sublabel: 'Sóng PPG & Telemetry', icon: Activity },
-  { id: 'heart', label: 'Heart Analytics', sublabel: 'Tim mạch, SpO₂ & HRV', icon: HeartPulse },
-  { id: 'activity', label: 'Activity & Sleep', sublabel: 'Vận động & Giấc ngủ', icon: Moon },
-  { id: 'history', label: 'Health History', sublabel: 'Lịch sử đo & Xuất CSV', icon: History },
-  { id: 'device', label: 'Device Management', sublabel: 'Vòng tay ESP32 + MAX30102', icon: Cpu },
-  { id: 'settings', label: 'Settings', sublabel: 'Cấu hình & Giao diện', icon: Settings },
+  { id: 'overview', label: 'Tổng quan', sublabel: 'Chỉ số sinh tồn', icon: LayoutDashboard },
+  { id: 'heart', label: 'Cơ thể 3D', sublabel: 'Mô hình cơ thể & Tim', icon: HeartPulse },
+  { id: 'live', label: 'Sóng Live', sublabel: 'PPG & Telemetry thời gian thực', icon: Activity },
+  { id: 'activity', label: 'Vận động & Giấc ngủ', sublabel: 'Activity Rings & Sleep', icon: Moon },
+  { id: 'history', label: 'Lịch sử đo', sublabel: 'Tra cứu & Xuất CSV', icon: History },
+  { id: 'device', label: 'Vòng tay ESP32', sublabel: 'Quản lý phần cứng', icon: Cpu },
+  { id: 'settings', label: 'Cài đặt', sublabel: 'Cấu hình & Giao diện', icon: Settings },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({

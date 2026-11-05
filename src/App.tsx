@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck,
   Sparkles,
@@ -12,6 +12,9 @@ import {
   Activity,
   HeartPulse,
   History,
+  LayoutDashboard,
+  Settings,
+  ChevronRight,
 } from 'lucide-react';
 import {
   ChartMetricKey,
@@ -39,7 +42,6 @@ import { DeviceStatusPanel } from './components/DeviceStatusPanel';
 import { HealthMapPanel } from './components/HealthMapPanel';
 import { MetricDetailModal } from './components/MetricDetailModal';
 import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
-import { HealthInsightNotificationCards } from './components/HealthInsightNotificationCards';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -51,8 +53,30 @@ export const App: React.FC = () => {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   });
 
-  // Cinematic Intro: disabled by default for instant 0ms launch without black screen (can be replayed manually)
-  const [showIntro, setShowIntro] = useState<boolean>(false);
+  // Cinematic Intro: runs once per session (or when replayed)
+  const [showIntro, setShowIntro] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const seen = sessionStorage.getItem('nexus_intro_seen');
+    return !seen;
+  });
+
+  const handleCompleteIntro = useCallback(() => {
+    sessionStorage.setItem('nexus_intro_seen', '1');
+    setShowIntro(false);
+  }, []);
+
+  const handleReplayIntro = useCallback(() => {
+    setShowIntro(true);
+  }, []);
+
+  // Bulletproof safety: ensure dashboard ALWAYS unlocks after max 3.2s
+  useEffect(() => {
+    if (!showIntro) return;
+    const safeTimer = setTimeout(() => {
+      handleCompleteIntro();
+    }, 3200);
+    return () => clearTimeout(safeTimer);
+  }, [showIntro, handleCompleteIntro]);
 
   const [isLightMode, setIsLightMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -91,15 +115,6 @@ export const App: React.FC = () => {
       root.classList.remove('light');
     }
   }, [isLightMode]);
-
-  const handleCompleteIntro = useCallback(() => {
-    sessionStorage.setItem('nexus_intro_seen', '1');
-    setShowIntro(false);
-  }, []);
-
-  const handleReplayIntro = useCallback(() => {
-    setShowIntro(true);
-  }, []);
 
   // Poll Live ESP32 endpoint when in Live mode
   const refreshLiveTelemetry = useCallback(async () => {
@@ -233,27 +248,20 @@ export const App: React.FC = () => {
             }
           />
 
-          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto pb-24 lg:pb-8">
-            {/* Scientific Integrity & Hardware Mode Notice Bar */}
-            <motion.div
-              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="rounded-2xl nexus-glass px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-l-4 border-l-cyan-400"
-            >
-              <div className="flex items-center gap-2.5 text-xs text-slate-300">
-                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span>
-                  {dataMode === 'demo' ? (
-                    <>
-                      Đang chạy ở chế độ <strong>DEMO SIMULATION</strong> (dữ liệu mô phỏng có giới hạn hợp lý để kiểm thử giao diện, không phải dữ liệu đo từ bệnh nhân thật).
-                    </>
-                  ) : (
-                    <>
-                      Đang chạy ở chế độ <strong>LIVE ESP32 MODE</strong> — chỉ hiển thị trạng thái Connected khi nhận gói tin hợp lệ từ mạch ESP32 + MAX30102 qua{' '}
-                      <code className="font-mono-tech text-cyan-300">/api/telemetry</code>.
-                    </>
-                  )}
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-[1600px] w-full mx-auto pb-28 lg:pb-8">
+            {/* Minimalist Status Bar (Decluttered, compact & clean) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-2xl nexus-glass border border-slate-200/90 dark:border-slate-800/80">
+              <div className="flex items-center gap-2.5 text-xs">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono-tech font-semibold ${
+                  dataMode === 'demo'
+                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/40'
+                    : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dataMode === 'demo' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                  {dataMode === 'demo' ? 'DEMO SIMULATION' : 'LIVE ESP32 CONNECTED'}
+                </span>
+                <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px] font-mono-tech">
+                  ESP32-S3 • MAX30102 Telemetry OS
                 </span>
               </div>
 
@@ -261,89 +269,159 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
-                  className="px-3 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-[11px] font-mono-tech text-cyan-200 transition-all cursor-pointer"
+                  className="px-3 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30 text-[11px] font-mono-tech transition cursor-pointer active:scale-95"
                 >
-                  Chuyển sang {dataMode === 'demo' ? 'LIVE ESP32 MODE' : 'DEMO MODE'}
+                  Chuyển sang {dataMode === 'demo' ? 'LIVE ESP32' : 'DEMO MODE'}
                 </button>
               </div>
-            </motion.div>
+            </div>
 
-            {/* VIEW: OVERVIEW (Shows 3D Heart Hero Command Center + all modules) */}
-            {activeSection === 'overview' && (
-              <>
-                {/* 5 HORIZONTAL NOTIFICATION / HEALTH INSIGHT CARDS (Swipeable on Mobile) */}
-                <HealthInsightNotificationCards
-                  onSelectMetric={handleSelectCardMetric}
-                  onOpenSection={(sec) => setActiveSection(sec)}
-                  isLightMode={isLightMode}
-                />
+            {/* SEPARATED PAGES WITH SMOOTH ANIMATION */}
+            <AnimatePresence mode="wait">
+              {/* 1. VIEW: TỔNG QUAN (OVERVIEW) */}
+              {activeSection === 'overview' && (
+                <motion.div
+                  key="page-overview"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
+                  {/* Hero Shortcut Card to 3D Body */}
+                  <div
+                    onClick={() => setActiveSection('heart')}
+                    className="group relative overflow-hidden rounded-2xl md:rounded-3xl p-4 sm:p-5 nexus-glass border border-slate-200/90 dark:border-cyan-500/30 shadow-sm hover:shadow-md transition-all cursor-pointer bg-gradient-to-r from-sky-50 via-white to-rose-50/60 dark:from-slate-900 dark:via-slate-900/90 dark:to-rose-950/20"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/30 shrink-0 group-hover:scale-105 transition-transform">
+                          <HeartPulse className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono-tech font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                              3D INTERACTIVE HERO
+                            </span>
+                            <span className="text-xs text-slate-400 hidden sm:inline">• Mô hình giải phẫu</span>
+                          </div>
+                          <h2 className="text-base sm:text-lg font-bold font-display text-slate-900 dark:text-white truncate mt-0.5">
+                            Khám phá Mô Hình Cơ Thể 3D &amp; Cận Cảnh Trái Tim
+                          </h2>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5">
+                            Chạm xoay 360°, soi nội tạng, não bộ &amp; phóng to nhịp đập 4 biểu đồ HUD.
+                          </p>
+                        </div>
+                      </div>
 
-                {/* 3D ANATOMICAL HEART COMMAND CENTER HERO */}
-                <BiomedicalHeartCommandCenter
-                  metrics={metrics}
-                  series={series}
-                  deviceStatus={deviceStatus}
-                  dataMode={dataMode}
-                  ppgWave={ppgWaveform}
-                  reducedMotion={reducedMotion}
-                  isLightMode={isLightMode}
-                  onSelectMetricModal={handleSelectCardMetric}
-                  onSwitchDataMode={setDataMode}
-                />
-
-                {/* 7 Health Metric Cards Grid (2 columns on mobile matching Apple Fitness Image 2) */}
-                <section aria-label="Các chỉ số sức khỏe">
-                  {searchQuery && (
-                    <div className="mb-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                      <span>Kết quả tìm kiếm cho: &ldquo;<strong className="text-cyan-500">{searchQuery}</strong>&rdquo;</span>
                       <button
-                        onClick={() => setSearchQuery('')}
-                        className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
+                        type="button"
+                        className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-cyan-500/20 text-white dark:text-cyan-200 text-xs font-semibold shadow-sm group-hover:bg-cyan-600 transition"
                       >
-                        Xóa tìm kiếm
+                        <span>Mở Mô Hình 3D</span>
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
-                  )}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                    {metrics
-                      .filter((m) => {
-                        if (!searchQuery.trim()) return true;
-                        const q = searchQuery.toLowerCase().trim();
-                        return (
-                          m.title.toLowerCase().includes(q) ||
-                          m.vietnameseTitle.toLowerCase().includes(q) ||
-                          m.key.toLowerCase().includes(q) ||
-                          m.unit.toLowerCase().includes(q)
-                        );
-                      })
-                      .map((m, idx) => (
-                        <MetricCard
-                          key={m.key}
-                          metric={m}
-                          index={idx}
-                          reducedMotion={reducedMotion}
-                          isSelected={selectedChartMetric === m.key}
-                          onSelect={handleSelectCardMetric}
-                        />
-                      ))}
                   </div>
-                  {searchQuery && metrics.filter((m) => {
-                    const q = searchQuery.toLowerCase().trim();
-                    return (
-                      m.title.toLowerCase().includes(q) ||
-                      m.vietnameseTitle.toLowerCase().includes(q) ||
-                      m.key.toLowerCase().includes(q) ||
-                      m.unit.toLowerCase().includes(q)
-                    );
-                  }).length === 0 && (
-                    <div className="p-6 text-center text-sm text-slate-400 nexus-card rounded-2xl">
-                      Không tìm thấy chỉ số sinh tồn nào khớp với từ khóa &ldquo;{searchQuery}&rdquo;.
-                    </div>
-                  )}
-                </section>
 
-                {/* Live Health Analytics Chart + PPG Waveform */}
-                <section aria-label="Biểu đồ phân tích thời gian thực">
+                  {/* 7 Health Metric Cards Grid */}
+                  <section aria-label="Các chỉ số sức khỏe">
+                    {searchQuery && (
+                      <div className="mb-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                        <span>Kết quả tìm kiếm: &ldquo;<strong className="text-cyan-500">{searchQuery}</strong>&rdquo;</span>
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline cursor-pointer"
+                        >
+                          Xóa tìm kiếm
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                      {metrics
+                        .filter((m) => {
+                          if (!searchQuery.trim()) return true;
+                          const q = searchQuery.toLowerCase().trim();
+                          return (
+                            m.title.toLowerCase().includes(q) ||
+                            m.vietnameseTitle.toLowerCase().includes(q) ||
+                            m.key.toLowerCase().includes(q) ||
+                            m.unit.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((m, idx) => (
+                          <MetricCard
+                            key={m.key}
+                            metric={m}
+                            index={idx}
+                            reducedMotion={reducedMotion}
+                            isSelected={selectedChartMetric === m.key}
+                            onSelect={handleSelectCardMetric}
+                          />
+                        ))}
+                    </div>
+                  </section>
+
+                  {/* Activity Rings & Sleep Summary */}
+                  <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <ActivityRings
+                      rings={activityRings}
+                      dataMode={dataMode}
+                      reducedMotion={reducedMotion}
+                    />
+                    <SleepAnalytics sleep={sleepSummary} />
+                  </section>
+                </motion.div>
+              )}
+
+              {/* 2. VIEW: CƠ THỂ 3D (HEART & FULL BODY) - DEDICATED INDEPENDENT PAGE */}
+              {activeSection === 'heart' && (
+                <motion.div
+                  key="page-body3d"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
+                  <BiomedicalHeartCommandCenter
+                    metrics={metrics}
+                    series={series}
+                    deviceStatus={deviceStatus}
+                    dataMode={dataMode}
+                    ppgWave={ppgWaveform}
+                    reducedMotion={reducedMotion}
+                    isLightMode={isLightMode}
+                    onSelectMetricModal={handleSelectCardMetric}
+                    onSwitchDataMode={setDataMode}
+                  />
+
+                  {/* Compact Quick Readout Strip below 3D Stage */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {metrics.slice(0, 4).map((m, idx) => (
+                      <MetricCard
+                        key={m.key}
+                        metric={m}
+                        index={idx}
+                        reducedMotion={reducedMotion}
+                        isSelected={selectedChartMetric === m.key}
+                        onSelect={handleSelectCardMetric}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 3. VIEW: SÓNG LIVE & TELEMETRY */}
+              {activeSection === 'live' && (
+                <motion.div
+                  key="page-live"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
                   <LiveAnalyticsChart
                     series={series}
                     ppgWave={ppgWaveform}
@@ -356,20 +434,73 @@ export const App: React.FC = () => {
                     isLoading={isLoadingLive}
                     onSendTestPacket={handleSendTestPacket}
                   />
-                </section>
-
-                {/* Activity Rings & Sleep Analytics Side-by-Side */}
-                <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <ActivityRings
-                    rings={activityRings}
+                  <DeviceStatusPanel
+                    device={deviceStatus}
                     dataMode={dataMode}
-                    reducedMotion={reducedMotion}
+                    onReconnect={refreshLiveTelemetry}
+                    onSendTestPacket={handleSendTestPacket}
                   />
-                  <SleepAnalytics sleep={sleepSummary} />
-                </section>
+                </motion.div>
+              )}
 
-                {/* Device Status & Optional GPS Map */}
-                <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* 4. VIEW: VẬN ĐỘNG & GIẤC NGỦ */}
+              {activeSection === 'activity' && (
+                <motion.div
+                  key="page-activity"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {metrics
+                      .filter((m) => m.key === 'steps' || m.key === 'sleep' || m.key === 'stress')
+                      .map((m, idx) => (
+                        <MetricCard
+                          key={m.key}
+                          metric={m}
+                          index={idx}
+                          reducedMotion={reducedMotion}
+                          isSelected={modalMetricKey === m.key}
+                          onSelect={handleSelectCardMetric}
+                        />
+                      ))}
+                  </div>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <ActivityRings
+                      rings={activityRings}
+                      dataMode={dataMode}
+                      reducedMotion={reducedMotion}
+                    />
+                    <SleepAnalytics sleep={sleepSummary} />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 5. VIEW: LỊCH SỬ ĐO */}
+              {activeSection === 'history' && (
+                <motion.div
+                  key="page-history"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
+                  <HealthHistory records={historyRecords} dataMode={dataMode} />
+                </motion.div>
+              )}
+
+              {/* 6. VIEW: THIẾT BỊ ESP32 */}
+              {activeSection === 'device' && (
+                <motion.div
+                  key="page-device"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
                   <DeviceStatusPanel
                     device={deviceStatus}
                     dataMode={dataMode}
@@ -377,336 +508,222 @@ export const App: React.FC = () => {
                     onSendTestPacket={handleSendTestPacket}
                   />
                   <HealthMapPanel />
-                </section>
+                </motion.div>
+              )}
 
-                {/* Health History Table */}
-                <section>
-                  <HealthHistory records={historyRecords} dataMode={dataMode} />
-                </section>
-              </>
-            )}
-
-            {/* VIEW: LIVE MONITORING */}
-            {activeSection === 'live' && (
-              <>
-                <BiomedicalHeartCommandCenter
-                  metrics={metrics}
-                  series={series}
-                  deviceStatus={deviceStatus}
-                  dataMode={dataMode}
-                  ppgWave={ppgWaveform}
-                  reducedMotion={reducedMotion}
-                  isLightMode={isLightMode}
-                  onSelectMetricModal={handleSelectCardMetric}
-                  onSwitchDataMode={setDataMode}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {metrics.slice(0, 4).map((m, idx) => (
-                    <MetricCard
-                      key={m.key}
-                      metric={m}
-                      index={idx}
-                      reducedMotion={reducedMotion}
-                      isSelected={selectedChartMetric === m.key}
-                      onSelect={handleSelectCardMetric}
-                    />
-                  ))}
-                </div>
-                <LiveAnalyticsChart
-                  series={series}
-                  ppgWave={ppgWaveform}
-                  selectedMetric={selectedChartMetric}
-                  onSelectMetric={setSelectedChartMetric}
-                  timeRange={timeRange}
-                  onChangeTimeRange={setTimeRange}
-                  dataMode={dataMode}
-                  isConnected={deviceStatus.connectionState === 'connected'}
-                  isLoading={isLoadingLive}
-                  onSendTestPacket={handleSendTestPacket}
-                />
-                <DeviceStatusPanel
-                  device={deviceStatus}
-                  dataMode={dataMode}
-                  onReconnect={refreshLiveTelemetry}
-                  onSendTestPacket={handleSendTestPacket}
-                />
-              </>
-            )}
-
-            {/* VIEW: HEART ANALYTICS */}
-            {activeSection === 'heart' && (
-              <>
-                <BiomedicalHeartCommandCenter
-                  metrics={metrics}
-                  series={series}
-                  deviceStatus={deviceStatus}
-                  dataMode={dataMode}
-                  ppgWave={ppgWaveform}
-                  reducedMotion={reducedMotion}
-                  isLightMode={isLightMode}
-                  onSelectMetricModal={handleSelectCardMetric}
-                  onSwitchDataMode={setDataMode}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {metrics
-                    .filter((m) => m.key === 'heartRate' || m.key === 'spo2' || m.key === 'hrv')
-                    .map((m, idx) => (
-                      <MetricCard
-                        key={m.key}
-                        metric={m}
-                        index={idx}
-                        reducedMotion={reducedMotion}
-                        isSelected={selectedChartMetric === m.key}
-                        onSelect={handleSelectCardMetric}
-                      />
-                    ))}
-                </div>
-                <LiveAnalyticsChart
-                  series={series}
-                  ppgWave={ppgWaveform}
-                  selectedMetric={selectedChartMetric}
-                  onSelectMetric={setSelectedChartMetric}
-                  timeRange={timeRange}
-                  onChangeTimeRange={setTimeRange}
-                  dataMode={dataMode}
-                  isConnected={deviceStatus.connectionState === 'connected'}
-                  isLoading={isLoadingLive}
-                  onSendTestPacket={handleSendTestPacket}
-                />
-              </>
-            )}
-
-            {/* VIEW: ACTIVITY & SLEEP */}
-            {activeSection === 'activity' && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {metrics
-                    .filter((m) => m.key === 'steps' || m.key === 'sleep' || m.key === 'stress')
-                    .map((m, idx) => (
-                      <MetricCard
-                        key={m.key}
-                        metric={m}
-                        index={idx}
-                        reducedMotion={reducedMotion}
-                        isSelected={modalMetricKey === m.key}
-                        onSelect={handleSelectCardMetric}
-                      />
-                    ))}
-                </div>
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <ActivityRings
-                    rings={activityRings}
-                    dataMode={dataMode}
-                    reducedMotion={reducedMotion}
-                  />
-                  <SleepAnalytics sleep={sleepSummary} />
-                </div>
-              </>
-            )}
-
-            {/* VIEW: HEALTH HISTORY */}
-            {activeSection === 'history' && (
-              <HealthHistory records={historyRecords} dataMode={dataMode} />
-            )}
-
-            {/* VIEW: DEVICE MANAGEMENT */}
-            {activeSection === 'device' && (
-              <div className="space-y-6">
-                <DeviceStatusPanel
-                  device={deviceStatus}
-                  dataMode={dataMode}
-                  onReconnect={refreshLiveTelemetry}
-                  onSendTestPacket={handleSendTestPacket}
-                />
-                <HealthMapPanel />
-              </div>
-            )}
-
-            {/* VIEW: SETTINGS */}
-            {activeSection === 'settings' && (
-              <div className="rounded-2xl nexus-glass p-6 space-y-6 max-w-3xl">
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-                  <Sliders className="w-5 h-5 text-cyan-400" />
-                  <div>
-                    <h2 className="font-display font-bold text-lg">
-                      Cấu hình Hệ thống & Trải nghiệm Giao diện
-                    </h2>
-                    <p className="text-xs text-slate-400">
-                      Quản lý chế độ dữ liệu (Demo/Live), hiệu ứng chuyển động và giao diện Sáng/Tối
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Data Mode Setting */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+              {/* 7. VIEW: CÀI ĐẶT */}
+              {activeSection === 'settings' && (
+                <motion.div
+                  key="page-settings"
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className="rounded-2xl nexus-glass p-6 space-y-6 max-w-3xl border border-slate-200/90 dark:border-slate-800"
+                >
+                  <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <Sliders className="w-5 h-5 text-cyan-500" />
                     <div>
-                      <div className="font-medium text-sm flex items-center gap-2">
-                        <Radio className="w-4 h-4 text-cyan-400" />
-                        <span>Chế độ nguồn dữ liệu (Data Source Mode)</span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Chuyển giữa dữ liệu giả lập (Demo Mode) và nhận gói tin thực từ mạch ESP32 (Live Mode).
+                      <h2 className="font-display font-bold text-lg text-slate-900 dark:text-white">
+                        Cấu hình Hệ thống &amp; Trải nghiệm
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Quản lý chế độ dữ liệu, giao diện Sáng/Tối và hiệu ứng chuyển động
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
-                      className="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-xs font-mono-tech text-cyan-200 cursor-pointer"
-                    >
-                      Đang bật: {dataMode.toUpperCase()} MODE
-                    </button>
                   </div>
 
-                  {/* Theme Setting */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <div>
-                      <div className="font-medium text-sm flex items-center gap-2">
-                        {isLightMode ? (
-                          <Sun className="w-4 h-4 text-amber-400" />
-                        ) : (
-                          <Moon className="w-4 h-4 text-cyan-400" />
-                        )}
-                        <span>Chế độ Giao diện (Dark / Light Theme)</span>
+                  <div className="space-y-4">
+                    {/* Data Mode Setting */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-medium text-sm flex items-center gap-2 text-slate-900 dark:text-white">
+                          <Radio className="w-4 h-4 text-cyan-500" />
+                          <span>Chế độ nguồn dữ liệu (Data Mode)</span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Chuyển giữa giả lập mô phỏng và nhận gói tin thật từ mạch ESP32.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Chế độ Sáng (Light Mode) sử dụng bảng trắng tinh khiết (#FFFFFF); Chế độ Tối (Dark Mode) sử dụng nền Obsidian Navy.
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
+                        className="px-4 py-2 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-xs font-mono-tech text-cyan-700 dark:text-cyan-300 cursor-pointer"
+                      >
+                        Đang bật: {dataMode.toUpperCase()} MODE
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsLightMode((m) => !m)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono-tech text-slate-200 cursor-pointer"
-                    >
-                      {isLightMode ? 'Đang dùng: LIGHT MODE (Bảng Trắng)' : 'Đang dùng: DARK MODE'}
-                    </button>
-                  </div>
 
-                  {/* Reduced Motion Setting */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <div>
-                      <div className="font-medium text-sm flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-emerald-400" />
-                        <span>Giảm chuyển động (Reduced Motion)</span>
+                    {/* Theme Setting */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-medium text-sm flex items-center gap-2 text-slate-900 dark:text-white">
+                          {isLightMode ? (
+                            <Sun className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <Moon className="w-4 h-4 text-cyan-400" />
+                          )}
+                          <span>Giao diện Sáng / Tối (Theme Mode)</span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Giao diện Sáng Bạc dịu mắt (Light Silver) hoặc Giao diện Tối Obsidian (Dark Mode).
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Tắt hiệu ứng nghiêng 3D parallax và hạt sáng nền để tối ưu pin & hiệu năng.
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsLightMode((m) => !m)}
+                        className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono-tech text-slate-800 dark:text-slate-200 cursor-pointer shadow-xs"
+                      >
+                        {isLightMode ? 'Đang dùng: Giao diện Sáng Dịu Mắt' : 'Đang dùng: Giao diện Tối'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setReducedMotion((r) => !r)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono-tech text-slate-200 cursor-pointer"
-                    >
-                      {reducedMotion ? 'Đang BẬT giảm chuyển động' : 'Hiệu ứng đầy đủ (Mặc định)'}
-                    </button>
-                  </div>
 
-                  {/* Replay Cinematic Intro */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <div>
-                      <div className="font-medium text-sm flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-cyan-400" />
-                        <span>Cinematic Intro Animation</span>
+                    {/* Reduced Motion Setting */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-medium text-sm flex items-center gap-2 text-slate-900 dark:text-white">
+                          <Zap className="w-4 h-4 text-emerald-500" />
+                          <span>Giảm chuyển động (Reduced Motion)</span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Tắt hoạt ảnh để tối ưu pin và tăng tốc độ xử lý tối đa.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Xem lại hiệu ứng khởi động hệ thống SMARTWATCH HEALTH (2.5 giây).
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setReducedMotion((r) => !r)}
+                        className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono-tech text-slate-800 dark:text-slate-200 cursor-pointer shadow-xs"
+                      >
+                        {reducedMotion ? 'Đang BẬT giảm chuyển động' : 'Hiệu ứng đầy đủ (Mượt 60-120 FPS)'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleReplayIntro}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-xs font-mono-tech text-cyan-200 cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      <span>Phát lại Intro ngay</span>
-                    </button>
+
+                    {/* Replay Cinematic Intro */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-medium text-sm flex items-center gap-2 text-slate-900 dark:text-white">
+                          <Sparkles className="w-4 h-4 text-cyan-500" />
+                          <span>Cinematic Intro Mở Đầu</span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Phát lại hiệu ứng animation khởi động hệ thống SMARTWATCH HEALTH.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleReplayIntro}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-xs font-mono-tech text-cyan-700 dark:text-cyan-300 cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        <span>Phát lại Intro ngay</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </main>
 
-          {/* Footer */}
-          <footer className="px-6 py-4 border-t border-slate-800/60 text-[11px] font-mono-tech text-slate-400 flex flex-wrap items-center justify-between gap-2">
+          {/* Clean Footer */}
+          <footer className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800/60 text-[11px] font-mono-tech text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
             <span>
-              SMARTWATCH HEALTH BIOMEDICAL DASHBOARD • DỰ ÁN KHOA HỌC KỸ THUẬT VÒNG TAY THÔNG MINH ESP32 + MAX30102
+              SMARTWATCH HEALTH • HỆ THỐNG GIÁM SÁT SINH HỌC VÒNG TAY ESP32
             </span>
             <span>
-              CHẾ ĐỘ HIỆN TẠI: {dataMode.toUpperCase()} • CỔNG API: /api/telemetry
+              {dataMode.toUpperCase()} MODE • API /api/telemetry
             </span>
           </footer>
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar (Apple Fitness Image 2 style) */}
-      <nav aria-label="Điều hướng nhanh điện thoại" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md px-3 py-1.5 flex items-center justify-around text-[10px] font-mono-tech shadow-lg">
+      {/* Mobile Floating Pill Dock Navigation Bar (5 Items with 3D Body Centered) */}
+      <nav
+        aria-label="Điều hướng nhanh điện thoại"
+        className="lg:hidden fixed bottom-3 left-3 right-3 max-w-md mx-auto z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-full p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18)] border border-slate-200/90 dark:border-slate-800/90 flex items-center justify-between text-[10px] font-mono-tech transition-all"
+      >
+        {/* 1. Tổng quan */}
         <button
           type="button"
           onClick={() => {
             setActiveSection('overview');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
             activeSection === 'overview'
-              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-400/35 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>Tóm tắt</span>
+          <LayoutDashboard className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5 font-medium">Tổng quan</span>
         </button>
+
+        {/* 2. Sóng Live */}
         <button
           type="button"
           onClick={() => {
-            setActiveSection('overview');
-            const el = document.querySelector('section[aria-label="3D Biomedical Body & Heart Command Center"]');
-            el?.scrollIntoView({ behavior: 'smooth' });
+            setActiveSection('live');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
-            activeSection === 'heart'
-              ? 'text-rose-600 dark:text-rose-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
-          }`}
-        >
-          <HeartPulse className="w-4 h-4" />
-          <span>Cơ thể 3D</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveSection('live')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
             activeSection === 'live'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-400/35 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
           }`}
         >
           <Activity className="w-4 h-4" />
-          <span>Sóng Live</span>
+          <span className="text-[9px] mt-0.5 font-medium">Sóng Live</span>
         </button>
+
+        {/* 3. Cơ thể 3D (CENTERPIECE CAPSULE) */}
         <button
           type="button"
-          onClick={() => setActiveSection('history')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+          onClick={() => {
+            setActiveSection('heart');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3.5 rounded-full transition-all cursor-pointer transform active:scale-95 ${
+            activeSection === 'heart'
+              ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold shadow-md shadow-rose-500/30'
+              : 'bg-slate-100 dark:bg-slate-800/90 text-rose-600 dark:text-rose-400 font-semibold border border-rose-300/40'
+          }`}
+        >
+          <HeartPulse className="w-4 h-4 animate-pulse" />
+          <span className="text-[9px] mt-0.5 font-medium">Cơ thể 3D</span>
+        </button>
+
+        {/* 4. Lịch sử */}
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSection('history');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
             activeSection === 'history'
-              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-400/35 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
           }`}
         >
           <History className="w-4 h-4" />
-          <span>Lịch sử</span>
+          <span className="text-[9px] mt-0.5 font-medium">Lịch sử</span>
         </button>
+
+        {/* 5. Cài đặt */}
         <button
           type="button"
-          onClick={() => setActiveSection('settings')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition ${
+          onClick={() => {
+            setActiveSection('settings');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-full transition-all cursor-pointer ${
             activeSection === 'settings'
-              ? 'text-cyan-600 dark:text-cyan-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
+              ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-400/35 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
           }`}
         >
-          <Sliders className="w-4 h-4" />
-          <span>Cài đặt</span>
+          <Settings className="w-4 h-4" />
+          <span className="text-[9px] mt-0.5 font-medium">Cài đặt</span>
         </button>
       </nav>
 

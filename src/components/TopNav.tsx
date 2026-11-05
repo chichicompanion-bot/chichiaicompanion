@@ -43,32 +43,32 @@ interface TopNavProps {
 
 const SECTION_TITLES: Record<NavSection, { title: string; subtitle: string }> = {
   overview: {
-    title: 'Biomedical Command Center',
-    subtitle: 'Giám sát tổng thể 7 chỉ số sinh tồn & tín hiệu vòng tay thông minh',
+    title: 'Tổng Quan Sinh Học',
+    subtitle: 'Chỉ số sinh tồn & đồng bộ thời gian thực',
   },
   live: {
-    title: 'Live Optical PPG & Telemetry Stream',
-    subtitle: 'Luồng sóng quang học MAX30102 & gói dữ liệu thời gian thực từ ESP32',
+    title: 'Sóng Live & Telemetry',
+    subtitle: 'Tín hiệu quang học PPG & luồng dữ liệu thời gian thực',
   },
   heart: {
-    title: 'Cardiovascular & Autonomic Analytics',
-    subtitle: 'Phân tích chuyên sâu Nhịp tim (BPM), Oxy máu (SpO₂) và Biến thiên nhịp tim (HRV)',
+    title: 'Mô Hình Cơ Thể 3D',
+    subtitle: 'Mô phỏng 3D cơ thể người, lục phủ ngũ tạng & nhịp tim sinh học',
   },
   activity: {
-    title: 'Activity Rings & Sleep Architecture',
-    subtitle: 'Vòng năng lượng vận động MPU6050 & ước tính chu kỳ giấc ngủ',
+    title: 'Vận Động & Giấc Ngủ',
+    subtitle: 'Vòng vận động năng lượng & chu kỳ giấc ngủ',
   },
   history: {
-    title: 'Health Telemetry History & Export',
-    subtitle: 'Tra cứu bản ghi theo thời gian, lọc theo cảm biến và xuất báo cáo CSV',
+    title: 'Lịch Sử Đo',
+    subtitle: 'Nhật ký dữ liệu sinh trắc học & xuất báo cáo CSV',
   },
   device: {
-    title: 'ESP32 Wearable Hardware & API Gateway',
-    subtitle: 'Trạng thái phần cứng, tỷ lệ gói tin hợp lệ & tài liệu tích hợp firmware ESP32',
+    title: 'Vòng Tay ESP32',
+    subtitle: 'Trạng thái kết nối phần cứng ESP32-S3 + MAX30102',
   },
   settings: {
-    title: 'System Preferences & Calibration',
-    subtitle: 'Chuyển đổi chế độ Demo/Live, giao diện Sáng/Tối và tùy chỉnh chuyển động',
+    title: 'Cài Đặt',
+    subtitle: 'Tùy chỉnh giao diện và cấu hình hệ thống',
   },
 };
 

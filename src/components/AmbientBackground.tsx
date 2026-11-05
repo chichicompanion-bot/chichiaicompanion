@@ -13,7 +13,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = React.memo(
         className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none"
         style={{
           background: isLightMode
-            ? '#ffffff'
+            ? 'radial-gradient(ellipse at 50% 0%, #ffffff 0%, #f1f5f9 65%, #e2e8f0 100%)'
             : 'radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.08), transparent 45%), radial-gradient(circle at 85% 35%, rgba(0, 229, 163, 0.06), transparent 45%), radial-gradient(circle at 50% 90%, rgba(2, 132, 199, 0.06), transparent 50%)',
         }}
       >
