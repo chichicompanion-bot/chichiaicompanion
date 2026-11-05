@@ -51,12 +51,8 @@ export const App: React.FC = () => {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   });
 
-  // Cinematic Intro runs once per session (or when replayed)
-  const [showIntro, setShowIntro] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const seen = sessionStorage.getItem('nexus_intro_seen');
-    return !seen;
-  });
+  // Cinematic Intro: disabled by default for instant 0ms launch without black screen (can be replayed manually)
+  const [showIntro, setShowIntro] = useState<boolean>(false);
 
   const [isLightMode, setIsLightMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

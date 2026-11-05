@@ -110,6 +110,9 @@ function localTelemetryApiPlugin(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss(), localTelemetryApiPlugin()],
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'framer-motion', 'recharts', 'three', 'lucide-react', 'clsx', 'tailwind-merge'],
+  },
   build: {
     outDir: 'web',
     emptyOutDir: true,

@@ -212,14 +212,29 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
     // Responsive camera setup
     const rect = canvas.getBoundingClientRect();
-    const cw = Math.max(280, Math.floor(rect.width));
-    const ch = Math.max(380, Math.floor(rect.height));
-    renderer.setSize(cw, ch, false);
+    let cachedWidth = Math.max(280, Math.floor(rect.width));
+    let cachedHeight = Math.max(380, Math.floor(rect.height));
+    let isSizeDirty = false;
+    renderer.setSize(cachedWidth, cachedHeight, false);
 
-    const isInitialMobile = cw < 640;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        const w = Math.max(280, Math.floor(width));
+        const h = Math.max(380, Math.floor(height));
+        if (w !== cachedWidth || h !== cachedHeight) {
+          cachedWidth = w;
+          cachedHeight = h;
+          isSizeDirty = true;
+        }
+      }
+    });
+    resizeObserver.observe(canvas);
+
+    const isInitialMobile = cachedWidth < 640;
     const camera = new THREE.PerspectiveCamera(36, cw / ch, 0.1, 100);
-    const initialCamPos = new THREE.Vector3(0, -0.4, isInitialMobile ? 18.0 : 15.0);
-    const initialLookAt = new THREE.Vector3(0, -0.4, 0);
+    const initialCamPos = new THREE.Vector3(0, isInitialMobile ? -1.0 : -0.9, isInitialMobile ? 27.5 : 23.5);
+    const initialLookAt = new THREE.Vector3(0, isInitialMobile ? -1.0 : -0.9, 0);
     camera.position.copy(initialCamPos);
     camera.lookAt(initialLookAt);
     cameraRef.current = camera;
@@ -257,11 +272,33 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
     let torsoMesh: THREE.Mesh | null = null;
     let coronaryMesh: THREE.Mesh | null = null;
+    let vesselsMesh: THREE.Mesh | null = null;
+    let brainMesh: THREE.Mesh | null = null;
+
     const coronaryMat = new THREE.MeshStandardMaterial({
       color: 0xff3b52,
       roughness: 0.2,
       emissive: 0xff1e38,
       emissiveIntensity: 0.6,
+    });
+
+    const vesselsMat = new THREE.MeshStandardMaterial({
+      color: 0xff1e38,
+      roughness: 0.2,
+      emissive: 0xff0033,
+      emissiveIntensity: 0.75,
+      transparent: true,
+      opacity: 0.96,
+    });
+
+    const brainMat = new THREE.MeshStandardMaterial({
+      color: isLight ? 0x6366f1 : 0x818cf8,
+      roughness: 0.32,
+      metalness: 0.15,
+      emissive: isLight ? 0x4338ca : 0x3730a3,
+      emissiveIntensity: 0.55,
+      transparent: true,
+      opacity: 0.96,
     });
 
     // Torso Glass Shader
@@ -381,6 +418,19 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             mesh.material = torsoMaterial;
             torsoMesh = mesh;
             modelGroup.add(mesh);
+          } else if (mesh.name === 'Brain') {
+            mesh.material = brainMat;
+            brainMesh = mesh;
+            organGroup.add(mesh);
+          } else if (mesh.name === 'Trachea') {
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: 0x38bdf8,
+              roughness: 0.3,
+              metalness: 0.08,
+              transparent: true,
+              opacity: 0.9,
+            });
+            organGroup.add(mesh);
           } else if (mesh.name === 'Lungs') {
             mesh.material = new THREE.MeshStandardMaterial({
               color: 0x38bdf8,
@@ -407,6 +457,21 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
               transparent: true,
               opacity: 0.88,
             });
+            organGroup.add(mesh);
+          } else if (mesh.name === 'Intestines') {
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: isLight ? 0xf43f5e : 0xe11d48,
+              roughness: 0.35,
+              metalness: 0.1,
+              emissive: 0x881337,
+              emissiveIntensity: 0.45,
+              transparent: true,
+              opacity: 0.92,
+            });
+            organGroup.add(mesh);
+          } else if (mesh.name === 'BloodVessels') {
+            mesh.material = vesselsMat;
+            vesselsMesh = mesh;
             organGroup.add(mesh);
           } else {
             // Heart structures: vivid crimson biological shading
@@ -547,17 +612,15 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
 
-      // Handle resize
-      const cRect = canvas.getBoundingClientRect();
-      const currentWidth = Math.max(280, Math.floor(cRect.width));
-      const currentHeight = Math.max(380, Math.floor(cRect.height));
-      if (canvas.width !== currentWidth * renderer.getPixelRatio() || canvas.height !== currentHeight * renderer.getPixelRatio()) {
-        renderer.setSize(currentWidth, currentHeight, false);
-        camera.aspect = currentWidth / currentHeight;
+      // Handle resize without costly DOM reflows
+      if (isSizeDirty) {
+        isSizeDirty = false;
+        renderer.setSize(cachedWidth, cachedHeight, false);
+        camera.aspect = cachedWidth / cachedHeight;
         camera.updateProjectionMatrix();
       }
 
-      const isMobile = currentWidth < 640;
+      const isMobile = cachedWidth < 640;
       const isBodyView = viewModeRef.current === 'body';
 
       // Reset camera trigger
@@ -580,11 +643,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
       // Smooth camera interpolation
       const targetCamPos = isBodyView
-        ? new THREE.Vector3(0, -0.4, isMobile ? 18.0 : 15.0)
-        : new THREE.Vector3(0, 0.05, isMobile ? 6.2 : 4.8);
+        ? new THREE.Vector3(0, isMobile ? -1.0 : -0.9, isMobile ? 27.5 : 23.5)
+        : new THREE.Vector3(0, 0.0, isMobile ? 5.2 : 4.0);
       const targetLookAt = isBodyView
-        ? new THREE.Vector3(0, -0.4, 0)
-        : new THREE.Vector3(0, 0.05, 0);
+        ? new THREE.Vector3(0, isMobile ? -1.0 : -0.9, 0)
+        : new THREE.Vector3(0, 0.0, 0);
       const targetAlpha = isBodyView ? 1.0 : 0.0;
 
       currentCamPos.lerp(targetCamPos, Math.min(1, dt * 5.5));
@@ -592,18 +655,20 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       camera.position.copy(currentCamPos);
       camera.lookAt(currentLookAt);
 
-      // Smooth organ alpha dissolve
-      currentOrganAlpha += (targetAlpha - currentOrganAlpha) * Math.min(1, dt * 6.0);
-      torsoMaterial.uniforms.uOrganAlpha.value = currentOrganAlpha;
-      if (torsoMesh) torsoMesh.visible = currentOrganAlpha > 0.01;
+      // Smooth organ alpha dissolve (only compute during transition)
+      if (Math.abs(targetAlpha - currentOrganAlpha) > 0.001) {
+        currentOrganAlpha += (targetAlpha - currentOrganAlpha) * Math.min(1, dt * 6.0);
+        torsoMaterial.uniforms.uOrganAlpha.value = currentOrganAlpha;
+        if (torsoMesh) torsoMesh.visible = currentOrganAlpha > 0.01;
 
-      organGroup.children.forEach((child) => {
-        const m = child as THREE.Mesh;
-        if (m.material) {
-          (m.material as THREE.MeshStandardMaterial).opacity = 0.88 * currentOrganAlpha;
-          m.visible = currentOrganAlpha > 0.01;
-        }
-      });
+        organGroup.children.forEach((child) => {
+          const m = child as THREE.Mesh;
+          if (m.material) {
+            (m.material as THREE.MeshStandardMaterial).opacity = 0.88 * currentOrganAlpha;
+            m.visible = currentOrganAlpha > 0.01;
+          }
+        });
+      }
 
       // Hotspot target in body view
       hotspotGroup.visible = currentOrganAlpha > 0.4;
@@ -630,8 +695,10 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       heartGroup.scale.set(vScale, 1 - ventricularPulse * 0.026, vScale);
       heartGroup.rotation.z = ventricularPulse * 0.038;
 
-      // Coronary bioluminescent pulse
+      // Coronary & systemic vessels bioluminescent pulse + neural brain glow
       coronaryMat.emissiveIntensity = 0.5 + ventricularPulse * 0.65;
+      vesselsMat.emissiveIntensity = 0.45 + ventricularPulse * 0.45;
+      brainMat.emissiveIntensity = 0.45 + (1 + Math.sin(now * 0.003)) * 0.16;
 
       if (now - lastUiSync > 240) {
         lastUiSync = now;
@@ -649,6 +716,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     return () => {
       isCancelled = true;
       cancelAnimationFrame(animId);
+      resizeObserver.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
@@ -778,13 +846,13 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           e.preventDefault();
           handleToggleViewMode();
         }}
-        className="relative w-full min-h-[460px] sm:min-h-[520px] md:min-h-[580px] flex flex-col items-center justify-center select-none overflow-hidden"
+        className="relative w-full min-h-[520px] sm:min-h-[580px] md:min-h-[640px] flex flex-col items-center justify-center select-none overflow-hidden"
       >
         {/* 3D WebGL Canvas */}
-        <div className="relative z-10 w-full h-[460px] sm:h-[520px] md:h-[580px] flex items-center justify-center">
+        <div className="relative z-10 w-full h-[520px] sm:h-[580px] md:h-[640px] flex items-center justify-center">
           <canvas
             ref={canvasRef}
-            className="w-full h-full max-w-[780px] cursor-grab active:cursor-grabbing touch-none"
+            className="w-full h-full max-w-[840px] cursor-grab active:cursor-grabbing touch-none"
           />
 
           {!modelLoaded && (
@@ -797,7 +865,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
           {/* Prompt in Body Mode: Tap on Heart to Zoom */}
           {viewMode === 'body' && (
-            <div className="pointer-events-none absolute bottom-12 md:bottom-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-950/85 border border-rose-300 dark:border-rose-400/40 text-[11px] font-medium text-rose-600 dark:text-rose-200 shadow-md">
+            <div className="pointer-events-none absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-950/85 border border-rose-300 dark:border-rose-400/40 text-[11px] font-medium text-rose-600 dark:text-rose-200 shadow-md">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
               <span>Chạm vào Trái Tim để phóng to &amp; xem 4 biểu đồ</span>
             </div>

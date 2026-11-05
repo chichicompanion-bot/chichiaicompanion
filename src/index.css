@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
+/* DEFAULT PURE WHITE MEDICAL THEME (Instant Zero-Delay White Screen) */
 :root {
-  --bg-primary: #050811;
-  --bg-secondary: #090e1d;
-  --bg-panel: rgba(11, 18, 34, 0.94);
-  --bg-panel-hover: rgba(16, 26, 48, 0.98);
-  --border-subtle: rgba(148, 163, 184, 0.14);
-  --border-glow: rgba(0, 240, 255, 0.38);
-  --text-primary: #f0f6fc;
-  --text-secondary: #94a3b8;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #f8fafc;
+  --border-subtle: #e2e8f0;
+  --border-glow: rgba(2, 132, 199, 0.45);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
   --text-muted: #64748b;
-  --accent-cyan: #00f0ff;
-  --accent-teal: #00e5a3;
-  --accent-crimson: #ff2e54;
-  --grid-line: rgba(0, 240, 255, 0.04);
+  --accent-cyan: #0284c7;
+  --accent-teal: #059669;
+  --accent-crimson: #e11d48;
+  --grid-line: rgba(15, 23, 42, 0.04);
 }
 
-/* PURE WHITE BOARD THEME FOR LIGHT MODE */
 html.light {
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
@@ -31,6 +31,22 @@ html.light {
   --accent-teal: #059669;
   --accent-crimson: #e11d48;
   --grid-line: rgba(15, 23, 42, 0.04);
+}
+
+html.dark {
+  --bg-primary: #050811;
+  --bg-secondary: #090e1d;
+  --bg-panel: rgba(11, 18, 34, 0.94);
+  --bg-panel-hover: rgba(16, 26, 48, 0.98);
+  --border-subtle: rgba(148, 163, 184, 0.14);
+  --border-glow: rgba(0, 240, 255, 0.38);
+  --text-primary: #f0f6fc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-cyan: #00f0ff;
+  --accent-teal: #00e5a3;
+  --accent-crimson: #ff2e54;
+  --grid-line: rgba(0, 240, 255, 0.04);
 }
 
 * {
