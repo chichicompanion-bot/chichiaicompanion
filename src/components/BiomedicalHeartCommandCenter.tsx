@@ -15,20 +15,20 @@ import {
 } from 'lucide-react';
 import {
   DataMode,
-  DeviceStatus,
+  DeviceStatusInfo,
   MetricCardData,
   MetricKey,
+  PPGWavePoint,
   TelemetryTimeSeriesPoint,
-  WaveformSample,
 } from '../types/health';
 import { FloatingHeartChartsHUD } from './FloatingHeartChartsHUD';
 
 interface BiomedicalHeartCommandCenterProps {
   metrics: MetricCardData[];
   series: TelemetryTimeSeriesPoint[];
-  deviceStatus: DeviceStatus;
+  deviceStatus: DeviceStatusInfo;
   dataMode: DataMode;
-  ppgWave: WaveformSample[];
+  ppgWave: PPGWavePoint[];
   reducedMotion: boolean;
   isLightMode: boolean;
   onSelectMetricModal: (key: MetricKey) => void;
@@ -232,7 +232,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     resizeObserver.observe(canvas);
 
     const isInitialMobile = cachedWidth < 640;
-    const camera = new THREE.PerspectiveCamera(36, cw / ch, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(36, cachedWidth / cachedHeight, 0.1, 100);
     const initialCamPos = new THREE.Vector3(0, isInitialMobile ? -1.0 : -0.9, isInitialMobile ? 27.5 : 23.5);
     const initialLookAt = new THREE.Vector3(0, isInitialMobile ? -1.0 : -0.9, 0);
     camera.position.copy(initialCamPos);

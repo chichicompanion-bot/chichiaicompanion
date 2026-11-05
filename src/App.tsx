@@ -310,7 +310,8 @@ export const App: React.FC = () => {
                         if (!searchQuery.trim()) return true;
                         const q = searchQuery.toLowerCase().trim();
                         return (
-                          m.label.toLowerCase().includes(q) ||
+                          m.title.toLowerCase().includes(q) ||
+                          m.vietnameseTitle.toLowerCase().includes(q) ||
                           m.key.toLowerCase().includes(q) ||
                           m.unit.toLowerCase().includes(q)
                         );
@@ -328,7 +329,12 @@ export const App: React.FC = () => {
                   </div>
                   {searchQuery && metrics.filter((m) => {
                     const q = searchQuery.toLowerCase().trim();
-                    return m.label.toLowerCase().includes(q) || m.key.toLowerCase().includes(q) || m.unit.toLowerCase().includes(q);
+                    return (
+                      m.title.toLowerCase().includes(q) ||
+                      m.vietnameseTitle.toLowerCase().includes(q) ||
+                      m.key.toLowerCase().includes(q) ||
+                      m.unit.toLowerCase().includes(q)
+                    );
                   }).length === 0 && (
                     <div className="p-6 text-center text-sm text-slate-400 nexus-card rounded-2xl">
                       Không tìm thấy chỉ số sinh tồn nào khớp với từ khóa &ldquo;{searchQuery}&rdquo;.
