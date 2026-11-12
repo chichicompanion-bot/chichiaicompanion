@@ -6,9 +6,6 @@ import {
   HeartPulse,
   Activity,
   Wind,
-  PhoneCall,
-  ShieldAlert,
-  ArrowRight,
   Flame,
 } from 'lucide-react';
 
@@ -137,20 +134,6 @@ export const StrokeEmergencyAlertModal: React.FC<StrokeEmergencyAlertModalProps>
                 </div>
                 <div className="text-[10px] text-amber-600/80">Thở nông, dồn dập</div>
               </div>
-            </div>
-
-            {/* Quick F.A.S.T Medical Guidance Box */}
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs space-y-1.5 mb-4">
-              <div className="font-semibold text-slate-800 dark:text-white flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-rose-500" />
-                <span>Quy tắc nhận biết đột quỵ F.A.S.T:</span>
-              </div>
-              <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-0.5 pl-5 list-disc">
-                <li><strong>F (Mặt):</strong> Mặt cười lệch một bên, méo miệng.</li>
-                <li><strong>A (Tay):</strong> Một cánh tay bị yếu, tê buốt hoặc rơi xuống.</li>
-                <li><strong>S (Nói):</strong> Giọng nói ú ớ, ngọng nghịu, khó diễn đạt.</li>
-                <li><strong>T (Thời gian):</strong> Gọi cấp cứu y tế <strong>115</strong> ngay!</li>
-              </ul>
             </div>
 
             {/* Action Buttons */}
