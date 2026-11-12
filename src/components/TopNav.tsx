@@ -14,6 +14,8 @@ import {
   Radio,
   Clock,
   X,
+  Bluetooth,
+  BluetoothOff,
 } from 'lucide-react';
 import {
   DataMode,
@@ -39,6 +41,10 @@ interface TopNavProps {
   onOpenSettings?: () => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  isBluetoothConnected: boolean;
+  onToggleBluetooth: () => void;
+  isStrokeEmergency: boolean;
+  onToggleStrokeEmergency: () => void;
 }
 
 const SECTION_TITLES: Record<NavSection, { title: string; subtitle: string }> = {
@@ -88,6 +94,10 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenSettings,
   searchQuery = '',
   onSearchChange,
+  isBluetoothConnected,
+  onToggleBluetooth,
+  isStrokeEmergency,
+  onToggleStrokeEmergency,
 }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -174,8 +184,58 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Demo/Live Pill + Settings (⚙️) + Notifications (🔔) + Avatar (👤) */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right Side: Bluetooth Toggle + Stroke Test + Mode + Settings + Notifications */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Bluetooth Connection Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleBluetooth}
+            title={
+              isBluetoothConnected
+                ? 'Bluetooth ĐÃ KẾT NỐI (Vòng tay ESP32) • Nhấn để ngắt kết nối'
+                : 'Bluetooth ĐANG TẮT (Chưa kết nối vòng tay) • Nhấn để BẬT kết nối'
+            }
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold font-mono-tech transition-all cursor-pointer active:scale-95 shadow-xs border ${
+              isBluetoothConnected
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-400/50 shadow-emerald-500/15'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border-slate-300 dark:border-slate-700'
+            }`}
+          >
+            {isBluetoothConnected ? (
+              <>
+                <Bluetooth className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                <span className="hidden xs:inline">Bluetooth: <strong>BẬT</strong></span>
+                <span className="xs:hidden">BLE</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              </>
+            ) : (
+              <>
+                <BluetoothOff className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden xs:inline">Bluetooth: <strong>TẮT</strong></span>
+                <span className="xs:hidden">TẮT</span>
+              </>
+            )}
+          </button>
+
+          {/* Test Cảnh Báo Đột Quỵ (Stroke Simulation Button) */}
+          <button
+            type="button"
+            onClick={onToggleStrokeEmergency}
+            title={
+              isStrokeEmergency
+                ? 'ĐANG BÁO ĐỘNG ĐỘT QUỴ! Nhấn để khôi phục chỉ số an toàn'
+                : 'Mô phỏng tình huống đột quỵ khẩn cấp (nhảy số liệu và bung cảnh báo)'
+            }
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold font-mono-tech transition-all cursor-pointer active:scale-95 shadow-xs border ${
+              isStrokeEmergency
+                ? 'bg-rose-600 text-white border-rose-400 shadow-md shadow-rose-600/40 animate-pulse'
+                : 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/80'
+            }`}
+          >
+            <AlertTriangle className={`w-3.5 h-3.5 ${isStrokeEmergency ? 'text-white' : 'text-rose-500'}`} />
+            <span className="hidden sm:inline">{isStrokeEmergency ? 'TẮT BÁO ĐỘNG' : 'TEST ĐỘT QUỴ'}</span>
+            <span className="sm:hidden">{isStrokeEmergency ? 'TẮT C/B' : 'TEST'}</span>
+          </button>
           {/* DEMO / LIVE Mode Switcher */}
           <div className="flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-mono-tech">
             <button

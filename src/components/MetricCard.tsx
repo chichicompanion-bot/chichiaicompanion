@@ -10,6 +10,8 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
+  Wind,
+  Gauge,
 } from 'lucide-react';
 import { MetricCardData, MetricKey } from '../types/health';
 
@@ -26,12 +28,14 @@ const METRIC_ICONS: Record<
   React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 > = {
   heartRate: Heart,
+  bloodPressure: Gauge,
   spo2: Droplets,
-  hrv: Activity,
+  respiratoryRate: Wind,
   skinTemp: Thermometer,
+  stress: BrainCircuit,
+  hrv: Activity,
   steps: Footprints,
   sleep: Moon,
-  stress: BrainCircuit,
 };
 
 export const MetricCard: React.FC<MetricCardProps> = React.memo(

@@ -43,6 +43,7 @@ import { HealthMapPanel } from './components/HealthMapPanel';
 import { MetricDetailModal } from './components/MetricDetailModal';
 import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
 import { DeviceGpsTelemetryCard } from './components/DeviceGpsTelemetryCard';
+import { StrokeEmergencyAlertModal } from './components/StrokeEmergencyAlertModal';
 
 export const App: React.FC = () => {
   const demoProviderRef = useRef(new DemoDataProvider());
@@ -104,6 +105,156 @@ export const App: React.FC = () => {
   const [notifications, setNotifications] = useState<SystemNotification[]>(() =>
     demoProviderRef.current.getInitialNotifications()
   );
+
+  // Bluetooth Connection State: Defaults to OFF on initial site visit as requested
+  const [isBluetoothConnected, setIsBluetoothConnected] = useState<boolean>(false);
+  // Emergency Stroke Simulation state & Center Modal alert
+  const [isStrokeEmergency, setIsStrokeEmergency] = useState<boolean>(false);
+  const [strokeModalOpen, setStrokeModalOpen] = useState<boolean>(false);
+
+  const handleToggleBluetooth = useCallback(() => {
+    setIsBluetoothConnected((prev) => {
+      const next = !prev;
+      if (!next) {
+        setIsStrokeEmergency(false);
+        setStrokeModalOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleStrokeEmergency = useCallback(() => {
+    setIsStrokeEmergency((prev) => {
+      const next = !prev;
+      if (next) {
+        setIsBluetoothConnected(true);
+        setStrokeModalOpen(true);
+      } else {
+        setStrokeModalOpen(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleResetStrokeNormal = useCallback(() => {
+    setIsStrokeEmergency(false);
+    setStrokeModalOpen(false);
+  }, []);
+
+  // Compute effective metrics (disconnected '--', normal live, or emergency stroke spike)
+  const effectiveMetrics = useMemo(() => {
+    if (!isBluetoothConnected) {
+      return metrics.map((m) => ({
+        ...m,
+        value: null,
+        formattedValue: '--',
+        deltaPercent: null,
+        deltaLabel: 'Chờ kết nối vòng tay Bluetooth',
+        freshness: 'STALE' as const,
+      }));
+    }
+    if (isStrokeEmergency) {
+      return metrics.map((m) => {
+        if (m.key === 'heartRate') {
+          return {
+            ...m,
+            value: 168,
+            formattedValue: '168',
+            unit: 'BPM',
+            deltaPercent: 127.0,
+            deltaLabel: 'BÁO ĐỘNG ĐỎ: Rung nhĩ ác tính / Loạn nhịp nhanh',
+            accentColor: '#EF4444',
+            glowColor: 'rgba(239, 68, 68, 0.45)',
+          };
+        }
+        if (m.key === 'bloodPressure' || m.key === 'hrv') {
+          return {
+            ...m,
+            title: 'BLOOD PRESSURE',
+            vietnameseTitle: 'Huyết áp động mạch',
+            value: 195,
+            formattedValue: '195/125',
+            unit: 'mmHg',
+            deltaPercent: 62.5,
+            deltaLabel: 'KHẨN CẤP: Cơn tăng huyết áp kịch phát ác tính',
+            accentColor: '#DC2626',
+            glowColor: 'rgba(220, 38, 38, 0.5)',
+          };
+        }
+        if (m.key === 'spo2') {
+          return {
+            ...m,
+            value: 88.0,
+            formattedValue: '88.0',
+            unit: '%',
+            deltaPercent: -11.5,
+            deltaLabel: 'NGUY HIỂM: Thiếu oxy máu mô não cấp',
+            accentColor: '#F97316',
+            glowColor: 'rgba(249, 115, 22, 0.45)',
+          };
+        }
+        if (m.key === 'respiratoryRate' || m.key === 'steps') {
+          return {
+            ...m,
+            title: 'RESPIRATION',
+            vietnameseTitle: 'Nhịp thở lồng ngực',
+            value: 32,
+            formattedValue: '32',
+            unit: 'lần/phút',
+            deltaPercent: 100.0,
+            deltaLabel: 'NGUY HIỂM: Thở dồn dập, suy hô hấp cấp',
+            accentColor: '#EA580C',
+            glowColor: 'rgba(234, 88, 12, 0.45)',
+          };
+        }
+        if (m.key === 'skinTemp') {
+          return {
+            ...m,
+            value: 38.8,
+            formattedValue: '38.8',
+            unit: '°C',
+            deltaPercent: 5.5,
+            deltaLabel: 'SỐT CAO: Phản ứng viêm cấp tính',
+            accentColor: '#F59E0B',
+            glowColor: 'rgba(245, 158, 11, 0.45)',
+          };
+        }
+        if (m.key === 'stress' || m.key === 'sleep') {
+          return {
+            ...m,
+            title: 'CARDIAC STRESS',
+            vietnameseTitle: 'Áp lực tim mạch',
+            value: 96,
+            formattedValue: '96',
+            unit: '%',
+            deltaPercent: 300.0,
+            deltaLabel: 'BÁO ĐỘNG: Quá tải tim mạch cực hạn',
+            accentColor: '#E11D48',
+            glowColor: 'rgba(225, 29, 72, 0.5)',
+          };
+        }
+        return m;
+      });
+    }
+    return metrics;
+  }, [isBluetoothConnected, isStrokeEmergency, metrics]);
+
+  const effectiveDeviceStatus = useMemo(() => {
+    if (!isBluetoothConnected) {
+      return {
+        ...deviceStatus,
+        connected: false,
+        connectionState: 'disconnected' as const,
+        lastHeartbeat: 'Bluetooth Tắt',
+      };
+    }
+    return {
+      ...deviceStatus,
+      connected: true,
+      connectionState: 'connected' as const,
+      isSimulated: dataMode === 'demo',
+    };
+  }, [deviceStatus, isBluetoothConnected, dataMode]);
 
   // Sync Dark/Light Mode class on <html>
   useEffect(() => {
@@ -214,7 +365,7 @@ export const App: React.FC = () => {
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
           dataMode={dataMode}
-          isLiveConnected={deviceStatus.connectionState === 'connected' && !deviceStatus.isSimulated}
+          isLiveConnected={effectiveDeviceStatus.connectionState === 'connected' && !effectiveDeviceStatus.isSimulated}
           onReplayIntro={handleReplayIntro}
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
@@ -225,7 +376,7 @@ export const App: React.FC = () => {
             activeSection={activeSection}
             dataMode={dataMode}
             onChangeDataMode={setDataMode}
-            deviceStatus={deviceStatus}
+            deviceStatus={effectiveDeviceStatus}
             timeRange={timeRange}
             onChangeTimeRange={setTimeRange}
             notifications={notifications}
@@ -238,6 +389,10 @@ export const App: React.FC = () => {
             onOpenSettings={() => setActiveSection('settings')}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            isBluetoothConnected={isBluetoothConnected}
+            onToggleBluetooth={handleToggleBluetooth}
+            isStrokeEmergency={isStrokeEmergency}
+            onToggleStrokeEmergency={handleToggleStrokeEmergency}
             onTriggerReconnect={
               dataMode === 'live'
                 ? refreshLiveTelemetry
@@ -339,7 +494,7 @@ export const App: React.FC = () => {
                       </div>
                     )}
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                      {metrics
+                      {effectiveMetrics
                         .filter((m) => {
                           if (!searchQuery.trim()) return true;
                           const q = searchQuery.toLowerCase().trim();
@@ -389,9 +544,9 @@ export const App: React.FC = () => {
                   className="space-y-6"
                 >
                   <BiomedicalHeartCommandCenter
-                    metrics={metrics}
+                    metrics={effectiveMetrics}
                     series={series}
-                    deviceStatus={deviceStatus}
+                    deviceStatus={effectiveDeviceStatus}
                     dataMode={dataMode}
                     ppgWave={ppgWaveform}
                     reducedMotion={reducedMotion}
@@ -402,7 +557,7 @@ export const App: React.FC = () => {
 
                   {/* Compact Quick Readout Strip below 3D Stage */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {metrics.slice(0, 4).map((m, idx) => (
+                    {effectiveMetrics.slice(0, 4).map((m, idx) => (
                       <MetricCard
                         key={m.key}
                         metric={m}
@@ -434,12 +589,12 @@ export const App: React.FC = () => {
                     timeRange={timeRange}
                     onChangeTimeRange={setTimeRange}
                     dataMode={dataMode}
-                    isConnected={deviceStatus.connectionState === 'connected'}
+                    isConnected={effectiveDeviceStatus.connectionState === 'connected'}
                     isLoading={isLoadingLive}
                     onSendTestPacket={handleSendTestPacket}
                   />
                   <DeviceStatusPanel
-                    device={deviceStatus}
+                    device={effectiveDeviceStatus}
                     dataMode={dataMode}
                     onReconnect={refreshLiveTelemetry}
                     onSendTestPacket={handleSendTestPacket}
@@ -458,8 +613,8 @@ export const App: React.FC = () => {
                   className="space-y-6"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {metrics
-                      .filter((m) => m.key === 'steps' || m.key === 'sleep' || m.key === 'stress')
+                    {effectiveMetrics
+                      .filter((m) => m.key === 'steps' || m.key === 'sleep' || m.key === 'stress' || m.key === 'respiratoryRate')
                       .map((m, idx) => (
                         <MetricCard
                           key={m.key}
@@ -506,7 +661,7 @@ export const App: React.FC = () => {
                   className="space-y-6"
                 >
                   <DeviceStatusPanel
-                    device={deviceStatus}
+                    device={effectiveDeviceStatus}
                     dataMode={dataMode}
                     onReconnect={refreshLiveTelemetry}
                     onSendTestPacket={handleSendTestPacket}
@@ -731,14 +886,25 @@ export const App: React.FC = () => {
         </button>
       </nav>
 
-      {/* Centered Mini-Diagram Popup Modal when clicking any of the 7 Metric Cards */}
+      {/* Centered Mini-Diagram Popup Modal when clicking any of the Metric Cards */}
       <MetricDetailModal
-        metric={metrics.find((m) => m.key === modalMetricKey) || null}
+        metric={effectiveMetrics.find((m) => m.key === modalMetricKey) || null}
         series={series}
         timeRange={timeRange}
         onChangeTimeRange={setTimeRange}
         onClose={() => setModalMetricKey(null)}
         isLightMode={isLightMode}
+      />
+
+      {/* Centered Small Stroke Emergency Alert Modal with 'X' close button and F.A.S.T warning */}
+      <StrokeEmergencyAlertModal
+        isOpen={strokeModalOpen}
+        onClose={() => setStrokeModalOpen(false)}
+        onResetNormal={handleResetStrokeNormal}
+        heartRate={effectiveMetrics.find((m) => m.key === 'heartRate')?.formattedValue || '168'}
+        bloodPressure={effectiveMetrics.find((m) => m.key === 'bloodPressure')?.formattedValue || '195/125'}
+        spo2={effectiveMetrics.find((m) => m.key === 'spo2')?.formattedValue || '88.0'}
+        respiratoryRate={effectiveMetrics.find((m) => m.key === 'respiratoryRate')?.formattedValue || '32'}
       />
     </div>
   );

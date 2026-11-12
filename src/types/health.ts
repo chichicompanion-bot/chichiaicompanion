@@ -15,12 +15,14 @@ export type NavSection =
 
 export type MetricKey =
   | 'heartRate'
+  | 'bloodPressure'
   | 'spo2'
-  | 'hrv'
+  | 'respiratoryRate'
   | 'skinTemp'
+  | 'stress'
+  | 'hrv'
   | 'steps'
-  | 'sleep'
-  | 'stress';
+  | 'sleep';
 
 export type ChartMetricKey = 'heartRate' | 'spo2' | 'hrv';
 

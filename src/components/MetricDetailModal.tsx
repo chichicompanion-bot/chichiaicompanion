@@ -20,6 +20,8 @@ import {
   Cpu,
   Clock,
   TrendingUp,
+  Wind,
+  Gauge,
 } from 'lucide-react';
 import {
   MetricCardData,
@@ -42,12 +44,14 @@ const MODAL_ICONS: Record<
   React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 > = {
   heartRate: Heart,
+  bloodPressure: Gauge,
   spo2: Droplets,
-  hrv: Activity,
+  respiratoryRate: Wind,
   skinTemp: Thermometer,
+  stress: BrainCircuit,
+  hrv: Activity,
   steps: Footprints,
   sleep: Moon,
-  stress: BrainCircuit,
 };
 
 const TIME_RANGES: Array<{ id: TimeRange; label: string }> = [

@@ -383,6 +383,14 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     hotspotGroup.add(ringMesh);
     modelGroup.add(hotspotGroup);
 
+    // Highly responsive invisible chest hit target for instant, effortless taps
+    const chestHitTarget = new THREE.Mesh(
+      new THREE.SphereGeometry(2.4, 16, 16),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    chestHitTarget.position.set(0, 0, 0.4);
+    modelGroup.add(chestHitTarget);
+
     // Holographic Orbit Rings & Particles in Heart Mode
     const orbitGroup = new THREE.Group();
     const orbitRingGeo = new THREE.RingGeometry(1.68, 1.70, 64);
@@ -600,7 +608,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       prevX = e.clientX;
       prevY = e.clientY;
 
-      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 12) {
         hasDragged = true;
       }
 
@@ -619,13 +627,13 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
       const elapsed = performance.now() - startTime;
 
-      // IF USER DRAGGED TO ROTATE, NEVER ZOOM!
-      if (hasDragged || totalDist > 5 || elapsed > 350) {
+      // Only reject if user distinctly dragged (> 12px) or held for over 500ms
+      if (hasDragged || totalDist > 12 || elapsed > 500) {
         return;
       }
 
-      // Clean tap/click: ONLY zoom if clicking directly on the HEART or Hotspot!
-      if (viewModeRef.current === 'body' && cameraRef.current && heartGroupRef.current) {
+      // Fast, ultra-responsive tap/click detection
+      if (viewModeRef.current === 'body' && cameraRef.current) {
         const cRect = canvas.getBoundingClientRect();
         const mouse = new THREE.Vector2(
           ((e.clientX - cRect.left) / cRect.width) * 2 - 1,
@@ -633,8 +641,10 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         );
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, cameraRef.current);
-        const targets: THREE.Object3D[] = [...heartGroupRef.current.children];
+        const targets: THREE.Object3D[] = [];
+        if (heartGroupRef.current) targets.push(...heartGroupRef.current.children);
         if (hotspotGroupRef.current) targets.push(hotspotGroupRef.current);
+        if (chestHitTarget) targets.push(chestHitTarget);
         const hits = raycaster.intersectObjects(targets, true);
 
         if (hits.length > 0) {
@@ -907,12 +917,17 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
             </div>
           )}
 
-          {/* Prompt in Body Mode: Tap on Heart to Zoom */}
+          {/* Prompt in Body Mode: Clickable Hero Button to Zoom into Heart */}
           {viewMode === 'body' && (
-            <div className="pointer-events-none absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-950/85 border border-rose-300 dark:border-rose-400/40 text-[11px] font-medium text-rose-600 dark:text-rose-200 shadow-md">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              <span>Chạm vào Trái Tim để phóng to &amp; xem 4 biểu đồ</span>
-            </div>
+            <button
+              type="button"
+              onClick={handleToggleViewMode}
+              className="pointer-events-auto absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-500/90 via-pink-600/90 to-rose-600/90 hover:from-rose-600 hover:to-pink-700 text-white border border-rose-300/40 text-xs font-semibold shadow-lg shadow-rose-500/30 backdrop-blur-md cursor-pointer transition-all active:scale-95"
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+              <span>Chạm phóng to Trái Tim &amp; 4 biểu đồ</span>
+              <Sparkles className="w-3.5 h-3.5 text-rose-200" />
+            </button>
           )}
         </div>
 
