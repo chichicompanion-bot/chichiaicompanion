@@ -85,18 +85,18 @@ export class LiveHealthDataService {
       const message =
         err instanceof Error
           ? err.name === 'AbortError'
-            ? 'Timeout kết nối tới cổng ESP32 backend'
+            ? 'Timeout kết nối tới cổng nhận dữ liệu STROKEGUARD'
             : err.message
           : 'Lỗi mạng không xác định';
 
       return {
         device: {
-          deviceName: 'NEXUS Band Pro (ESP32 Hardware)',
-          hardwareModel: 'NX-WEAR-ESP32S3-REV2',
-          mcuChip: 'ESP32-S3 Dual-Core @ 240MHz',
-          opticalSensor: 'Maxim MAX30102 PPG',
-          imuSensor: 'MPU6050 6-Axis IMU',
-          tempSensor: 'Wrist NTC Sensor',
+          deviceName: 'STROKEGUARD - BAND (Vòng tay y sinh)',
+          hardwareModel: 'STROKEGUARD-THPT-NGOQUYEN',
+          mcuChip: 'Bộ xử lý biên nhúng Edge Computing',
+          opticalSensor: 'Cảm biến quang học PPG (Red/IR)',
+          imuSensor: 'Cảm biến chuyển động 6 trục (Gia tốc & Con quay)',
+          tempSensor: 'Cảm biến thân nhiệt y sinh',
           firmwareVersion: 'Chưa xác nhận',
           connectionState: 'disconnected',
           isSimulated: false,
@@ -120,7 +120,7 @@ export class LiveHealthDataService {
 
   /**
    * Sends a real HTTP POST packet to /api/telemetry so the user or developer can verify
-   * end-to-end backend telemetry ingestion before flashing the physical ESP32 board.
+   * end-to-end backend telemetry ingestion.
    */
   public async sendTestHardwarePacket(customPayload?: Partial<{
     heartRate: number;
@@ -132,8 +132,8 @@ export class LiveHealthDataService {
     rssi: number;
   }>): Promise<boolean> {
     const payload = {
-      deviceId: 'NX-ESP32-MAX30102-REALTIME',
-      firmware: 'v2.4.1-esp32s3-ino',
+      deviceId: 'STROKEGUARD-BAND-REALTIME',
+      firmware: 'v2.6.0-strokeguard',
       heartRate: customPayload?.heartRate ?? Math.round(71 + Math.random() * 12),
       spo2: customPayload?.spo2 ?? Math.round((97.8 + Math.random() * 1.4) * 10) / 10,
       hrv: customPayload?.hrv ?? Math.round(58 + Math.random() * 16),
@@ -171,18 +171,18 @@ export class LiveHealthDataService {
       : null;
 
     const device: DeviceStatusInfo = {
-      deviceName: latest ? `ESP32 (${latest.deviceId})` : 'NEXUS Band Pro (Chờ gói tin ESP32)',
-      hardwareModel: 'ESP32 + MAX30102 + MPU6050',
-      mcuChip: 'ESP32 / ESP32-S3 Wi-Fi + BLE SoC',
-      opticalSensor: 'MAX30102 Pulse Oximeter & Heart-Rate',
-      imuSensor: 'MPU6050 6-Axis Accelerometer',
-      tempSensor: 'MAX30102 Die / NTC Thermistor',
+      deviceName: latest ? `STROKEGUARD (${latest.deviceId})` : 'STROKEGUARD - BAND (Chờ gói tin vòng tay)',
+      hardwareModel: 'STROKEGUARD – SMART HEALTH BAND',
+      mcuChip: 'Bộ xử lý biên nhúng Edge Computing',
+      opticalSensor: 'Cảm biến quang học PPG đa bước sóng',
+      imuSensor: 'Cảm biến chuyển động 6 trục (Gia tốc & Con quay)',
+      tempSensor: 'Cảm biến thân nhiệt y sinh',
       firmwareVersion: latest?.firmware || 'Chưa nhận gói tin',
       connectionState: isConnected ? 'connected' : 'disconnected',
       isSimulated: false,
       batteryPercent: latest?.battery ?? null,
       batteryVoltage: latest?.battery ? Math.round((3.3 + (latest.battery / 100) * 0.9) * 100) / 100 : null,
-      transportType: isConnected ? 'Wi-Fi REST / WebSocket' : 'Offline',
+      transportType: isConnected ? 'BLE 5.0 / Wi-Fi REST' : 'Offline',
       wifiRssiDbm: latest?.rssi ?? null,
       lastPacketAt: lastPacketTime,
       validPacketRatio: data.stats?.validPacketRatio ?? null,
@@ -190,7 +190,7 @@ export class LiveHealthDataService {
       samplingRateHz: isConnected ? 50 : 0,
       endpointUrl: this.apiUrl,
       errorMessage: !latest
-        ? 'Chưa nhận được gói dữ liệu nào từ mạch ESP32 trên cổng /api/telemetry.'
+        ? 'Chưa nhận được gói dữ liệu nào từ vòng tay trên cổng /api/telemetry.'
         : data.stale
         ? `Gói dữ liệu cuối cùng đã cũ (${Math.round((data.ageMs || 0) / 1000)}s trước). Không hiển thị giá trị cũ như dữ liệu trực tiếp mới nhất.`
         : undefined,
@@ -277,13 +277,13 @@ export class LiveHealthDataService {
       {
         key: 'heartRate',
         title: 'HEART RATE',
-        vietnameseTitle: 'Nhịp tim thực tế (ESP32)',
+        vietnameseTitle: 'Nhịp tim quang học PPG',
         value: latest ? latest.heartRate : null,
         formattedValue: latest ? `${latest.heartRate}` : '--',
         unit: 'BPM',
         deltaPercent: null,
-        deltaLabel: latest ? `Gói tin từ ${latest.deviceId}` : 'Đang chờ kết nối mạch ESP32...',
-        sensorSource: 'MAX30102 Live Telemetry',
+        deltaLabel: latest ? `Gói tin từ ${latest.deviceId}` : 'Đang chờ tín hiệu vòng tay...',
+        sensorSource: 'Cảm biến quang học PPG',
         measuredAt: measuredLabel,
         freshness,
         accentColor: '#FF2E54',
@@ -291,7 +291,7 @@ export class LiveHealthDataService {
         sparkline: latest ? [{ time: 'now', value: latest.heartRate }] : [],
         note:
           freshness === 'LIVE'
-            ? 'Đang nhận trực tiếp từ mạch cảm biến MAX30102.'
+            ? 'Đang nhận trực tiếp từ cảm biến quang học PPG.'
             : 'Chưa có gói dữ liệu trực tiếp mới trong 15 giây qua.',
       },
       {
@@ -302,8 +302,8 @@ export class LiveHealthDataService {
         formattedValue: latest?.spo2 !== null && latest?.spo2 !== undefined ? `${latest.spo2}` : '--',
         unit: '%',
         deltaPercent: null,
-        deltaLabel: latest?.spo2 ? 'Tỷ lệ Red/IR thực tế' : 'Chờ dữ liệu SpO₂ từ MAX30102',
-        sensorSource: 'MAX30102 Live Telemetry',
+        deltaLabel: latest?.spo2 ? 'Tỷ lệ Red/IR thực tế' : 'Chờ dữ liệu SpO₂ từ cảm biến quang học',
+        sensorSource: 'Cảm biến quang học PPG',
         measuredAt: measuredLabel,
         freshness,
         accentColor: '#00F0FF',
@@ -319,14 +319,14 @@ export class LiveHealthDataService {
         formattedValue: latest?.hrv !== null && latest?.hrv !== undefined ? `${latest.hrv}` : '--',
         unit: 'ms',
         deltaPercent: null,
-        deltaLabel: latest?.hrv ? 'Đo từ khoảng IBI thực tế' : 'Chờ dữ liệu IBI/HRV từ ESP32',
-        sensorSource: 'ESP32 IBI Processor',
+        deltaLabel: latest?.hrv ? 'Đo từ khoảng IBI thực tế' : 'Chờ dữ liệu IBI/HRV từ vòng tay',
+        sensorSource: 'Thuật toán trích xuất IBI',
         measuredAt: measuredLabel,
         freshness,
         accentColor: '#00E5A3',
         glowColor: 'rgba(0, 229, 163, 0.25)',
         sparkline: latest?.hrv ? [{ time: 'now', value: latest.hrv }] : [],
-        note: 'Đòi hỏi mạch gửi khoảng cách giữa các đỉnh nhịp (Inter-Beat Interval).',
+        note: 'Đo khoảng cách giữa các đỉnh nhịp (Inter-Beat Interval) để sàng lọc rung nhĩ.',
       },
       {
         key: 'skinTemp',
@@ -338,13 +338,13 @@ export class LiveHealthDataService {
         unit: '°C',
         deltaPercent: null,
         deltaLabel: latest?.skinTemp ? 'Đo từ cảm biến nhiệt cổ tay' : 'Chờ dữ liệu nhiệt độ',
-        sensorSource: 'NTC / MLX90614 / MAX30102 Die',
+        sensorSource: 'Cảm biến thân nhiệt y sinh',
         measuredAt: measuredLabel,
         freshness,
         accentColor: '#38BDF8',
         glowColor: 'rgba(56, 189, 248, 0.25)',
         sparkline: latest?.skinTemp ? [{ time: 'now', value: latest.skinTemp }] : [],
-        note: 'Chỉ hiển thị khi gói JSON từ ESP32 có trường skinTemp.',
+        note: 'Chỉ hiển thị khi gói JSON từ vòng tay có trường skinTemp.',
       },
       {
         key: 'steps',
@@ -398,7 +398,7 @@ export class LiveHealthDataService {
         accentColor: '#06B6D4',
         glowColor: 'rgba(6, 182, 212, 0.25)',
         sparkline: stress !== null ? [{ time: 'now', value: stress }] : [],
-        note: 'Tính toán tự động khi ESP32 gửi đầy đủ cả nhịp tim (heartRate) và biến thiên nhịp tim (hrv).',
+        note: 'Tính toán tự động khi vòng tay gửi đầy đủ cả nhịp tim (heartRate) và biến thiên nhịp tim (hrv).',
       },
     ];
   }

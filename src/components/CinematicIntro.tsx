@@ -69,28 +69,28 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({
               initial={{ scale: 0.85, opacity: 0, filter: 'blur(12px)' }}
               animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-3 mb-4 px-4 py-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/30 text-cyan-300 text-xs font-mono-tech uppercase tracking-[0.25em]"
+              className="flex items-center gap-3 mb-4 px-4 py-1.5 rounded-full border border-rose-500/30 bg-rose-950/30 text-rose-300 text-xs font-mono-tech uppercase tracking-[0.25em]"
             >
-              <Cpu className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>ESP32-S3 • MAX30102 BIOMEDICAL TELEMETRY OS</span>
+              <Cpu className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+              <span>THPT NGÔ QUYỀN • CUỘC THI KHKT 2026 - 2027</span>
             </motion.div>
 
             <motion.h1
               initial={{ opacity: 0, y: 14, filter: 'blur(14px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-4xl sm:text-6xl font-bold tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-teal-300 drop-shadow-[0_0_28px_rgba(0,240,255,0.35)]"
+              className="font-display text-4xl sm:text-6xl font-bold tracking-[0.16em] text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-200 to-pink-400 drop-shadow-[0_0_28px_rgba(244,63,94,0.35)]"
             >
-              SMARTWATCH HEALTH
+              STROKEGUARD - BAND
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: step >= 2 ? 0.85 : 0 }}
               transition={{ duration: 0.45 }}
-              className="mt-3 text-sm sm:text-base text-slate-400 font-light tracking-wide"
+              className="mt-3 text-sm sm:text-base text-slate-300 font-light tracking-wide max-w-xl"
             >
-              Hệ thống Giám sát Sinh học Thông minh & Phân tích Tín hiệu Quang học Thời gian thực
+              Hệ thống Vòng tay Thông minh Giám sát Sinh hiệu &amp; Cảnh báo Sớm Nguy cơ Đột quỵ tại Gia đình
             </motion.p>
 
             {/* 4. Glowing Optical PPG / Radar Sweep running horizontally across screen */}

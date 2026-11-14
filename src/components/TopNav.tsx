@@ -51,32 +51,32 @@ interface TopNavProps {
 
 const SECTION_TITLES: Record<NavSection, { title: string; subtitle: string }> = {
   overview: {
-    title: 'Tổng Quan Sinh Học',
-    subtitle: 'Chỉ số sinh tồn & đồng bộ thời gian thực',
-  },
-  live: {
-    title: 'Sóng Live & Telemetry',
-    subtitle: 'Tín hiệu quang học PPG & luồng dữ liệu thời gian thực',
+    title: 'Tổng Quan Sinh Hiệu & GPS',
+    subtitle: 'Chỉ số tim mạch, hô hấp & định vị thời gian thực',
   },
   heart: {
     title: 'Mô Hình Cơ Thể 3D',
-    subtitle: 'Mô phỏng 3D cơ thể người, lục phủ ngũ tạng & nhịp tim sinh học',
+    subtitle: 'Giải phẫu quả tim co bóp, động mạch cảnh & não bộ',
   },
-  activity: {
-    title: 'Vận Động & Giấc Ngủ',
-    subtitle: 'Vòng vận động năng lượng & chu kỳ giấc ngủ',
+  live: {
+    title: 'Sóng Quang Học PPG',
+    subtitle: 'Tín hiệu thể tích mạch máu qua da khử nhiễu LMS',
   },
   history: {
-    title: 'Lịch Sử Đo',
-    subtitle: 'Nhật ký dữ liệu sinh trắc học & xuất báo cáo CSV',
+    title: 'Nhật Ký Cảnh Báo & Lịch Sử',
+    subtitle: 'Nhật ký biến cố rung nhĩ, té ngã & xuất dữ liệu',
+  },
+  activity: {
+    title: 'Tổng Quan Sinh Hiệu',
+    subtitle: 'STROKEGUARD - BAND',
   },
   device: {
-    title: 'Vòng Tay ESP32',
-    subtitle: 'Trạng thái kết nối phần cứng ESP32-S3 + MAX30102',
+    title: 'Vòng Tay STROKEGUARD',
+    subtitle: 'Trạng thái kết nối vòng tay thông minh',
   },
   settings: {
     title: 'Cài Đặt',
-    subtitle: 'Tùy chỉnh giao diện và cấu hình hệ thống',
+    subtitle: 'Cấu hình hệ thống',
   },
 };
 
@@ -179,24 +179,24 @@ export const TopNav: React.FC<TopNavProps> = ({
                 }`}
               />
               {dataMode === 'demo'
-                ? 'DEMO SIMULATION'
+                ? 'MÔ PHỎNG LÂM SÀNG'
                 : isConnected
-                ? 'LIVE ESP32'
-                : 'OFFLINE'}
+                ? 'VÒNG TAY KẾT NỐI (BLE)'
+                : 'CHỜ KẾT NỐI'}
             </span>
           </div>
         </div>
 
         {/* Quick Nav Tabs for Desktop / Tablets */}
         {onSelectSection && (
-          <div className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-slate-900 border border-slate-800">
             <button
               type="button"
               onClick={() => onSelectSection('overview')}
               className={`px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
                 activeSection === 'overview'
-                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Tổng quan
@@ -207,7 +207,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
                 activeSection === 'heart'
                   ? 'bg-rose-500 text-white shadow-xs shadow-rose-500/30 font-bold'
-                  : 'text-rose-600 dark:text-rose-400 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40'
+                  : 'text-rose-400 hover:text-rose-300 bg-rose-950/40'
               }`}
             >
               <HeartPulse className="w-3.5 h-3.5 animate-pulse" />
@@ -218,11 +218,22 @@ export const TopNav: React.FC<TopNavProps> = ({
               onClick={() => onSelectSection('live')}
               className={`px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
                 activeSection === 'live'
-                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-300 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              Sóng Live
+              Sóng Live PPG
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSection('history')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
+                activeSection === 'history'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Nhật ký Cảnh báo
             </button>
           </div>
         )}
@@ -235,26 +246,26 @@ export const TopNav: React.FC<TopNavProps> = ({
             onClick={onToggleBluetooth}
             title={
               isBluetoothConnected
-                ? 'Bluetooth ĐÃ KẾT NỐI (Vòng tay ESP32) • Nhấn để ngắt kết nối'
+                ? 'Bluetooth ĐÃ KẾT NỐI (Vòng tay STROKEGUARD) • Nhấn để ngắt kết nối'
                 : 'Bluetooth ĐANG TẮT (Chưa kết nối vòng tay) • Nhấn để BẬT kết nối'
             }
             className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] font-semibold font-mono-tech transition-all cursor-pointer active:scale-95 shadow-xs border ${
               isBluetoothConnected
-                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-400/50 shadow-emerald-500/15'
-                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border-slate-300 dark:border-slate-700'
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/50 shadow-emerald-500/15'
+                : 'bg-slate-800/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700'
             }`}
           >
             {isBluetoothConnected ? (
               <>
-                <Bluetooth className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                <span className="hidden xs:inline">Bluetooth: <strong>BẬT</strong></span>
+                <Bluetooth className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span className="hidden xs:inline">Vòng tay: <strong>ĐÃ BẬT</strong></span>
                 <span className="xs:hidden">BLE</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               </>
             ) : (
               <>
                 <BluetoothOff className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden xs:inline">Bluetooth: <strong>TẮT</strong></span>
+                <span className="hidden xs:inline">Vòng tay: <strong>TẮT</strong></span>
                 <span className="xs:hidden">TẮT</span>
               </>
             )}
@@ -319,8 +330,8 @@ export const TopNav: React.FC<TopNavProps> = ({
           <button
             type="button"
             onClick={onOpenSettings}
-            title="Cài đặt hệ thống SMARTWATCH HEALTH"
-            className="p-1.5 sm:p-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 text-slate-600 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-300 hover:border-cyan-400/40 transition cursor-pointer shadow-xs active:scale-95"
+            title="Cài đặt hệ thống STROKEGUARD - BAND"
+            className="p-1.5 sm:p-2 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition cursor-pointer shadow-xs active:scale-95"
           >
             <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
@@ -396,10 +407,10 @@ export const TopNav: React.FC<TopNavProps> = ({
                 setProfileOpen((prev) => !prev);
                 setNotifOpen(false);
               }}
-              title="Hồ sơ người đeo SMARTWATCH HEALTH"
-              className="flex items-center p-0.5 rounded-full border-2 border-slate-200 dark:border-cyan-500/50 hover:border-cyan-500 dark:hover:border-cyan-400 transition cursor-pointer shadow-xs active:scale-95"
+              title="Hồ sơ người đeo STROKEGUARD - BAND"
+              className="flex items-center p-0.5 rounded-full border-2 border-slate-700 hover:border-rose-500 transition cursor-pointer shadow-xs active:scale-95"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-slate-800 shrink-0">
                 <img
                   src="./default_avatar.svg"
                   alt="Avatar người dùng"
@@ -407,7 +418,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   onError={(e) => {
                     // Fallback to stylized SVG
                     (e.currentTarget as HTMLImageElement).src =
-                      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284c7'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>";
+                      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f43f5e'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>";
                   }}
                 />
               </div>
@@ -415,9 +426,9 @@ export const TopNav: React.FC<TopNavProps> = ({
 
             {/* Profile Dropdown */}
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 p-4 shadow-2xl z-50 space-y-3 text-xs">
-                <div className="flex items-center gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-cyan-500/40">
+              <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-slate-900 border border-slate-700/80 p-4 shadow-2xl z-50 space-y-3 text-xs text-white">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-rose-500/40">
                     <img
                       src="./default_avatar.svg"
                       alt="Avatar"
@@ -425,30 +436,30 @@ export const TopNav: React.FC<TopNavProps> = ({
                     />
                   </div>
                   <div>
-                    <div className="font-display font-semibold text-sm text-slate-900 dark:text-white">
-                      Wearer #01 (Chủ tài khoản)
+                    <div className="font-display font-semibold text-sm text-white">
+                      Bệnh nhân / Người đeo #01
                     </div>
-                    <div className="text-slate-500 dark:text-slate-400 font-mono-tech text-[11px]">
-                      ID: SW-USER-2026
+                    <div className="text-slate-400 font-mono-tech text-[11px]">
+                      ID: STROKEGUARD-USER-01
                     </div>
                   </div>
                 </div>
-                <div className="space-y-1.5 font-mono-tech text-[11px] text-slate-700 dark:text-slate-300">
+                <div className="space-y-1.5 font-mono-tech text-[11px] text-slate-300">
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Thiết bị:</span>
-                    <span className="text-cyan-600 dark:text-cyan-400 font-bold">ESP32 + MAX30102</span>
+                    <span className="text-slate-400">Thiết bị:</span>
+                    <span className="text-rose-400 font-bold">STROKEGUARD - BAND (BLE 5.0)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Trạng thái:</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Sức khỏe Tối ưu</span>
+                    <span className="text-slate-400">Trạng thái:</span>
+                    <span className="text-emerald-400 font-bold">Sinh hiệu bình thường</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Tần số mẫu PPG:</span>
-                    <span>{deviceStatus.samplingRateHz} Hz</span>
+                    <span className="text-slate-400">Tác giả KHKT:</span>
+                    <span className="text-cyan-300">Khang &amp; Trí (11/1 - THPT Ngô Quyền)</span>
                   </div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Avatar mặc định chung cho toàn bộ hệ thống theo thiết kế SMARTWATCH HEALTH.
+                <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-[11px] text-slate-400 leading-relaxed">
+                  Đề tài: Vòng tay thông minh hỗ trợ giám sát sinh hiệu &amp; cảnh báo sớm đột quỵ tại gia đình.
                 </div>
               </div>
             )}

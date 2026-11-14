@@ -168,10 +168,10 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   const statusBadge = useMemo(() => {
     if (dataMode === 'live') {
       return isLiveValid
-        ? { label: 'LIVE ESP32 HOẠT ĐỘNG', dotClass: 'bg-emerald-400 animate-pulse', code: 'ESP32 ONLINE' }
-        : { label: 'ESP32 MẤT KẾT NỐI', dotClass: 'bg-rose-500', code: 'ESP32 OFFLINE' };
+        ? { label: 'VÒNG TAY KẾT NỐI (BLE 5.0)', dotClass: 'bg-emerald-400 animate-pulse', code: 'STROKEGUARD BLE' }
+        : { label: 'CHỜ KẾT NỐI VÒNG TAY', dotClass: 'bg-rose-500', code: 'BLE DISCONNECTED' };
     }
-    return { label: 'DEMO SIMULATION', dotClass: 'bg-amber-400 animate-pulse', code: 'DEMO MODE' };
+    return { label: 'MÔ PHỎNG LÂM SÀNG', dotClass: 'bg-amber-400 animate-pulse', code: 'CLINICAL SIM' };
   }, [dataMode, isLiveValid]);
 
   const signalQualityInfo = useMemo(() => {

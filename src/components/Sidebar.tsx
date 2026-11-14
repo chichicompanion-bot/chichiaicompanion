@@ -33,13 +33,10 @@ const NAV_ITEMS: Array<{
   sublabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { id: 'overview', label: 'Tổng quan', sublabel: 'Chỉ số sinh tồn', icon: LayoutDashboard },
-  { id: 'heart', label: 'Cơ thể 3D', sublabel: 'Mô hình cơ thể & Tim', icon: HeartPulse },
-  { id: 'live', label: 'Sóng Live', sublabel: 'PPG & Telemetry thời gian thực', icon: Activity },
-  { id: 'activity', label: 'Vận động & Giấc ngủ', sublabel: 'Activity Rings & Sleep', icon: Moon },
-  { id: 'history', label: 'Lịch sử đo', sublabel: 'Tra cứu & Xuất CSV', icon: History },
-  { id: 'device', label: 'Vòng tay ESP32', sublabel: 'Quản lý phần cứng', icon: Cpu },
-  { id: 'settings', label: 'Cài đặt', sublabel: 'Cấu hình & Giao diện', icon: Settings },
+  { id: 'overview', label: 'Tổng quan', sublabel: 'Sinh hiệu & Bản đồ GPS', icon: LayoutDashboard },
+  { id: 'heart', label: 'Cơ thể 3D', sublabel: 'Giải phẫu Tim & Não bộ', icon: HeartPulse },
+  { id: 'live', label: 'Sóng Live PPG', sublabel: 'Tín hiệu quang học khử nhiễu', icon: Activity },
+  { id: 'history', label: 'Nhật ký Cảnh báo', sublabel: 'Lịch sử sinh hiệu & Biến cố SOS', icon: History },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -73,11 +70,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {!collapsed && (
               <div>
-                <div className="font-display font-bold text-base tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-cyan-700 to-teal-700 dark:from-white dark:via-cyan-200 dark:to-teal-300">
-                  SMARTWATCH HEALTH
+                <div className="font-display font-bold text-base tracking-[0.14em] text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-pink-400 to-rose-300">
+                  STROKEGUARD - BAND
                 </div>
-                <div className="text-[11px] font-mono-tech text-slate-500 dark:text-slate-400 tracking-wider">
-                  SMARTWATCH COMPANION OS
+                <div className="text-[10px] font-mono-tech text-slate-400 tracking-wider">
+                  THPT NGÔ QUYỀN • KHKT 2026-2027
                 </div>
               </div>
             )}
@@ -164,16 +161,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }`}
                 />
                 {dataMode === 'demo'
-                  ? 'DEMO MODE'
+                  ? 'MÔ PHỎNG LÂM SÀNG'
                   : isLiveConnected
-                  ? 'ESP32 LIVE'
-                  : 'DISCONNECTED'}
+                  ? 'VÒNG TAY KẾT NỐI (BLE)'
+                  : 'CHỜ KẾT NỐI'}
               </span>
             </div>
 
-            <div className="text-xs text-slate-300 font-medium flex items-center gap-2">
-              <Radio className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">ESP32-S3 + MAX30102</span>
+            <div className="text-[11px] text-slate-300 font-medium flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span className="truncate">STROKEGUARD • Vòng tay y sinh</span>
             </div>
 
             <button

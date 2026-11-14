@@ -140,7 +140,7 @@ export const HealthHistory: React.FC<HealthHistoryProps> = ({ records, dataMode 
           </div>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             {dataMode === 'live'
-              ? 'Trong chế độ LIVE ESP32, bảng lịch sử chỉ ghi nhận khi mạch thực sự truyền gói dữ liệu hợp lệ lên cổng /api/telemetry.'
+              ? 'Trong chế độ KẾT NỐI TRỰC TIẾP, bảng lịch sử chỉ ghi nhận khi vòng tay STROKEGUARD thực sự truyền gói dữ liệu hợp lệ lên cổng /api/telemetry.'
               : 'Không tìm thấy bản ghi nào khớp với bộ lọc hiện tại. Hãy thử xóa từ khóa tìm kiếm.'}
           </p>
         </div>

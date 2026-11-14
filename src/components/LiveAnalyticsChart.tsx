@@ -60,7 +60,7 @@ const METRIC_CONFIG: Record<
     color: '#FF2E54',
     gradientId: 'hrAreaGrad',
     domain: [50, 120],
-    sensorDesc: 'MAX30102 Optical Pulse Sensor (LED 660nm / 880nm)',
+    sensorDesc: 'Cảm biến quang học PPG (LED 660nm / 880nm)',
   },
   spo2: {
     label: 'SpO₂',
@@ -69,7 +69,7 @@ const METRIC_CONFIG: Record<
     color: '#00F0FF',
     gradientId: 'spo2AreaGrad',
     domain: [92, 100],
-    sensorDesc: 'MAX30102 Red/Infrared Absorption Ratio',
+    sensorDesc: 'Tỷ lệ hấp thụ bước sóng Red/Infrared',
   },
   hrv: {
     label: 'HRV (RMSSD)',
@@ -78,7 +78,7 @@ const METRIC_CONFIG: Record<
     color: '#00E5A3',
     gradientId: 'hrvAreaGrad',
     domain: [25, 110],
-    sensorDesc: 'ESP32 Inter-Beat Interval (IBI) Root Mean Square',
+    sensorDesc: 'Thuật toán trích xuất khoảng R-R / IBI tại biên',
   },
 };
 
@@ -136,14 +136,14 @@ export const LiveAnalyticsChart: React.FC<LiveAnalyticsChartProps> = ({
               }`}
             >
               {dataMode === 'demo'
-                ? 'DEMO STREAM'
+                ? 'MÔ PHỎNG LÂM SÀNG'
                 : isConnected
-                ? 'LIVE ESP32 STREAM'
-                : 'DISCONNECTED'}
+                ? 'VÒNG TAY KẾT NỐI (BLE 5.0)'
+                : 'CHỜ KẾT NỐI'}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {cfg.vietnameseLabel} • Nguồn tín hiệu: {cfg.sensorDesc}
+            {cfg.vietnameseLabel} • Tín hiệu: {cfg.sensorDesc}
           </p>
         </div>
 
@@ -254,11 +254,11 @@ export const LiveAnalyticsChart: React.FC<LiveAnalyticsChartProps> = ({
               <WifiOff className="w-6 h-6" />
             </div>
             <div className="font-display font-semibold text-base text-slate-200">
-              Đang ở chế độ LIVE ESP32 — Chưa nhận được gói dữ liệu thực tế
+              Đang ở chế độ TRỰC TIẾP — Chờ nhận dữ liệu từ vòng tay
             </div>
             <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-              Hệ thống không hiển thị dữ liệu giả dưới nhãn dữ liệu thật. Hãy bật mạch ESP32 + MAX30102 gửi dữ liệu tới{' '}
-              <code className="text-cyan-300 font-mono-tech">/api/telemetry</code>, hoặc bấm nút bên dưới để gửi 1 gói HTTP POST thử nghiệm tới cổng backend.
+              Hệ thống hiển thị dữ liệu trực tiếp khi vòng tay STROKEGUARD kết nối qua Bluetooth BLE 5.0 hoặc cổng backend{' '}
+              <code className="text-cyan-300 font-mono-tech">/api/telemetry</code>.
             </p>
             <button
               type="button"
@@ -268,7 +268,7 @@ export const LiveAnalyticsChart: React.FC<LiveAnalyticsChartProps> = ({
             >
               <Send className="w-3.5 h-3.5" />
               <span>
-                {sendingTest ? 'Đang gửi gói tin ESP32...' : 'Gửi gói tin ESP32 mẫu tới /api/telemetry'}
+                {sendingTest ? 'Đang đồng bộ gói tin...' : 'Gửi gói tin y sinh kiểm thử tới /api/telemetry'}
               </span>
             </button>
           </div>
@@ -326,18 +326,18 @@ export const LiveAnalyticsChart: React.FC<LiveAnalyticsChartProps> = ({
         )}
       </div>
 
-      {/* Simulated Optical PPG Waveform Panel (Strictly Labeled MAX30102 Optical Waveform) */}
+      {/* Simulated Optical PPG Waveform Panel */}
       <div className="rounded-xl bg-slate-950/65 border border-slate-800/80 p-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             <span className="font-display font-semibold text-sm text-slate-200">
-              Biểu đồ Sóng xung Quang học PPG (MAX30102 Photoplethysmography Waveform)
+              Biểu đồ Sóng Thể tích Quang học PPG (Photoplethysmography Waveform)
             </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono-tech text-amber-300 bg-amber-500/10 border border-amber-400/30 px-2.5 py-0.5 rounded-md">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-mono-tech text-emerald-300 bg-emerald-500/10 border border-emerald-400/30 px-2.5 py-0.5 rounded-md">
             <Info className="w-3.5 h-3.5 shrink-0" />
-            Waveform mô phỏng quang học MAX30102 — Không phải điện tâm đồ ECG y khoa
+            Tín hiệu thể tích mạch máu quang học — Khử nhiễu qua bộ lọc LMS thích nghi
           </span>
         </div>
 

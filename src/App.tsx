@@ -80,7 +80,8 @@ export const App: React.FC = () => {
     return () => clearTimeout(safeTimer);
   }, [showIntro, handleCompleteIntro]);
 
-  const [isLightMode, setIsLightMode] = useState(true);
+  // Default to pure dark mode on initial open as requested
+  const [isLightMode, setIsLightMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<NavSection>('overview');
@@ -318,7 +319,7 @@ export const App: React.FC = () => {
         {
           id: `pkt-${Date.now()}`,
           title: 'Đã nhận gói JSON từ cổng /api/telemetry',
-          message: 'Gói dữ liệu ESP32 + MAX30102 đã được xác thực hợp lệ.',
+          message: 'Gói dữ liệu y sinh STROKEGUARD - BAND đã được xác thực hợp lệ.',
           timestamp: new Date().toLocaleTimeString('vi-VN'),
           type: 'telemetry',
           read: false,
@@ -415,10 +416,10 @@ export const App: React.FC = () => {
                     : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
                 }`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${dataMode === 'demo' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-                  {dataMode === 'demo' ? 'DEMO SIMULATION' : 'LIVE ESP32 CONNECTED'}
+                  {dataMode === 'demo' ? 'MÔ PHỎNG LÂM SÀNG' : 'VÒNG TAY KẾT NỐI (BLE 5.0)'}
                 </span>
                 <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px] font-mono-tech">
-                  ESP32-S3 • MAX30102 Telemetry OS
+                  STROKEGUARD - BAND • HỆ THỐNG Y SINH KHKT 2026-2027
                 </span>
               </div>
 
@@ -428,7 +429,7 @@ export const App: React.FC = () => {
                   onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
                   className="px-3 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30 text-[11px] font-mono-tech transition cursor-pointer active:scale-95"
                 >
-                  Chuyển sang {dataMode === 'demo' ? 'LIVE ESP32' : 'DEMO MODE'}
+                  Chuyển sang {dataMode === 'demo' ? 'KẾT NỐI VÒNG TAY' : 'MÔ PHỎNG LÂM SÀNG'}
                 </button>
               </div>
             </div>
@@ -445,6 +446,30 @@ export const App: React.FC = () => {
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                   className="space-y-6"
                 >
+                  {/* KHKT School Project Badge & Banner */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl md:rounded-3xl bg-gradient-to-r from-rose-950/40 via-slate-900/80 to-slate-900/90 border border-rose-500/30 text-xs shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/30 shrink-0">
+                        <ShieldCheck className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-mono-tech font-bold uppercase tracking-wider text-rose-400">
+                          TRƯỜNG THPT NGÔ QUYỀN — ĐÀ NẴNG • KHKT 2026 – 2027
+                        </div>
+                        <h1 className="text-sm sm:text-base font-bold font-display text-white">
+                          STROKEGUARD – SMART HEALTH BAND
+                        </h1>
+                        <p className="text-[11px] text-slate-300">
+                          Hệ thống vòng tay thông minh giám sát sinh hiệu &amp; cảnh báo sớm nguy cơ đột quỵ tại gia đình • Nhóm tác giả: Nguyễn Đăng Khang &amp; Nguyễn Ngọc Trí (Lớp 11/1)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden md:flex items-center gap-2 font-mono-tech text-[10px] text-slate-400">
+                      <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700">GVHD: Nguyễn Thị Vũ Thảo</span>
+                      <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700">Hệ thống nhúng</span>
+                    </div>
+                  </div>
+
                   {/* Hero Shortcut Card to 3D Body */}
                   <div
                     onClick={() => {
@@ -489,8 +514,8 @@ export const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 7 Health Metric Cards Grid */}
-                  <section aria-label="Các chỉ số sức khỏe">
+                  {/* 6 Essential Cardiovascular & Respiratory Metric Cards Grid */}
+                  <section aria-label="Các chỉ số sinh hiệu tim mạch">
                     {searchQuery && (
                       <div className="mb-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
                         <span>Kết quả tìm kiếm: &ldquo;<strong className="text-cyan-500">{searchQuery}</strong>&rdquo;</span>
@@ -502,8 +527,9 @@ export const App: React.FC = () => {
                         </button>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4">
                       {effectiveMetrics
+                        .filter((m) => m.key !== 'steps' && m.key !== 'sleep')
                         .filter((m) => {
                           if (!searchQuery.trim()) return true;
                           const q = searchQuery.toLowerCase().trim();
@@ -527,17 +553,7 @@ export const App: React.FC = () => {
                     </div>
                   </section>
 
-                  {/* Activity Rings & Sleep Summary */}
-                  <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <ActivityRings
-                      rings={activityRings}
-                      dataMode={dataMode}
-                      reducedMotion={reducedMotion}
-                    />
-                    <SleepAnalytics sleep={sleepSummary} />
-                  </section>
-
-                  {/* Device GPS Telemetry & Online Map (Auto updates every 5 mins) */}
+                  {/* Device GPS Telemetry & Real-Time Moving Green Dot Map */}
                   <DeviceGpsTelemetryCard />
                 </motion.div>
               )}
@@ -774,7 +790,7 @@ export const App: React.FC = () => {
                           <span>Cinematic Intro Mở Đầu</span>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Phát lại hiệu ứng animation khởi động hệ thống SMARTWATCH HEALTH.
+                          Phát lại hiệu ứng animation khởi động hệ thống STROKEGUARD - BAND.
                         </p>
                       </div>
                       <button
@@ -795,10 +811,10 @@ export const App: React.FC = () => {
           {/* Clean Footer */}
           <footer className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800/60 text-[11px] font-mono-tech text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
             <span>
-              SMARTWATCH HEALTH • HỆ THỐNG GIÁM SÁT SINH HỌC VÒNG TAY ESP32
+              STROKEGUARD – SMART HEALTH BAND • TRƯỜNG THPT NGÔ QUYỀN • KHKT 2026 – 2027
             </span>
             <span>
-              {dataMode.toUpperCase()} MODE • API /api/telemetry
+              Khang &amp; Trí (11/1) • GVHD: Thảo • {dataMode === 'demo' ? 'MÔ PHỎNG LÂM SÀNG' : 'VÒNG TAY KẾT NỐI'}
             </span>
           </footer>
         </div>

@@ -116,12 +116,12 @@ export const HealthInsightNotificationCards: React.FC<HealthInsightNotificationC
       onClick: () => onSelectMetric('skinTemp'),
     },
     {
-      id: 'esp32-stream',
-      badge: 'Vòng Tay Thông Minh',
-      scoreText: 'ESP32 • 1,425 Gói tin',
+      id: 'strokeguard-stream',
+      badge: 'Vòng Tay STROKEGUARD',
+      scoreText: 'BLE 5.0 • 1,425 Gói tin',
       scorePercent: 99,
-      title: 'MAX30102 Live Telemetry',
-      description: 'Tín hiệu PPG quang học truyền về thời gian thực đạt độ tin cậy 99.8% qua Wi-Fi.',
+      title: 'Tín Hiệu PPG Thời Gian Thực',
+      description: 'Tín hiệu PPG quang học truyền về thời gian thực đạt độ tin cậy 99.8% qua BLE 5.0.',
       buttonLabel: 'Quản lý vòng tay',
       gradientClass:
         'bg-gradient-to-br from-emerald-50 via-white to-teal-50/70 dark:from-[#092318] dark:via-[#061a12] dark:to-[#030f0a]',

@@ -40,7 +40,7 @@ export const HealthMapPanel: React.FC = () => {
         <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 flex items-center gap-3 text-xs text-slate-400">
           <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
           <span>
-            Mạch ESP32 + MAX30102 hiện tại chưa gắn module GPS phần cứng. Hệ thống đã ẩn bản đồ theo mặc định để không tự suy diễn vị trí thật của người đeo. Bấm <strong>"Mở bản đồ Radar Demo"</strong> nếu bạn muốn xem giao diện mô phỏng vùng an toàn (Safe-Zone).
+            Vòng tay STROKEGUARD hỗ trợ định vị GPS thời gian thực. Hãy xem Bản đồ định vị GPS ở mục Tổng quan để theo dõi trực tiếp vị trí của thiết bị. Bấm <strong>"Mở bản đồ Radar Demo"</strong> nếu bạn muốn xem giao diện mô phỏng vùng an toàn (Safe-Zone).
           </span>
         </div>
       ) : (
