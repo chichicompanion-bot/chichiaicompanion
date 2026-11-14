@@ -16,6 +16,7 @@ import {
   X,
   Bluetooth,
   BluetoothOff,
+  HeartPulse,
 } from 'lucide-react';
 import {
   DataMode,
@@ -39,6 +40,7 @@ interface TopNavProps {
   onOpenMobileMenu: () => void;
   onTriggerReconnect: () => void;
   onOpenSettings?: () => void;
+  onSelectSection?: (section: NavSection) => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
   isBluetoothConnected: boolean;
@@ -92,6 +94,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onOpenMobileMenu,
   onTriggerReconnect,
   onOpenSettings,
+  onSelectSection,
   searchQuery = '',
   onSearchChange,
   isBluetoothConnected,
@@ -183,6 +186,46 @@ export const TopNav: React.FC<TopNavProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Quick Nav Tabs for Desktop / Tablets */}
+        {onSelectSection && (
+          <div className="hidden lg:flex items-center gap-1 p-1 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => onSelectSection('overview')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
+                activeSection === 'overview'
+                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-300 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              Tổng quan
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSection('heart')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
+                activeSection === 'heart'
+                  ? 'bg-rose-500 text-white shadow-xs shadow-rose-500/30 font-bold'
+                  : 'text-rose-600 dark:text-rose-400 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40'
+              }`}
+            >
+              <HeartPulse className="w-3.5 h-3.5 animate-pulse" />
+              <span>Cơ thể 3D</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSection('live')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold font-mono-tech transition cursor-pointer ${
+                activeSection === 'live'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-300 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              Sóng Live
+            </button>
+          </div>
+        )}
 
         {/* Right Side: Bluetooth Toggle + Stroke Test + Mode + Settings + Notifications */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

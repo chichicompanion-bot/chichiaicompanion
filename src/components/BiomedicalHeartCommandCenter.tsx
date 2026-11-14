@@ -12,6 +12,7 @@ import {
   User,
   Wifi,
   WifiOff,
+  Zap,
 } from 'lucide-react';
 import {
   DataMode,
@@ -79,17 +80,27 @@ async function getAnatomicalGlbBuffer(): Promise<ArrayBuffer> {
         '/models/anatomical_body_heart.glb',
         './models/anatomical_body_heart.glb',
         'models/anatomical_body_heart.glb',
+        'https://chichiaicompanion.com/models/anatomical_body_heart.glb',
       ];
       for (const url of candidates) {
         try {
-          const res = await fetch(url);
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4500);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timer);
           if (res.ok) {
-            return await res.arrayBuffer();
+            const buf = await res.arrayBuffer();
+            if (buf && buf.byteLength > 500000) {
+              return buf;
+            }
           }
         } catch {}
       }
       throw new Error('Failed to load anatomical_body_heart.glb');
-    })();
+    })().catch((err) => {
+      cachedGlbBufferPromise = null;
+      throw err;
+    });
   }
   return cachedGlbBufferPromise;
 }
@@ -113,10 +124,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
   const viewModeRef = useRef<'body' | 'heart'>('body');
   viewModeRef.current = viewMode;
 
-  const [modelLoaded, setModelLoaded] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [cardiacPhaseLabel, setCardiacPhaseLabel] = useState('DIASTOLE (THƯ GIÃN)');
   const [displayedSmoothedBpm, setDisplayedSmoothedBpm] = useState(74);
+  const [webGlSupported, setWebGlSupported] = useState(true);
 
   const resetCameraTriggerRef = useRef(false);
   const autoRotateRef = useRef(autoRotate);
@@ -203,12 +215,30 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let isCancelled = false;
     let animId = 0;
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false,
+      });
+    } catch {
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: false,
+          alpha: true,
+          powerPreference: 'default',
+        });
+      } catch (err) {
+        console.warn('WebGL initialization failed, using 2D fallback mode:', err);
+        setWebGlSupported(false);
+        return;
+      }
+    }
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = isLightModeRef.current ? 1.05 : 1.18;
@@ -217,8 +247,8 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
     // Responsive camera setup
     const rect = canvas.getBoundingClientRect();
-    let cachedWidth = Math.max(280, Math.floor(rect.width));
-    let cachedHeight = Math.max(380, Math.floor(rect.height));
+    let cachedWidth = Math.max(280, Math.floor(rect.width || 800));
+    let cachedHeight = Math.max(380, Math.floor(rect.height || 600));
     let isSizeDirty = false;
     renderer.setSize(cachedWidth, cachedHeight, false);
 
@@ -246,7 +276,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
 
     // Studio Lighting
     const isLight = isLightModeRef.current;
-    const ambientLight = new THREE.AmbientLight(0xffffff, isLight ? 1.5 : 0.7);
+    const ambientLight = new THREE.AmbientLight(0xffffff, isLight ? 1.5 : 0.75);
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffffff, isLight ? 1.8 : 1.6);
@@ -261,13 +291,13 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     fillLight.position.set(0, -4, 6);
     scene.add(fillLight);
 
-    // Root model group (handles rotation)
+    // Root model group
     const modelGroup = new THREE.Group();
     modelGroup.rotation.y = targetRotYRef.current;
     modelGroup.rotation.x = targetRotXRef.current;
     scene.add(modelGroup);
 
-    // Subgroups for clean isolation and animation
+    // Subgroups
     const heartGroup = new THREE.Group();
     heartGroupRef.current = heartGroup;
     modelGroup.add(heartGroup);
@@ -276,12 +306,10 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     modelGroup.add(organGroup);
 
     let torsoMesh: THREE.Mesh | null = null;
-    let coronaryMesh: THREE.Mesh | null = null;
     let vesselsMesh: THREE.Mesh | null = null;
     let brainMesh: THREE.Mesh | null = null;
-    let ribCageMesh: THREE.Mesh | null = null;
 
-    // Ultra-Realistic Human Dermis & Subcutaneous Vascular Shaders
+    // Shared materials
     const coronaryMat = new THREE.MeshStandardMaterial({
       color: 0xe02235,
       roughness: 0.24,
@@ -290,7 +318,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       emissiveIntensity: 0.55,
     });
 
-    // SINGLE THIN CAROTID VESSEL: Arterial scarlet blood traveling from heart to brain
     const vesselsMat = new THREE.MeshStandardMaterial({
       color: 0xd6182c,
       roughness: 0.22,
@@ -301,7 +328,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       opacity: 0.98,
     });
 
-    // Real human brain cortex: authentic pinkish-tan with pia mater wetness sheen
     const brainMat = new THREE.MeshStandardMaterial({
       color: isLight ? 0xdcaea0 : 0xd09a8c,
       roughness: 0.38,
@@ -312,7 +338,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       opacity: 0.96,
     });
 
-    // Ultra-Realistic Human Body Subsurface Dermis Shader (Anatomical Human Skin)
     const torsoMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uSkinTone: { value: new THREE.Color(isLight ? 0xdfb29b : 0xd2a38b) },
@@ -340,11 +365,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
           vec3 V = normalize(vViewPosition);
           float NdotV = max(0.0, dot(N, V));
           float fresnel = pow(1.0 - NdotV, 2.1);
-          
-          // Realistic human flesh: warm skin tone on body contours, subcutaneous blood scattering
           vec3 col = mix(uSkinTone, uSubsurface, fresnel * 0.75);
-          
-          // Soft organic dermis translucency to inspect internal organs & beating heart
           float alpha = (0.16 + fresnel * 0.62) * uOrganAlpha;
           gl_FragColor = vec4(col, alpha);
         }
@@ -353,6 +374,114 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       depthWrite: false,
       side: THREE.FrontSide,
     });
+
+    // -------------------------------------------------------------
+    // 0-MS INSTANT PROCEDURAL BIO-ANATOMY SETUP (Zero loading freeze!)
+    // -------------------------------------------------------------
+    const proceduralGroup = new THREE.Group();
+    modelGroup.add(proceduralGroup);
+
+    // Procedural Torso Silhoutte
+    const torsoShape = new THREE.Shape();
+    torsoShape.moveTo(-1.6, -6.5);
+    torsoShape.lineTo(-1.8, -3.0);
+    torsoShape.lineTo(-2.2, 0.0);
+    torsoShape.lineTo(-2.6, 2.5);
+    torsoShape.lineTo(-1.2, 3.2);
+    torsoShape.lineTo(-0.7, 4.2);
+    torsoShape.lineTo(0.7, 4.2);
+    torsoShape.lineTo(1.2, 3.2);
+    torsoShape.lineTo(2.6, 2.5);
+    torsoShape.lineTo(2.2, 0.0);
+    torsoShape.lineTo(1.8, -3.0);
+    torsoShape.lineTo(1.6, -6.5);
+    torsoShape.closePath();
+
+    const extrudeSettings = { depth: 2.2, bevelEnabled: true, bevelSegments: 6, steps: 2, bevelSize: 0.4, bevelThickness: 0.4 };
+    const pTorsoGeo = new THREE.ExtrudeGeometry(torsoShape, extrudeSettings);
+    pTorsoGeo.center();
+    pTorsoGeo.translate(0, -0.6, -0.4);
+    const proceduralTorsoMesh = new THREE.Mesh(pTorsoGeo, torsoMaterial);
+    proceduralGroup.add(proceduralTorsoMesh);
+
+    // Procedural Anatomical Heart
+    const pHeartGeo = new THREE.SphereGeometry(0.85, 24, 24);
+    pHeartGeo.scale(0.88, 1.15, 0.92);
+    const proceduralHeartMesh = new THREE.Mesh(
+      pHeartGeo,
+      new THREE.MeshStandardMaterial({
+        color: 0x9e1a2b,
+        roughness: 0.3,
+        metalness: 0.12,
+        emissive: 0x38050c,
+        emissiveIntensity: 0.4,
+      })
+    );
+    heartGroup.add(proceduralHeartMesh);
+
+    // Procedural Aortic Arch
+    const aortaCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0.4, 0),
+      new THREE.Vector3(0.15, 1.1, -0.1),
+      new THREE.Vector3(-0.35, 1.25, -0.25),
+      new THREE.Vector3(-0.45, 0.5, -0.3),
+    ]);
+    const proceduralAortaMesh = new THREE.Mesh(
+      new THREE.TubeGeometry(aortaCurve, 24, 0.14, 12, false),
+      new THREE.MeshStandardMaterial({ color: 0xb8202e, roughness: 0.26, metalness: 0.08 })
+    );
+    heartGroup.add(proceduralAortaMesh);
+
+    // Procedural Brain Cortex
+    const pBrainGeo = new THREE.SphereGeometry(1.05, 24, 20);
+    pBrainGeo.scale(0.92, 0.85, 1.15);
+    const proceduralBrainMesh = new THREE.Mesh(pBrainGeo, brainMat);
+    proceduralBrainMesh.position.set(-0.25, 4.8, -0.5);
+    proceduralGroup.add(proceduralBrainMesh);
+    brainMesh = proceduralBrainMesh;
+
+    // Single Carotid Vessel (Heart to Brain)
+    const carotidCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.05, 1.15, -0.12),
+      new THREE.Vector3(-0.1, 2.4, -0.3),
+      new THREE.Vector3(-0.18, 3.6, -0.45),
+      new THREE.Vector3(-0.25, 4.4, -0.5),
+    ]);
+    const carotidTubeGeo = new THREE.TubeGeometry(carotidCurve, 32, 0.042, 10, false);
+    const proceduralCarotidMesh = new THREE.Mesh(carotidTubeGeo, vesselsMat);
+    proceduralGroup.add(proceduralCarotidMesh);
+    vesselsMesh = proceduralCarotidMesh;
+
+    // Systolic Blood Pulse Particle that rides along the carotid vessel to the brain
+    const pulseBallGeo = new THREE.SphereGeometry(0.075, 12, 12);
+    const pulseBallMat = new THREE.MeshBasicMaterial({ color: 0xff3b5c });
+    const carotidPulseOrb = new THREE.Mesh(pulseBallGeo, pulseBallMat);
+    proceduralGroup.add(carotidPulseOrb);
+
+    // -------------------------------------------------------------
+    // FUTURISTIC HOLOGRAPHIC BIO-SCANNER BEAM (Animated CT/MRI laser)
+    // -------------------------------------------------------------
+    const scanPlaneGeo = new THREE.PlaneGeometry(6.4, 4.0);
+    const scanPlaneMat = new THREE.MeshBasicMaterial({
+      color: isLight ? 0x0284c7 : 0x00f0ff,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const scanPlane = new THREE.Mesh(scanPlaneGeo, scanPlaneMat);
+    scanPlane.rotation.x = Math.PI * 0.5;
+    proceduralGroup.add(scanPlane);
+
+    const scanLineGeo = new THREE.BufferGeometry();
+    const scanLinePos = new Float32Array([-3.2, 0, 0, 3.2, 0, 0]);
+    scanLineGeo.setAttribute('position', new THREE.BufferAttribute(scanLinePos, 3));
+    const scanLineMat = new THREE.LineBasicMaterial({
+      color: isLight ? 0x0284c7 : 0x00f0ff,
+      linewidth: 2,
+    });
+    const scanLine = new THREE.Line(scanLineGeo, scanLineMat);
+    scanPlane.add(scanLine);
 
     // 3D Chest Hotspot Target
     const hotspotGroup = new THREE.Group();
@@ -383,7 +512,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     hotspotGroup.add(ringMesh);
     modelGroup.add(hotspotGroup);
 
-    // Highly responsive invisible chest hit target for instant, effortless taps
+    // Invisible chest hit target for instant taps
     const chestHitTarget = new THREE.Mesh(
       new THREE.SphereGeometry(2.4, 16, 16),
       new THREE.MeshBasicMaterial({ visible: false })
@@ -391,7 +520,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     chestHitTarget.position.set(0, 0, 0.4);
     modelGroup.add(chestHitTarget);
 
-    // Holographic Orbit Rings & Particles in Heart Mode
+    // Orbit Ring in Heart Mode
     const orbitGroup = new THREE.Group();
     const orbitRingGeo = new THREE.RingGeometry(1.68, 1.70, 64);
     const orbitRingMat = new THREE.MeshBasicMaterial({
@@ -425,17 +554,25 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     orbitGroup.add(particles);
     heartGroup.add(orbitGroup);
 
-    // Load master anatomical GLB via ArrayBuffer parsing (100% immune to WebGL context disposal bugs)
+    // -------------------------------------------------------------
+    // BACKGROUND GLB HYDRATION: Seamlessly replace with high-poly GLB
+    // -------------------------------------------------------------
     getAnatomicalGlbBuffer()
       .then((rawBuffer) => {
         if (isCancelled) return;
         const loader = new GLTFLoader();
-        // Parse a fresh slice of the buffer so geometries and materials are brand-new for this active renderer
         loader.parse(
           rawBuffer.slice(0),
           '',
           (gltf) => {
             if (isCancelled) return;
+            // Remove placeholder procedural torso & heart
+            proceduralGroup.remove(proceduralTorsoMesh);
+            heartGroup.remove(proceduralHeartMesh);
+            heartGroup.remove(proceduralAortaMesh);
+            proceduralGroup.remove(proceduralBrainMesh);
+            proceduralGroup.remove(proceduralCarotidMesh);
+
             const allMeshes: THREE.Mesh[] = [];
             gltf.scene.traverse((child) => {
               if ((child as THREE.Mesh).isMesh) {
@@ -460,7 +597,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
                   transparent: true,
                   opacity: 0.86,
                 });
-                ribCageMesh = mesh;
                 organGroup.add(mesh);
               } else if (mesh.name === 'Trachea') {
                 mesh.material = new THREE.MeshStandardMaterial({
@@ -508,12 +644,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
                 });
                 organGroup.add(mesh);
               } else if (mesh.name === 'BloodVessels') {
-                // EXACTLY ONE THIN CAROTID VESSEL from Heart to Brain
+                // Single carotid vessel
                 mesh.material = vesselsMat;
                 vesselsMesh = mesh;
                 organGroup.add(mesh);
               } else {
-                // Anatomical Heart structures: deep crimson biological shading
                 if (mesh.name === 'Myocardium') {
                   mesh.material = new THREE.MeshStandardMaterial({
                     color: 0x9e1a2b,
@@ -530,7 +665,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
                   });
                 } else if (mesh.name === 'PulmonaryArtery') {
                   mesh.material = new THREE.MeshStandardMaterial({
-                    color: 0x344f6e, // Venous deoxygenated navy
+                    color: 0x344f6e,
                     roughness: 0.3,
                     metalness: 0.08,
                   });
@@ -548,7 +683,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
                   });
                 } else if (mesh.name === 'CoronaryArteries') {
                   mesh.material = coronaryMat;
-                  coronaryMesh = mesh;
                 } else if (mesh.name === 'CardiacVeins') {
                   mesh.material = new THREE.MeshStandardMaterial({
                     color: 0x2382b3,
@@ -560,16 +694,14 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
                 heartGroup.add(mesh);
               }
             });
-
-            setModelLoaded(true);
           },
           (err) => {
-            console.error('Failed to parse anatomical model GLB:', err);
+            console.warn('GLB parsing skipped; procedural anatomy active:', err);
           }
         );
       })
       .catch((err) => {
-        console.error('Failed to download master anatomical GLB:', err);
+        console.warn('GLB fetch skipped; procedural anatomy active:', err);
       });
 
     // Camera animation state
@@ -582,7 +714,7 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
     let lastTime = performance.now();
     let lastUiSync = 0;
 
-    // Pointer Drag vs Click State (Rock-solid fix for drag zooming!)
+    // Pointer Drag vs Click State
     let isPointerDown = false;
     let startX = 0, startY = 0;
     let prevX = 0, prevY = 0;
@@ -612,7 +744,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         hasDragged = true;
       }
 
-      // Smooth 60-120 FPS rotation directly updating target rotations
       targetRotYRef.current += dx * 0.0075;
       targetRotXRef.current = Math.max(-0.55, Math.min(0.55, targetRotXRef.current + dy * 0.0065));
     };
@@ -627,12 +758,10 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
       const elapsed = performance.now() - startTime;
 
-      // Only reject if user distinctly dragged (> 12px) or held for over 500ms
       if (hasDragged || totalDist > 12 || elapsed > 500) {
         return;
       }
 
-      // Fast, ultra-responsive tap/click detection
       if (viewModeRef.current === 'body' && cameraRef.current) {
         const cRect = canvas.getBoundingClientRect();
         const mouse = new THREE.Vector2(
@@ -665,7 +794,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
 
-      // Handle resize without costly DOM reflows
       if (isSizeDirty) {
         isSizeDirty = false;
         renderer.setSize(cachedWidth, cachedHeight, false);
@@ -676,25 +804,21 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const isMobile = cachedWidth < 640;
       const isBodyView = viewModeRef.current === 'body';
 
-      // Reset camera trigger
       if (resetCameraTriggerRef.current) {
         resetCameraTriggerRef.current = false;
         targetRotYRef.current = -0.12;
         targetRotXRef.current = 0.04;
       }
 
-      // Smooth auto-rotation
       if (!isPointerDown && autoRotateRef.current && !reducedMotionRef.current) {
         targetRotYRef.current += dt * ((Math.PI * 2) / 28.0);
       }
 
-      // Smooth rotation dampening
       rotY += (targetRotYRef.current - rotY) * Math.min(1, dt * 9.0);
       rotX += (targetRotXRef.current - rotX) * Math.min(1, dt * 9.0);
       modelGroup.rotation.y = rotY;
       modelGroup.rotation.x = rotX;
 
-      // Smooth camera interpolation
       const targetCamPos = isBodyView
         ? new THREE.Vector3(0, isMobile ? -1.0 : -0.9, isMobile ? 27.5 : 23.5)
         : new THREE.Vector3(0, 0.0, isMobile ? 5.2 : 4.0);
@@ -708,11 +832,11 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       camera.position.copy(currentCamPos);
       camera.lookAt(currentLookAt);
 
-      // Smooth organ alpha dissolve (only compute during transition)
       if (Math.abs(targetAlpha - currentOrganAlpha) > 0.001) {
         currentOrganAlpha += (targetAlpha - currentOrganAlpha) * Math.min(1, dt * 6.0);
         torsoMaterial.uniforms.uOrganAlpha.value = currentOrganAlpha;
         if (torsoMesh) torsoMesh.visible = currentOrganAlpha > 0.01;
+        proceduralTorsoMesh.visible = currentOrganAlpha > 0.01;
 
         organGroup.children.forEach((child) => {
           const m = child as THREE.Mesh;
@@ -734,6 +858,15 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       orbitRingMat.opacity = (1 - currentOrganAlpha) * 0.55;
       particles.rotation.y += dt * 0.8;
 
+      // Animate Bio-Scanner Plane (Vertical Laser Sweep)
+      if (isBodyView && !reducedMotionRef.current) {
+        const scanY = Math.sin(now * 0.0014) * 5.6 - 0.5;
+        scanPlane.position.y = scanY;
+        scanPlaneMat.opacity = 0.2 + Math.abs(Math.sin(now * 0.003)) * 0.15;
+      } else {
+        scanPlane.position.y = -999;
+      }
+
       // Cardiac rhythm animation
       const targetBpmVal = Math.max(42, Math.min(195, targetBpmRef.current));
       smoothedBpmRef.current += (targetBpmVal - smoothedBpmRef.current) * Math.min(1, dt * 4.0);
@@ -741,12 +874,18 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
       const beatsPerSec = currentBpm / 60;
       beatPhase = (beatPhase + dt * beatsPerSec) % 1;
 
-      const { ventricularPulse, arterialWave, phaseLabel } = evaluateCardiacCycle(beatPhase);
+      const { ventricularPulse, phaseLabel } = evaluateCardiacCycle(beatPhase);
 
       // Heartbeat organic scale pulse & twist
       const vScale = 1 - ventricularPulse * 0.058;
       heartGroup.scale.set(vScale, 1 - ventricularPulse * 0.026, vScale);
       heartGroup.rotation.z = ventricularPulse * 0.038;
+
+      // Animate Systolic Blood Pulse along Carotid to Brain
+      const carotidT = (beatPhase * 1.3) % 1;
+      const pulsePt = carotidCurve.getPoint(carotidT);
+      carotidPulseOrb.position.copy(pulsePt);
+      carotidPulseOrb.scale.setScalar(0.7 + ventricularPulse * 0.6);
 
       // Coronary & systemic vessels bioluminescent pulse + neural brain glow
       coronaryMat.emissiveIntensity = 0.5 + ventricularPulse * 0.65;
@@ -759,7 +898,6 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         setDisplayedSmoothedBpm(Math.round(currentBpm));
       }
 
-      // Hardware render
       renderer.render(scene, camera);
       animId = requestAnimationFrame(renderFrame);
     };
@@ -902,34 +1040,48 @@ export const BiomedicalHeartCommandCenter: React.FC<BiomedicalHeartCommandCenter
         }}
         className="relative w-full min-h-[520px] sm:min-h-[580px] md:min-h-[640px] flex flex-col items-center justify-center select-none overflow-hidden"
       >
-        {/* 3D WebGL Canvas */}
-        <div className="relative z-10 w-full h-[520px] sm:h-[580px] md:h-[640px] flex items-center justify-center">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full max-w-[840px] cursor-grab active:cursor-grabbing touch-none"
-          />
+        {webGlSupported ? (
+          <div className="relative z-10 w-full h-[520px] sm:h-[580px] md:h-[640px] flex items-center justify-center">
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full max-w-[840px] cursor-grab active:cursor-grabbing touch-none"
+            />
 
-          {!modelLoaded && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="px-4 py-2 rounded-xl bg-white/90 dark:bg-slate-950/85 border border-cyan-400/40 text-xs font-mono-tech text-cyan-600 dark:text-cyan-300 shadow-lg">
-                Đang nạp mô hình cơ thể người 3D &amp; nội tạng...
-              </div>
+            {/* Prompt in Body Mode: Clickable Hero Button to Zoom into Heart */}
+            {viewMode === 'body' && (
+              <button
+                type="button"
+                onClick={handleToggleViewMode}
+                className="pointer-events-auto absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-500/90 via-pink-600/90 to-rose-600/90 hover:from-rose-600 hover:to-pink-700 text-white border border-rose-300/40 text-xs font-semibold shadow-lg shadow-rose-500/30 backdrop-blur-md cursor-pointer transition-all active:scale-95"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                <span>Chạm phóng to Trái Tim &amp; 4 biểu đồ</span>
+                <Sparkles className="w-3.5 h-3.5 text-rose-200" />
+              </button>
+            )}
+          </div>
+        ) : (
+          /* High-Tech 2D Holographic SVG Fallback if WebGL is disabled */
+          <div className="relative z-10 w-full h-[520px] sm:h-[580px] md:h-[640px] flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center shadow-[0_0_30px_rgba(244,63,94,0.4)] animate-pulse">
+              <Activity className="w-12 h-12 text-rose-400" />
             </div>
-          )}
-
-          {/* Prompt in Body Mode: Clickable Hero Button to Zoom into Heart */}
-          {viewMode === 'body' && (
-            <button
-              type="button"
-              onClick={handleToggleViewMode}
-              className="pointer-events-auto absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-500/90 via-pink-600/90 to-rose-600/90 hover:from-rose-600 hover:to-pink-700 text-white border border-rose-300/40 text-xs font-semibold shadow-lg shadow-rose-500/30 backdrop-blur-md cursor-pointer transition-all active:scale-95"
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-              <span>Chạm phóng to Trái Tim &amp; 4 biểu đồ</span>
-              <Sparkles className="w-3.5 h-3.5 text-rose-200" />
-            </button>
-          )}
-        </div>
+            <h3 className="text-xl font-bold font-display text-slate-900 dark:text-white mt-4">
+              MÔ PHỎNG SINH HỌC 2D TĂNG TỐC
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1">
+              Trình duyệt của bạn đang tắt WebGL hoặc tăng tốc phần cứng. Hệ thống tự động chuyển sang luồng hiển thị 2D mượt mà.
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-xs font-mono-tech text-cyan-600 dark:text-cyan-300">
+                BPM: {displayedSmoothedBpm}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-rose-500/15 border border-rose-400/40 text-xs font-mono-tech text-rose-600 dark:text-rose-300">
+                {cardiacPhaseLabel}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* 4 FLOATING GLASSMORPHISM CHARTS (Active in 'heart' mode) */}
         <FloatingHeartChartsHUD

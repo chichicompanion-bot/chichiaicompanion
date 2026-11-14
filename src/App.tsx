@@ -374,6 +374,7 @@ export const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0">
           <TopNav
             activeSection={activeSection}
+            onSelectSection={setActiveSection}
             dataMode={dataMode}
             onChangeDataMode={setDataMode}
             deviceStatus={effectiveDeviceStatus}
@@ -446,8 +447,11 @@ export const App: React.FC = () => {
                 >
                   {/* Hero Shortcut Card to 3D Body */}
                   <div
-                    onClick={() => setActiveSection('heart')}
-                    className="group relative overflow-hidden rounded-2xl md:rounded-3xl p-4 sm:p-5 nexus-glass border border-slate-200/90 dark:border-cyan-500/30 shadow-sm hover:shadow-md transition-all cursor-pointer bg-gradient-to-r from-sky-50 via-white to-rose-50/60 dark:from-slate-900 dark:via-slate-900/90 dark:to-rose-950/20"
+                    onClick={() => {
+                      setActiveSection('heart');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="group relative overflow-hidden rounded-2xl md:rounded-3xl p-4 sm:p-5 nexus-glass border border-slate-200/90 dark:border-cyan-500/30 shadow-sm hover:shadow-md transition-all cursor-pointer bg-gradient-to-r from-sky-50 via-white to-rose-50/60 dark:from-slate-900 dark:via-slate-900/90 dark:to-rose-950/20 active:scale-[0.99]"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
@@ -472,7 +476,12 @@ export const App: React.FC = () => {
 
                       <button
                         type="button"
-                        className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-cyan-500/20 text-white dark:text-cyan-200 text-xs font-semibold shadow-sm group-hover:bg-cyan-600 transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSection('heart');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-cyan-500/20 text-white dark:text-cyan-200 text-xs font-semibold shadow-sm group-hover:bg-cyan-600 transition cursor-pointer active:scale-95"
                       >
                         <span>Mở Mô Hình 3D</span>
                         <ChevronRight className="w-4 h-4" />
