@@ -464,9 +464,23 @@ export const App: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="hidden md:flex items-center gap-2 font-mono-tech text-[10px] text-slate-400">
-                      <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700">GVHD: Nguyễn Thị Vũ Thảo</span>
-                      <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700">Hệ thống nhúng</span>
+                    <div className="flex flex-wrap items-center gap-2 font-mono-tech text-[11px]">
+                      <a
+                        href="/slides.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold shadow-md shadow-rose-500/30 hover:brightness-110 transition"
+                      >
+                        <span>📊 Mở Slide 25 Trang</span>
+                      </a>
+                      <a
+                        href="/STROKEGUARD_PitchDeck_25Slides.pptx"
+                        download="STROKEGUARD_PitchDeck_25Slides.pptx"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-bold hover:bg-emerald-500/30 transition"
+                      >
+                        <span>⬇️ Tải File .PPTX</span>
+                      </a>
+                      <span className="hidden xl:inline px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400">GVHD: Nguyễn Thị Vũ Thảo</span>
                     </div>
                   </div>
 

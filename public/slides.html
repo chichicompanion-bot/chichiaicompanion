@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STROKEGUARD - BAND | Bộ Slide Thuyết Trình Khởi Nghiệp 25 Trang (PPTX)</title>
+  <style>
+    :root {
+      --teal: #0d9488;
+      --teal-dark: #0f766e;
+      --teal-bg: #f0fdfa;
+      --red: #e11d48;
+      --red-bg: #fff1f2;
+      --navy: #0f172a;
+      --slate: #334155;
+      --card-bg: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #090d16;
+      color: #f8fafc;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    /* Top Studio Toolbar */
+    .toolbar {
+      height: 62px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+    .btn-download:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn-office {
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+    }
+    .btn-office:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn-edit {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+    }
+    .btn-edit.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .btn-nav {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 8px 13px;
+    }
+    .btn-nav:hover { background: #334155; }
+
+    /* Main Workspace: Left Thumbnail Sidebar + Right 16:9 Slide Canvas */
+    .workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 260px;
+      background: #0f172a;
+      border-right: 1px solid #1e293b;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .thumb-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #1e293b;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .thumb-item:hover { background: #263449; }
+    .thumb-item.active {
+      background: #1e293b;
+      border-color: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+    }
+    .thumb-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+    }
+    .thumb-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #f1f5f9;
+      line-height: 1.35;
+    }
+
+    /* Center Stage */
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+      overflow: auto;
+    }
+    /* 16:9 PowerPoint Slide Box */
+    .slide-canvas {
+      width: min(1160px, 94%);
+      aspect-ratio: 16 / 9;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 14px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.65);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px 34px 16px 34px;
+    }
+    /* Corner Hand-Drawn Doodles (BQCompass style) */
+    .doodle-tr {
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      width: 155px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .doodle-bl {
+      position: absolute;
+      bottom: 34px;
+      left: 8px;
+      width: 138px;
+      pointer-events: none;
+      opacity: 0.92;
+      z-index: 1;
+    }
+    .doodle-br {
+      position: absolute;
+      bottom: 34px;
+      right: 12px;
+      width: 175px;
+      pointer-events: none;
+      opacity: 0.92;
+      z-index: 1;
+    }
+
+    /* Slide Header */
+    .slide-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 150px;
+    }
+    .slide-logo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .bq-logo {
+      height: 36px;
+    }
+    .slide-tag {
+      background: var(--teal-bg);
+      color: var(--teal-dark);
+      border: 1.5px solid var(--teal);
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+    .slide-h1 {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.22;
+    }
+    .slide-sub {
+      font-size: 13px;
+      font-style: italic;
+      font-weight: 600;
+      color: var(--red);
+    }
+
+    /* Slide Body */
+    .slide-body {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: grid;
+      gap: 18px;
+      margin: 12px 0;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .layout-split { grid-template-columns: 1.08fr 0.92fr; }
+    .layout-split_left_img { grid-template-columns: 0.95fr 1.05fr; }
+    .layout-two_cards { grid-template-columns: 1fr 1fr; }
+    .layout-two_imgs { grid-template-columns: 1fr 1fr; }
+    .layout-video { grid-template-columns: 1.25fr 0.75fr; }
+    .layout-table { grid-template-columns: 1fr; }
+
+    .card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 2px solid var(--teal);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
+      overflow-y: auto;
+    }
+    .card.red { border-color: var(--red); }
+    .card-header {
+      background: var(--teal);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 7px 12px;
+      border-radius: 8px;
+    }
+    .card.red .card-header { background: var(--red); }
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 13px;
+      line-height: 1.42;
+      color: #1e293b;
+    }
+    .bullet-list li {
+      padding-left: 14px;
+      position: relative;
+    }
+    .bullet-list li::before {
+      content: "•";
+      color: var(--red);
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+    .img-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(248, 250, 252, 0.85);
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 8px;
+      overflow: hidden;
+    }
+    .img-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .video-box {
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+      border: 3px solid var(--red);
+      border-radius: 14px;
+      overflow: hidden;
+      justify-content: center;
+    }
+    .video-box video {
+      width: 100%;
+      height: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      background: #000;
+    }
+
+    /* Table Layout */
+    .ppt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .ppt-table th {
+      background: var(--teal-dark);
+      color: #fff;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .ppt-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+    .ppt-table tr:nth-child(even) td { background: #f8fafc; }
+    .ppt-table tr:last-child td {
+      background: #fff1f2;
+      color: #e11d48;
+      font-weight: 700;
+    }
+    .bottom-note {
+      margin-top: 8px;
+      padding: 8px 14px;
+      background: var(--teal-bg);
+      border: 1.5px solid var(--teal);
+      border-radius: 10px;
+      font-size: 12.5px;
+      color: #0f172a;
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      position: relative;
+      z-index: 2;
+      border-top: 2.5px solid var(--teal);
+      padding-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .page-pill {
+      background: var(--navy);
+      color: #fff;
+      padding: 3px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+    }
+    [contenteditable="true"] {
+      outline: 2px dashed #0284c7;
+      outline-offset: 2px;
+      border-radius: 4px;
+      cursor: text;
+    }
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .slide-canvas { width: 100%; aspect-ratio: auto; min-height: 82vh; }
+      .slide-body { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">
+      <span class="brand-badge">PPTX STUDIO</span>
+      <div>
+        <div class="brand-title">STROKEGUARD – SMART HEALTH BAND (25 Trang Slide Khởi Nghiệp)</div>
+        <div class="brand-sub">THPT Ngô Quyền, Đà Nẵng • Nguyễn Đăng Khang & Nguyễn Ngọc Trí (11/1)</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-nav" onclick="prevSlide()">◀ Trang trước</button>
+      <span id="slideCounter" style="font-weight:800; font-size:13px; padding:0 6px;">Trang 1 / 25</span>
+      <button class="btn btn-nav" onclick="nextSlide()">Trang sau ▶</button>
+      <button id="editBtn" class="btn btn-edit" onclick="toggleEditMode()">✏️ Bật Chỉnh Sửa Trực Tiếp</button>
+      <a class="btn btn-download" href="/STROKEGUARD_PitchDeck_25Slides.pptx" download="STROKEGUARD_PitchDeck_25Slides.pptx">
+        ⬇️ Tải File PowerPoint (.PPTX)
+      </a>
+      <a class="btn btn-office" target="_blank" href="https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fchichiaicompanion.com%2FSTROKEGUARD_PitchDeck_25Slides.pptx">
+        🌐 Mở Trên PowerPoint Online
+      </a>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" id="thumbList"></aside>
+    <main class="stage">
+      <div class="slide-canvas" id="slideCanvas"></div>
+    </main>
+  </div>
+
+  <script>
+    const slides = [{"num": 1, "tag": "BÀI THUYẾT TRÌNH KHỞI NGHIỆP (PITCH DECK)", "title": "STROKEGUARD – SMART HEALTH BAND", "subtitle": "Hệ thống Vòng tay Thông minh Hỗ trợ Giám sát Sinh hiệu & Cảnh báo Sớm Nguy cơ Đột quỵ tại Gia đình", "layout": "split", "left_header": "DỰ ÁN KHỞI NGHIỆP Y SINH & HỆ THỐNG NHÚNG (IoMT)", "left_color": "red", "bullets": ["<b>Tên dự án:</b> STROKEGUARD – SMART HEALTH BAND", "<b>Đơn vị:</b> Trường THPT Ngô Quyền – TP. Đà Nẵng", "<b>Nhóm sáng lập:</b> Nguyễn Đăng Khang (11/1) & Nguyễn Ngọc Trí (11/1)", "<b>Giáo viên hướng dẫn:</b> Cô Nguyễn Thị Vũ Thảo", "<b>Sản phẩm thực tế:</b> Nguyên mẫu Vòng tay STROKEGUARD MVP + Hệ sinh thái Web 3D & Bản đồ GPS thời gian thực (chichiaicompanion.com)", "<b>3 Con Số Vàng:</b> Giá bán <b>890.000 VNĐ/Bộ</b> • Độ trễ cảnh báo <b>&lt; 1.5 Giây (Edge AI)</b> • Vốn gọi <b>150 Triệu VNĐ</b>"], "right_img": "/slide_assets/illust_01_wristband_sketch.png"}, {"num": 2, "tag": "MỤC LỤC CHUẨN BQCOMPASS", "title": "CẤU TRÚC CỦA BÀI THUYẾT TRÌNH KHỞI NGHIỆP STROKEGUARD", "subtitle": "Bám sát 10 trụ cột khởi nghiệp & 4 câu hỏi cốt lõi về khách hàng theo khung hướng dẫn BQCompass", "layout": "two_cards", "left_header": "PHẦN I: THỊ TRƯỜNG, CÔNG NGHỆ & KHÁCH HÀNG", "left_color": "teal", "left_bullets": ["<b>1. Vấn đề của thị trường / khách hàng:</b> Câu chuyện 2 giờ sáng, phim ngắn tình huống, thống kê 200.000 ca đột quỵ & khảo sát 120 hộ gia đình (Trang 3 - 6).", "<b>2. Quy mô thị trường & Khách hàng:</b> Phân tích TAM (11.300 tỷ) – SAM (2.240 tỷ) – SOM (4,5-9 tỷ) & Chân dung Người Mua vs. Người Đeo (Trang 7 - 8).", "<b>3. Công nghệ & Giá trị mang lại:</b> Bộ lọc thích nghi LMS khử 80% nhiễu, sàng lọc Rung nhĩ (AFib) qua HRV & Nhận diện té ngã 4 giai đoạn (Trang 9 - 10).", "<b>4. Sản phẩm & Kiểm chứng phản hồi:</b> Nguyên mẫu Vòng tay + Web 3D Tim/Não + GPS chấm xanh di chuyển & Thực nghiệm trên 15 người (Trang 11 - 12).", "<b>5. 4 Câu hỏi cốt lõi & Chiến lược thị trường:</b> Tại sao CẦN? Tại sao TỪ BẠN? Tại sao NGAY BÂY GIỜ? Tại sao GIÁ 890K? Đối thủ, USP & Sales/Marketing (Trang 13 - 18)."], "right_header": "PHẦN II: KINH DOANH, TÀI CHÍNH & GỌI VỐN", "right_color": "red", "right_bullets": ["<b>6. Mô hình kinh doanh (BMC):</b> 9 khối Business Model Canvas kết hợp bán thiết bị phần cứng (890k) & thuê bao Gia Đình VIP (49k/tháng) (Trang 19).", "<b>7. Tài chính & Điểm hòa vốn (BEP):</b> Bóc tách giá vốn BOM (490k), lãi gộp 44.9%, điểm hòa vốn 42 máy/tháng (hoàn vốn tháng thứ 10) & Dự phóng 3 năm (Trang 20 - 21).", "<b>8. Cách thức triển khai (Lộ trình):</b> Lộ trình 4 giai đoạn từ MVP KHKT → Pilot 100 máy tại phòng khám Đà Nẵng → TinyML & 4G NB-IoT (Trang 22).", "<b>9. Đội nhóm sáng lập & Cố vấn:</b> Nguyễn Đăng Khang, Nguyễn Ngọc Trí (11/1 THPT Ngô Quyền) & GVHD Nguyễn Thị Vũ Thảo (Trang 23).", "<b>10. Số vốn cần gọi (The Ask):</b> Gọi vốn 150.000.000 VNĐ sản xuất lô 100 máy thương mại IP67, thử nghiệm lâm sàng & mở rộng thị trường (Trang 24 - 25)."]}, {"num": 3, "tag": "1. VẤN ĐỀ CỦA THỊ TRƯỜNG / KHÁCH HÀNG", "title": "CÂU CHUYỆN CHUNG CỦA MỌI GIA ĐÌNH VIỆT: \"NỖI ÁM ẢNH LÚC 2 GIỜ SÁNG\"", "subtitle": "Kỹ thuật: Kể chuyện trải nghiệm thực tế + Đặt câu hỏi mở chạm đúng nỗi đau thầm lặng của những người làm con", "layout": "split", "left_header": "CÂU HỎI MỞ & CÂU CHUYỆN THỰC TẾ TỪ NHÓM NGHIÊN CỨU", "left_color": "red", "bullets": ["<b>Câu hỏi mở:</b> <i>\"Điều gì sẽ xảy ra nếu đêm nay lúc 2 giờ sáng, ông bà hoặc cha mẹ của bạn thức dậy đi vệ sinh, bất ngờ lên cơn choáng đột quỵ và ngã xuống sàn nhà lạnh lẽo... trong khi cả gia đình vẫn đang say giấc ở tầng trên đến 6 giờ sáng mới phát hiện?\"</i>", "<b>Trải nghiệm thực tế:</b> Bác hàng xóm ngay cạnh gia đình thành viên trong nhóm bị tai biến ngã trong nhà tắm lúc rạng sáng. Khi con cái thức dậy đưa đi viện thì đã qua <b>'Giờ Vàng' (4.5 giờ đầu)</b>, để lại di chứng liệt nửa người vĩnh viễn.", "<b>Tâm lý người già Việt:</b> Luôn sợ làm phiền con cháu, khi thấy tim đập hồi hộp hay chóng mặt nhẹ thường tự chịu đựng đi ngủ tiếp.", "<b>Điểm mù y tế tại nhà:</b> Các cơn Rung nhĩ (AFib) tiền đột quỵ diễn ra ngắt quãng ban đêm — khám định kỳ ở bệnh viện không thể bắt kịp!"], "right_img": "/slide_assets/illust_03_story_2am.png"}, {"num": 4, "tag": "1. VẤN ĐỀ THỊ TRƯỜNG • PHIM NGẮN HOẠT HÌNH 28 GIÂY", "title": "GIẢ LẬP TÌNH HUỐNG: \"GIỮ TRỌN GIỜ VÀNG GIỮA ĐÊM KHUYA\"", "subtitle": "Video hoạt hình 28 giây đính kèm trực tiếp trên Slide (Bấm Play ▶ để xem câu chuyện Ông Minh 68 tuổi)", "layout": "video", "video_src": "/strokeguard_story_30s.mp4", "poster_src": "/slide_assets/video_poster_frame.png", "right_header": "KỊCH BẢN 4 CẢNH TRONG VIDEO", "bullets": ["<b>Cảnh 1 (00s - 07s):</b> Ông Minh (68 tuổi, tiền sử cao huyết áp) ở nhà lúc 2:00 sáng khi con cháu đang ngủ say. Vòng tay STROKEGUARD âm thầm canh giấc (72 BPM).", "<b>Cảnh 2 (07s - 14s):</b> Cơn Rung nhĩ kịch phát (168 BPM, SpO₂ tụt 88%). Ông choáng váng ngã xuống sàn, trải qua 4 giai đoạn động lực học và nằm bất động.", "<b>Cảnh 3 (14s - 21s):</b> Trong &lt; 1.5 giây, chip xử lý tại biên hú còi SOS tại chỗ, bật biển báo đỏ trên Web và ghim chấm xanh GPS chính xác tại Đà Nẵng.", "<b>Cảnh 4 (21s - 28s):</b> Gia đình & xe cấp cứu 115 can thiệp kịp trong 'Giờ Vàng' 4.5h — Ông Minh bình phục hoàn toàn, không để lại di chứng!"]}, {"num": 5, "tag": "1. VẤN ĐỀ THỊ TRƯỜNG • SỐ LIỆU THỐNG KÊ", "title": "NHỮNG CON SỐ BIẾT NÓI VỀ ĐỘT QUỴ & TÉ NGÃ TẠI VIỆT NAM", "subtitle": "Đưa dẫn chứng thống kê thực tế từ Bộ Y tế & Hội Đột quỵ Việt Nam chứng minh tính cấp thiết của dự án", "layout": "split", "left_header": "THỐNG KÊ BÁO ĐỘNG ĐỎ TẠI VIỆT NAM", "left_color": "red", "bullets": ["<b>200.000+ ca đột quỵ mới/năm:</b> Theo Bộ Y tế, gần 50% trường hợp tử vong hoặc để lại tàn phế nặng nề trong 30 ngày đầu.", "<b>Rung nhĩ (AFib) làm tăng nguy cơ gấp 5 lần:</b> Là nguyên nhân trực tiếp hình thành huyết khối gây tắc mạch máu não nhưng diễn ra âm thầm.", "<b>1,9 triệu tế bào thần kinh chết/phút:</b> Mỗi phút thiếu máu não trôi qua lấy đi hàng triệu tế bào não. Quá 4.5 giờ vàng → Tàn phế suốt đời.", "<b>Hơn 100.000 bệnh nhân tàn phế:</b> Nguyên nhân lớn nhất KHÔNG chỉ do cơn đột quỵ, mà do <b>PHÁT HIỆN MUỘN</b> khi người bệnh ở một mình hoặc ban đêm."], "right_img": "/slide_assets/image3.png"}, {"num": 6, "tag": "1. VẤN ĐỀ THỊ TRƯỜNG • KHẢO SÁT KHÁCH HÀNG", "title": "KHẢO SÁT MỨC ĐỘ QUAN TÂM CỦA KHÁCH HÀNG TẠI TP. ĐÀ NẴNG", "subtitle": "Khảo sát thực tế 120 hộ gia đình có người cao tuổi (≥ 55 tuổi) tại quận Sơn Trà & Hải Châu, Đà Nẵng", "layout": "split_left_img", "left_img": "/slide_assets/illust_04_survey_charts.png", "right_header": "3 PHÁT HIỆN QUAN TRỌNG TỪ KHẢO SÁT THỰC TẾ", "right_color": "teal", "bullets": ["<b>1. Nỗi lo thường trực của con cái (89,2%):</b> Gần 9/10 người trưởng thành đi làm luôn nơm nớp lo sợ bố mẹ ở nhà một mình bị choáng ngã hoặc tăng huyết áp đột ngột mà không ai hay biết.", "<b>2. Rào cản giá của Smartwatch ngoại (84,5%):</b> Khách hàng cho biết Apple Watch hay Samsung Watch có giá từ 7 – 15 triệu VNĐ là quá đắt, pin nhanh hết và giao diện quá rắc rối với người lớn tuổi.", "<b>3. Điểm ngọt về giá dưới 1 triệu VNĐ (91,7%):</b> Hơn 91% người được hỏi khẳng định <b>SẴN SÀNG MUA NGAY</b> một chiếc vòng tay chuyên biệt báo động đột quỵ & té ngã nếu mức giá dưới 1.000.000 VNĐ.", "<b>→ Cơ hội vàng cho STROKEGUARD:</b> Đánh trúng phân khúc đại chúng với mức giá chỉ <b>890.000 VNĐ</b> cùng tính năng đo thụ động 24/7 hoàn toàn tự động!"]}, {"num": 7, "tag": "2. QUY MÔ THỊ TRƯỜNG (TAM – SAM – SOM)", "title": "QUY MÔ THỊ TRƯỜNG THIẾT BỊ GIÁM SÁT SỨC KHỎE NGƯỜI CAO TUỔI", "subtitle": "Đánh giá tiềm năng thị trường từ toàn quốc (TAM) đến mục tiêu khai thác thực tế tại Đà Nẵng & Miền Trung (SOM)", "layout": "split_left_img", "left_img": "/slide_assets/illust_05_tam_sam_som.png", "right_header": "PHÂN TÍCH CHI TIẾT TAM – SAM – SOM", "right_color": "red", "bullets": ["<b>TAM (Total Addressable Market) — 11.300 Tỷ VNĐ:</b> Việt Nam hiện có hơn 14,2 triệu người cao tuổi (≥60 tuổi) và người mắc bệnh tim mạch, cao huyết áp.", "<b>SAM (Serviceable Available Market) — 2.240 Tỷ VNĐ:</b> Tập trung vào ~2,8 triệu hộ gia đình tại các đô thị lớn (Đà Nẵng, Hà Nội, TP.HCM, Hải Phòng, Cần Thơ...) có con cái thu nhập ổn định.", "<b>SOM (Serviceable Obtainable Market) — 4,5 đến 9 Tỷ VNĐ:</b> Trong 2 năm đầu, STROKEGUARD đặt mục tiêu chiếm lĩnh thị trường tại TP. Đà Nẵng & Miền Trung với sản lượng <b>5.000 – 10.000 thiết bị</b>.", "<b>Tốc độ tăng trưởng (CAGR):</b> Thị trường thiết bị đeo y tế (IoMT) tại Việt Nam tăng trưởng <b>18,5%/năm</b> do tốc độ già hóa dân số nhanh."]}, {"num": 8, "tag": "2. PHÂN KHÚC KHÁCH HÀNG MỤC TIÊU", "title": "TÁCH BẠCH RÕ: \"NGƯỜI TRẢ TIỀN MUA\" VÀ \"NGƯỜI ĐEO TRỰC TIẾP\"", "subtitle": "Hiểu đúng tâm lý của cả Người Con (Người quyết định mua) lẫn Ông Bà (Người đeo hàng ngày)", "layout": "split_left_img", "left_img": "/slide_assets/illust_06_personas.png", "right_header": "3 PHÂN KHÚC KHÁCH HÀNG MŨI NHỌN", "right_color": "teal", "bullets": ["<b>1. Khách hàng trả tiền (B2C Buyer — Con cái 28-50 tuổi):</b> Nhân viên văn phòng, kỹ sư, tiểu thương bận rộn đi làm cả ngày. Động lực mua: Báo hiếu, xóa bỏ cảm giác bất an khi không ở cạnh bố mẹ 24/24.", "<b>2. Người dùng cuối (End-User — Ông bà / Cha mẹ 55-85 tuổi):</b> Người có tiền sử tăng huyết áp, rối loạn nhịp tim, tiểu đường. Cần thiết bị siêu nhẹ (45x38x14mm), đeo êm tay, không cần bấm nút, có còi hú tại chỗ.", "<b>3. Khách hàng tổ chức (B2B — Phòng khám & Viện dưỡng lão):</b> Viện dưỡng lão, trung tâm chăm sóc người cao tuổi, phòng khám nội tim mạch cần theo dõi 20–50 bệnh nhân cùng lúc trên Web Dashboard."]}, {"num": 9, "tag": "3. CÔNG NGHỆ & GIÁ TRỊ CỐT LÕI", "title": "CÔNG NGHỆ ĐỘT PHÁ: KHỬ NHIỄU QUANG HỌC LMS & SÀNG LỌC RUNG NHĨ (AFib)", "subtitle": "Bạn mang đến giá trị gì? → Biến tín hiệu quang học cổ tay thành hệ thống cảnh báo sớm đột quỵ chuẩn xác", "layout": "split", "left_header": "3 GIÁ TRỊ CÔNG NGHỆ CỐT LÕI TẠI BIÊN (EDGE AI)", "left_color": "teal", "bullets": ["<b>1. Bộ lọc thích nghi LMS (Least Mean Squares):</b> Khi người đeo cử động tay, sóng PPG bị nhiễu nặng. STROKEGUARD dùng vector gia tốc 3 trục làm tham chiếu để <b>triệt tiêu 80% nhiễu cử động</b>: <code>e(n) = d(n) - Wᵀ(n)x(n)</code>.", "<b>2. Sàng lọc sớm Rung nhĩ (AFib) qua biến thiên HRV:</b> Trích xuất liên tục khoảng R-R Interval (IBI). Tính toán chỉ số SDNN và RMSSD. Khi <b>RMSSD &gt; 75ms</b> kèm nhịp loạn hỗn loạn → Cảnh báo sớm nguy cơ huyết khối đột quỵ!", "<b>3. Trích xuất tần số hô hấp (RPM) qua sóng PPG (RIIV):</b> Lọc dải thông 0.1Hz – 0.5Hz để đo nhịp thở (6–30 lần/phút) không cần đeo đai ngực, phát hiện sớm suy hô hấp cấp."], "right_img": "/slide_assets/illust_07_lms_filter.png"}, {"num": 10, "tag": "3. CÔNG NGHỆ • THUẬT TOÁN TÉ NGÃ & SƠ ĐỒ HỆ THỐNG", "title": "MÔ HÌNH NHẬN DIỆN TÉ NGÃ 4 GIAI ĐOẠN & KIẾN TRÚC PHẦN CỨNG 3 KHỐI", "subtitle": "Loại bỏ 95% báo động giả trong sinh hoạt thường ngày (vung tay, ngồi mạnh, đập bàn)", "layout": "two_imgs", "left_img": "/slide_assets/illust_08_fall_4stages.png", "right_img": "/slide_assets/image4.png", "bottom_note": "<b>Đa luồng FreeRTOS & Power Duty Cycling:</b> Độ trễ phát cảnh báo khẩn cấp <b>&lt; 1.5 giây</b>. Bình thường chỉ tiêu thụ 38mA (GPS ngủ), chỉ bật GPS (110mA) khi có biến cố → Pin 400mAh hoạt động liên tục <b>21,5 giờ</b>."}, {"num": 11, "tag": "4. SẢN PHẨM & HỆ SINH THÁI PHẦN MỀM", "title": "SẢN PHẨM THỰC TẾ: VÒNG TAY STROKEGUARD & WEB DASHBOARD 3D", "subtitle": "Hệ thống đã hoàn thiện từ mạch phần cứng đến nền tảng Web trực tuyến tại chichiaicompanion.com", "layout": "split", "left_header": "BỘ ĐÔI SẢN PHẨM HOÀN CHỈNH (HARDWARE + 3D WEB)", "left_color": "teal", "bullets": ["<b>1. Vòng đeo tay phần cứng STROKEGUARD (45 × 38 × 14 mm):</b> Cụm cảm biến quang học PPG & nhiệt độ áp sát da; cảm biến chuyển động 6 trục + GPS vệ tinh; Còi Buzzer tại chỗ + Nút bấm SOS & Nút hủy báo động nhầm; Sạc USB Type-C.", "<b>2. Nền tảng Web Dashboard (chichiaicompanion.com):</b>", "• Giao diện <b>Nền Đen (Dark Mode)</b> y sinh hiện đại trên cả máy tính & điện thoại.", "• Mô hình <b>Cơ thể & Quả tim 3D chân thực</b> co bóp theo đúng nhịp tim người đeo.", "• <b>Bản đồ GPS với Chấm Xanh Lá</b> đứng yên hoặc di chuyển theo bước chân thực tế.", "• <b>Biển báo động đỏ đột quỵ</b> bật giữa màn hình ngay khi chỉ số vượt ngưỡng!"], "right_img": "/slide_assets/desktop_body_verified.png"}, {"num": 12, "tag": "4. SẢN PHẨM & KIỂM CHỨNG PHẢN HỒI KHÁCH HÀNG", "title": "KẾT QUẢ THỰC NGHIỆM TRÊN 15 NGƯỜI & PHẢN HỒI NGƯỜI DÙNG THỬ", "subtitle": "Đo kiểm đối chứng 1.000 mẫu PPG với máy y tế chuyên dụng FS20D & mô phỏng 5 kịch bản sinh hoạt", "layout": "table", "headers": ["Giả thuyết / Hạng mục kiểm thử", "Phương pháp thử nghiệm", "Kết quả đạt được", "Đánh giá"], "rows": [["1. Khử nhiễu LMS & Đo Nhịp tim (HR)", "Đo trên 15 người (ngồi tĩnh & đi bộ vung tay)", "Khử 80% nhiễu; Sai số ±2.1 BPM (2.6%)", "ĐẠT (Cao)"], ["2. Đo nồng độ Oxy máu (SpO2)", "Đối chứng trực tiếp với máy đo y tế FS20D", "Sai số chỉ ±1.8% (dải đo 90% - 100%)", "ĐẠT (Cao)"], ["3. Sàng lọc Rung nhĩ (AFib) qua HRV", "Kiểm thử ngưỡng RMSSD > 75ms & Poincaré", "Nhận diện đúng chuỗi nhịp loạn kịch phát", "ĐẠT"], ["4. Mô hình nhận diện té ngã 4 giai đoạn", "3 tư thế ngã + 5 hành vi giả (ngồi mạnh, vung tay)", "Độ nhạy 94.9% | Độ đặc hiệu 95.0%", "VƯỢT MỤC TIÊU"], ["5. Thời lượng Pin & Độ trễ cảnh báo SOS", "Pin Li-Po 400mAh (Power Duty Cycling)", "Hoạt động 21,5 giờ | Độ trễ SOS < 1.5 giây", "ĐẠT"]], "bottom_note": "<b>Phản hồi khách hàng thử nghiệm:</b> 93,3% người cao tuổi hài lòng vì vòng tay nhẹ, tự động, có nút hủy báo nhầm trong 10s; 100% con cái ấn tượng với mô hình Cơ thể 3D & Chấm xanh GPS thời gian thực."}, {"num": 13, "tag": "5. TRẢ LỜI 4 CÂU HỎI CỐT LÕI CỦA BQCOMPASS (CÂU HỎI 1)", "title": "CÂU HỎI 1: TẠI SAO KHÁCH HÀNG CẦN SẢN PHẨM NÀY?", "subtitle": "Nhu cầu ấy là \"BẮT BUỘC PHẢI CÓ\", \"CẦN PHẢI CÓ\" hay đơn giản chỉ là \"SẢN PHẨM THAY THẾ\"?", "layout": "split", "left_header": "TRẢ LỜI TRỌNG TÂM: ĐÂY LÀ SẢN PHẨM \"BẮT BUỘC PHẢI CÓ\" (MUST-HAVE)", "left_color": "red", "bullets": ["<b>1. Không phải Vitamin, mà là Thuốc Cứu Mạng (Painkiller):</b> Với gia đình có người cao tuổi mắc bệnh cao huyết áp, tim mạch hoặc từng tai biến nhẹ, nguy cơ đột quỵ và té ngã ban đêm là mối đe dọa sinh tử hiện hữu mỗi ngày.", "<b>2. Tại sao máy đo huyết áp truyền thống KHÔNG thể thay thế?</b> Máy đo huyết áp bắp tay hay máy kẹp SpO₂ ngón tay chỉ đo được khi người bệnh <b>CÒN TỈNH TÁO</b> và chủ động ngồi đo. Nhưng khi đột quỵ ập đến lúc 2 giờ sáng hoặc ngất trong nhà tắm, bệnh nhân mất hoàn toàn khả năng tự gọi cứu hộ!", "<b>3. Giá trị của 'Giờ Vàng' (3 – 4.5 giờ đầu):</b> Đưa bệnh nhân đến viện trong Giờ Vàng giúp phục hồi tới 90%. Trễ Giờ Vàng đồng nghĩa với liệt giường suốt đời (chi phí 100 – 300 triệu VNĐ) hoặc tử vong."], "right_img": "/slide_assets/illust_09_why_need.png"}, {"num": 14, "tag": "5. TRẢ LỜI 4 CÂU HỎI CỐT LÕI CỦA BQCOMPASS (CÂU HỎI 2)", "title": "CÂU HỎI 2: TẠI SAO KHÁCH HÀNG LẠI PHẢI MUA SẢN PHẨM ẤY TỪ BẠN?", "subtitle": "4 lợi thế độc quyền giúp STROKEGUARD vượt trội hoàn toàn so với Smartwatch thương mại ngoại nhập", "layout": "split_left_img", "left_img": "/slide_assets/illust_10_why_us_4pillars.png", "right_header": "4 LÝ DO KHÁCH HÀNG CHỌN STROKEGUARD - BAND", "right_color": "teal", "bullets": ["<b>1. Giám sát Rung nhĩ & Đột quỵ THỤ ĐỘNG 24/7:</b> Apple Watch đòi hỏi người dùng phải chủ động đặt ngón tay lên núm xoay Digital Crown trong 30 giây mới đo được ECG. Ngược lại, STROKEGUARD tự động quét HRV (RMSSD) & SpO₂ liên tục ngay cả khi ông bà đang ngủ say!", "<b>2. Tích hợp đồng thời 4-trong-1 chuyên biệt cho người già:</b> Kết hợp (1) Sàng lọc AFib + (2) Nhận diện té ngã 4 bước + (3) Còi Buzzer hú tại chỗ + (4) Định vị GPS thời gian thực.", "<b>3. Thiết kế Việt hóa 100% — Không rào cản công nghệ:</b> Người cao tuổi chỉ cần đeo vào tay; con cháu mở link Web 3D là thấy ngay nhịp đập trái tim & chấm xanh GPS.", "<b>4. Bảo hành & Tùy biến ngưỡng sinh lý tại địa phương:</b> Hỗ trợ hiệu chỉnh ngưỡng nhịp tim cá nhân hóa ngay tại Đà Nẵng & Việt Nam."]}, {"num": 15, "tag": "5. TRẢ LỜI 4 CÂU HỎI CỐT LÕI CỦA BQCOMPASS (CÂU HỎI 3)", "title": "CÂU HỎI 3: TẠI SAO KHÁCH HÀNG LẠI PHẢI MUA SẢN PHẨM ẤY NGAY BÂY GIỜ?", "subtitle": "Tính cấp bách về thời điểm y tế, xã hội và kinh tế khiến khách hàng không thể chần chừ", "layout": "split", "left_header": "3 ĐỘNG LỰC KHIẾN KHÁCH HÀNG PHẢI HÀNH ĐỘNG NGAY HÔM NAY", "left_color": "red", "bullets": ["<b>1. Đột quỵ không bao giờ báo trước ngày giờ:</b> Các cơn Rung nhĩ kịch phát và tai biến mạch máu não thường xảy ra đột ngột vào ban đêm hoặc khi thời tiết chuyển mùa. Chờ đến khi có triệu chứng rõ rệt thì đã quá muộn!", "<b>2. Xu hướng gia đình hạt nhân & Bố mẹ già ở một mình:</b> Tại các đô thị như Đà Nẵng, con cái đi làm từ 7h sáng đến 6h tối. Ông bà ở nhà một mình 8 – 12 tiếng mỗi ngày mà không có thiết bị bảo vệ tự động.", "<b>3. Bài toán chi phí: 890.000đ hôm nay vs. 200.000.000đ ngày mai:</b> Mua STROKEGUARD ngay hôm nay chỉ tốn 890.000 VNĐ (chưa bằng 1% chi phí phẫu thuật và điều trị nội trú khi phát hiện đột quỵ muộn).", "<b>4. Chính sách Đeo thử 7 ngày & Bảo hành đổi mới:</b> Khách hàng không chịu bất kỳ rủi ro nào khi trang bị ngay cho cha mẹ."], "right_img": "/slide_assets/illust_11_why_now_clock.png"}, {"num": 16, "tag": "5. TRẢ LỜI 4 CÂU HỎI CỐT LÕI CỦA BQCOMPASS (CÂU HỎI 4)", "title": "CÂU HỎI 4: TẠI SAO KHÁCH HÀNG CHẤP NHẬN MUA VỚI GIÁ 890.000 VNĐ?", "subtitle": "Phân tích tâm lý định giá (Pricing Psychology) và giá trị vượt trội trên từng đồng chi phí", "layout": "split_left_img", "left_img": "/slide_assets/illust_12_why_price.png", "right_header": "TẠI SAO 890.000 VNĐ LÀ \"MỨC GIÁ VÀNG\" (SWEET SPOT)?", "right_color": "teal", "bullets": ["<b>1. Rẻ hơn 10 – 13 lần so với Smartwatch ngoại nhập:</b> Apple Watch Series có giá từ 11.499.000đ, vòng đeo WHOOP tốn 9.220.000đ/năm tiền thuê bao. Với <b>890.000đ</b>, STROKEGUARD phá vỡ hoàn toàn rào cản tài chính.", "<b>2. Nằm trong ngưỡng 'Chi tiêu báo hiếu không cần đắn đo':</b> 890.000đ chỉ tương đương giá của 1 hộp sữa bột canxi cho người già hoặc 1 máy đo huyết áp cơ bản. Con cái mua tặng bố mẹ ngay trong kỳ lương tháng.", "<b>3. Mua 1 được 4 thiết bị trong 1:</b> Thay vì mua riêng Máy đo SpO₂ (500k) + Báo ngã (1.500k) + Định vị GPS (1.200k) = 3.200.000đ, khách hàng chỉ trả 890.000đ.", "<b>4. Gói dịch vụ Gia Đình VIP siêu rẻ (49.000đ/tháng):</b> Chỉ <b>1.600đ/ngày</b> (rẻ hơn 1 ly trà đá) để nhận cảnh báo SMS/Cuộc gọi khẩn cấp đa thành viên."]}, {"num": 17, "tag": "5. ĐỐI THỦ CẠNH TRANH, LỢI THẾ CẠNH TRANH & USP", "title": "MA TRẬN SO SÁNH ĐỐI THỦ CẠNH TRANH & ĐIỂM KHÁC BIỆT ĐỘC NHẤT (USP)", "subtitle": "STROKEGUARD lấp đầy khoảng trống giữa Thiết bị y tế đắt đỏ và Smartwatch thể thao thời trang", "layout": "table", "headers": ["Tiêu chí so sánh", "Máy Holter Y Tế", "Apple Watch S12", "WHOOP MG", "Máy kẹp FS20D", "STROKEGUARD (Dự án)"], "rows": [["Mục đích cốt lõi", "Chẩn đoán tại viện", "Thể thao & Tiện ích", "Theo dõi phục hồi", "Đo tĩnh ngón tay", "Cảnh báo sớm Đột quỵ & Té ngã"], ["Giám sát Rung nhĩ (AFib)", "Điện cực dán ngực 24h", "Phải tự bấm đo 30s", "Có (Gói thuê bao đắt)", "Không hỗ trợ", "Tự động 24/7 qua PPG & HRV"], ["Nhận diện té ngã", "Không hỗ trợ", "Có (Dễ báo nhầm)", "Không có", "Không hỗ trợ", "Mô hình 4 giai đoạn (95% đặc hiệu)"], ["Định vị GPS độc lập", "Không tích hợp", "Có GPS", "Không có GPS riêng", "Không tích hợp", "Có GPS + Bản đồ chấm xanh Live"], ["Còi SOS tại thiết bị", "Không có", "Có", "Không có màn/còi", "Chỉ bíp nhỏ", "Còi Buzzer lớn + Nút SOS/Hủy"], ["Xử lý tại biên (Edge AI)", "Ghi thẻ nhớ đọc sau", "Đồng bộ Cloud", "Phụ thuộc App/Cloud", "Hiển thị tại chỗ", "Xử lý tại biên < 1.5s + Web 3D"], ["Chi phí đầu tư", "> 20.000.000 VNĐ", "Từ 11.499.000 VNĐ", "~9.220.000 VNĐ/năm", "480.000 - 750.000 đ", "890.000 VNĐ (Giá vốn lô 490k)"]], "bottom_note": "<b>Điểm khác biệt độc nhất (USP):</b> Vòng tay y sinh ĐẦU TIÊN tại Việt Nam dưới 1 triệu VNĐ kết hợp Lọc nhiễu LMS + Sàng lọc Rung nhĩ (AFib) thụ động 24/7 + Té ngã 4 giai đoạn + Định vị GPS thời gian thực trên Web 3D."}, {"num": 18, "tag": "5. CHIẾN LƯỢC PHÁT TRIỂN THỊ TRƯỜNG: SALES & MARKETING", "title": "CHIẾN LƯỢC THÂM NHẬP THỊ TRƯỜNG (GO-TO-MARKET) ĐA KÊNH", "subtitle": "Kết hợp truyền thông cảm xúc 'Báo Hiếu & Giờ Vàng' với mạng lưới Phòng khám Tim mạch & Nhà thuốc", "layout": "split_left_img", "left_img": "/slide_assets/illust_13_gtm_marketing.png", "right_header": "PHỄU BÁN HÀNG & CHIẾN THUẬT CHUYỂN ĐỔI CAO", "right_color": "teal", "bullets": ["<b>1. Chiến dịch Marketing chạm cảm xúc (Awareness):</b> Chuỗi video ngắn 30s <i>'Đừng Để Giờ Vàng Trôi Qua Trong Đêm'</i> trên TikTok, Facebook Reels & Zalo Video nhắm tới tệp con cái 28–50 tuổi. Định vị là 'Món quà Báo Hiếu thiết thực nhất' dịp Lễ Vu Lan, Tết, Ngày Người cao tuổi.", "<b>2. Chiến thuật 'Đeo Thử 7 Ngày Tại Phòng Khám' (Activation):</b> Đặt quầy trưng bày tại các Phòng khám Nội Tim mạch & Nhà thuốc lớn ở Đà Nẵng. Cho bệnh nhân cao huyết áp mượn đeo thử 7 ngày → Tỷ lệ chốt mua đạt trên 75%!", "<b>3. Chính sách Giữ chân & Lan tỏa (Retention & Referral):</b> Tặng 3 tháng gói Gia Đình VIP cho khách hàng giới thiệu người quen; chiết khấu 15% cho CLB Người cao tuổi mua theo nhóm."]}, {"num": 19, "tag": "6. MÔ HÌNH KINH DOANH – BUSINESS MODEL CANVAS", "title": "MÔ HÌNH KINH DOANH 9 KHỐI (BUSINESS MODEL CANVAS)", "subtitle": "Kết hợp doanh thu bán thiết bị phần cứng (One-off Hardware) và doanh thu thuê bao định kỳ (Recurring SaaS)", "layout": "table", "headers": ["Khối Mô Hình Kinh Doanh", "Nội Dung Triển Khai Thực Tế Của STROKEGUARD - BAND"], "rows": [["1. Phân khúc khách hàng (CS)", "Người mua: Con cái 28-50 tuổi đi làm bận rộn | Người đeo: Ông bà 55-85 tuổi có bệnh nền tim mạch/huyết áp | B2B: Phòng khám, Viện dưỡng lão."], ["2. Giải pháp giá trị (VP)", "Canh giấc & sàng lọc Rung nhĩ (AFib) thụ động 24/7 + Phát hiện té ngã 4 bước (94.9%) + Còi SOS & GPS chấm xanh < 1.5s với giá chỉ 890.000đ."], ["3. Kênh phân phối (CH)", "Online (60%): Website chichiaicompanion.com, Shopee Mall, TikTok/FB | Offline (40%): Phòng khám Tim mạch, Nhà thuốc, CLB Người cao tuổi Đà Nẵng."], ["4. Quan hệ khách hàng (CR)", "Chương trình 'Đeo thử 7 ngày tại phòng khám'; Bảo hành 1 đổi 1 trong 12 tháng; Cảnh báo tự động đa thành viên gia đình."], ["5. Dòng doanh thu (R$)", "Bán phần cứng vòng tay: 890.000 VNĐ/bộ (Lãi gộp 400k) + Thuê bao Gia Đình VIP (SMS/Cuộc gọi khẩn cấp 115 & Lưu trữ đám mây): 49.000đ/tháng."], ["6. Nguồn lực & Hoạt động chính", "Thuật toán nhúng FreeRTOS, bộ lọc LMS, té ngã 4 bước; Nền tảng Web 3D & Bản đồ GPS; Quy trình lắp ráp & kiểm định chất lượng."], ["7. Đối tác & Cơ cấu chi phí (C$)", "Đối tác: Xưởng gia công PCB, Phòng khám tim mạch, Hội Người cao tuổi | Chi phí: Giá vốn sản xuất lô 490.000đ/máy; Chi phí cố định ~18 triệu/tháng."]], "bottom_note": "<b>Mô hình doanh thu kép (Hardware + SaaS):</b> Giúp dự án vừa có dòng tiền dương ngay khi bán máy, vừa có doanh thu định kỳ bền vững hàng tháng."}, {"num": 20, "tag": "7. TÀI CHÍNH • CƠ CẤU GIÁ VỐN LINH KIỆN & UNIT ECONOMICS", "title": "BÓC TÁCH CHI PHÍ SẢN XUẤT (BOM) & LỢI NHUẬN TRÊN TỪNG SẢN PHẨM", "subtitle": "Chứng minh tính khả thi về giá bán 890.000 VNĐ với biên lợi nhuận gộp đạt 44,9%", "layout": "table", "headers": ["STT", "Thành phần linh kiện / Công đoạn", "Giá lẻ nguyên mẫu (1 máy)", "Giá sản xuất lô (≥ 100 máy)", "Tỷ trọng"], "rows": [["1", "Khối vi xử lý trung tâm Dual-Core BLE 5.0 / Wi-Fi", "95.000 đ", "75.000 đ", "15.3%"], ["2", "Cảm biến quang học PPG (Red/IR) + Cảm biến nhiệt độ y sinh", "115.000 đ", "90.000 đ", "18.4%"], ["3", "Cảm biến động lực học 6 trục (Gia tốc + Con quay hồi chuyển)", "45.000 đ", "32.000 đ", "6.5%"], ["4", "Module định vị vệ tinh GPS + Anten gốm tích hợp", "110.000 đ", "85.000 đ", "17.3%"], ["5", "Pin Li-Po 400-500mAh + Mạch quản lý sạc USB-C + Còi Buzzer", "85.000 đ", "68.000 đ", "13.9%"], ["6", "Gia công bo mạch PCB 2 lớp, Vỏ Silicon IP67, Dây đeo & Hộp", "130.000 đ", "140.000 đ", "28.6%"], ["TỔNG", "TỔNG GIÁ VỐN SẢN XUẤT (COGS / 1 THIẾT BỊ HOÀN CHỈNH)", "580.000 VNĐ", "490.000 VNĐ", "100%"]], "bottom_note": "<b>Chỉ số Kinh tế Đơn vị (Unit Economics):</b> Giá bán <b>890.000đ</b> − Giá vốn lô <b>490.000đ</b> = <b>Lãi gộp +400.000đ/máy (44,9%)</b>. Tỷ lệ LTV / CAC đạt <b>11,8 lần</b>."}, {"num": 21, "tag": "7. TÀI CHÍNH • ĐIỂM HÒA VỐN, DOANH THU & LỢI NHUẬN", "title": "PHÂN TÍCH ĐIỂM HÒA VỐN (BREAK-EVEN POINT) & DỰ PHÓNG 3 NĂM", "subtitle": "Trả lời trực tiếp: Bao giờ hòa vốn? Doanh thu và lợi nhuận ròng từng năm là bao nhiêu?", "layout": "split_left_img", "left_img": "/slide_assets/illust_14_financial_chart.png", "right_header": "BẢNG DỰ PHÓNG TÀI CHÍNH & ĐIỂM HÒA VỐN", "right_color": "red", "bullets": ["<b>🎯 Công thức Điểm Hòa Vốn (Break-Even Point):</b> Chi phí vận hành cố định = 18.000.000đ/tháng; Lãi gộp trung bình (gồm gói VIP) = 430.000đ/máy → <b>Sản lượng hòa vốn tháng = 42 máy/tháng</b> (chỉ hơn 1 máy/ngày!).", "<b>⏱ Thời điểm hoàn vốn đầu tư (Payback Period):</b> Hoàn trả toàn bộ 150 Triệu vốn gọi tại <b>THÁNG THỨ 10</b> (sau khi bán lũy kế 450 máy).", "<b>📈 Năm 1 (2027 — 600 máy):</b> Doanh thu <b>580 Triệu VNĐ</b> | Lợi nhuận ròng: <b>+65 Triệu VNĐ (11,2%)</b>.", "<b>📈 Năm 2 (2028 — 2.200 máy):</b> Doanh thu <b>2,25 Tỷ VNĐ</b> | Lợi nhuận ròng: <b>+540 Triệu VNĐ (24,0%)</b>.", "<b>📈 Năm 3 (2029 — 5.500 máy):</b> Doanh thu <b>5,85 Tỷ VNĐ</b> | Lợi nhuận ròng: <b>+1,68 Tỷ VNĐ (28,7%)</b>."]}, {"num": 22, "tag": "8. CÁCH THỨC TRIỂN KHAI (LỘ TRÌNH CHI TIẾT TỪNG BƯỚC ĐI)", "title": "LỘ TRÌNH TRIỂN KHAI 4 GIAI ĐOẠN & SƠ ĐỒ KỸ THUẬT THỰC TẾ", "subtitle": "Đi từ nguyên mẫu KHKT đã kiểm chứng đến sản xuất thương mại hóa & mở rộng toàn quốc", "layout": "two_cards", "left_header": "GIAI ĐOẠN 1 & 2 (2026 - Q3/2027): TỪ MVP ĐẾN LÔ PILOT 100 MÁY", "left_color": "teal", "left_bullets": ["<b>Bước 1 (Q4/2026 - Q1/2027 — ĐÃ HOÀN THÀNH):</b> Chế tạo thành công nguyên mẫu Vòng tay STROKEGUARD MVP (45x38x14mm); hoàn thiện Web 3D Tim/Não & Bản đồ GPS chấm xanh (chichiaicompanion.com); thử nghiệm trên 15 người đạt độ chính xác &gt; 94%.", "<b>Bước 2 (Q2/2027 - Q3/2027 — TỐI ƯU PCB & PILOT 100 MÁY):</b> Thu nhỏ bo mạch sang PCB in 2 lớp chuyên nghiệp & đúc vỏ Silicon kháng nước IP67; sản xuất lô Pilot đầu tiên 100 thiết bị thương mại từ nguồn vốn gọi 150 triệu; triển khai đeo thử tại 2 Phòng khám Tim mạch & 50 hộ gia đình ở Đà Nẵng."], "right_header": "GIAI ĐOẠN 3 & 4 (Q4/2027 - 2029): TINYML & MỞ RỘNG TOÀN QUỐC", "right_color": "red", "right_bullets": ["<b>Bước 3 (Q4/2027 - Q2/2028 — TINYML & HÒA VỐN):</b> Tích hợp mô hình AI thu nhỏ (TinyML) tự học ngưỡng nhịp tim riêng của từng người già; ra mắt cổng thông báo tự động qua Zalo / SMS / Cuộc gọi khẩn cấp 115; đạt mốc hòa vốn tại Tháng thứ 10.", "<b>Bước 4 (Từ Q3/2028 trở đi — PHIÊN BẢN PRO 4G NB-IoT):</b> Tích hợp eSIM 4G LTE-M / NB-IoT giúp vòng tay hoạt động độc lập ngoài trời không cần điện thoại; đăng ký chứng nhận Trang thiết bị Y tế & mở rộng quy mô lên 5.500+ thiết bị/năm."]}, {"num": 23, "tag": "9. ĐỘI NHÓM SÁNG LẬP & CỐ VẤN (TEAM)", "title": "ĐỘI NGŨ THỰC HIỆN DỰ ÁN — TRƯỜNG THPT NGÔ QUYỀN, ĐÀ NẴNG", "subtitle": "Sự kết hợp chặt chẽ giữa năng lực Kỹ thuật Hệ thống nhúng, Phần mềm Web 3D và Cố vấn Khoa học", "layout": "split_left_img", "left_img": "/slide_assets/illust_15_team_avatars.png", "right_header": "PHÂN CÔNG NĂNG LỰC & MẠNG LƯỚI CỐ VẤN", "right_color": "teal", "bullets": ["<b>1. Nguyễn Đăng Khang (Lớp 11/1 — Trưởng nhóm Phần cứng & Nhúng):</b> Thiết kế sơ đồ nguyên lý, cấu trúc mạch 3 tầng & lắp ráp nguyên mẫu vòng tay; lập trình FreeRTOS, bộ lọc thích nghi LMS khử nhiễu PPG và thuật toán nhận diện té ngã 4 giai đoạn.", "<b>2. Nguyễn Ngọc Trí (Lớp 11/1 — Trưởng nhóm Phần mềm, 3D & Kinh doanh):</b> Phát triển hệ thống Web Dashboard (chichiaicompanion.com), mô hình Cơ thể & Trái tim 3D, bản đồ định vị GPS chấm xanh lá thời gian thực; xây dựng mô hình tài chính & gọi vốn.", "<b>3. Cô Nguyễn Thị Vũ Thảo (Giáo viên Hướng dẫn Khoa học):</b> Định hướng phương pháp nghiên cứu, thiết kế quy trình thử nghiệm định lượng và cố vấn hoàn thiện tính ứng dụng thực tiễn.", "<b>4. Mạng lưới Cố vấn khi Gọi vốn:</b> Hợp tác cùng Bác sĩ chuyên khoa Nội Tim mạch tại Đà Nẵng & Kỹ sư thiết kế PCB công nghiệp."]}, {"num": 24, "tag": "10. SỐ VỐN CẦN GỌI & PHÂN BỔ SỬ DỤNG VỐN (THE ASK)", "title": "SỐ VỐN CẦN GỌI: 150.000.000 VNĐ (MỘT TRĂM NĂM MƯƠI TRIỆU ĐỒNG)", "subtitle": "Trả lời trực tiếp: Gọi bao nhiêu vốn? Dùng vào việc gì? Nhà đầu tư nhận lại được gì?", "layout": "split_left_img", "left_img": "/slide_assets/illust_16_funding_pie.png", "right_header": "CHI TIẾT SỬ DỤNG VỐN & CAM KẾT VỚI NHÀ ĐẦU TƯ", "right_color": "red", "bullets": ["<b>💰 Tổng số vốn huy động: 150.000.000 VNĐ</b> (Vòng Ươm mầm Khởi nghiệp / Quỹ hỗ trợ Đổi mới Sáng tạo hoặc đổi lấy <b>15% cổ phần dự án</b>).", "<b>1. Sản xuất & Khuôn mẫu (45% — 67,5 Triệu VNĐ):</b> Gia công bo mạch PCB 2 lớp thu nhỏ, làm khuôn vỏ Silicon chống nước IP67 và sản xuất lô thương mại đầu tiên gồm <b>100 chiếc vòng tay STROKEGUARD</b>.", "<b>2. Đo kiểm & Thử nghiệm lâm sàng (25% — 37,5 Triệu VNĐ):</b> Đo kiểm độ an toàn, đối chứng lâm sàng trên 50 bệnh nhân tim mạch tại phòng khám đối tác ở Đà Nẵng.", "<b>3. Phát triển thị trường & Marketing (20% — 30,0 Triệu VNĐ):</b> Chương trình 'Đeo thử 7 ngày' tại các phòng khám/nhà thuốc và truyền thông chiến dịch 'Giữ Trọn Giờ Vàng'.", "<b>4. Hạ tầng Server Cloud, SMS & Dự phòng (10% — 15,0 Triệu VNĐ):</b> Duy trì máy chủ WebSocket, bản đồ GPS và tổng đài SMS/Zalo khẩn cấp. <b>Cam kết hoàn vốn sau 10 tháng!</b>"]}, {"num": 25, "tag": "TỔNG KẾT & KÊU GỌI ĐỒNG HÀNH", "title": "STROKEGUARD – SMART HEALTH BAND: \"NGƯỜI GÁC ĐÊM CHO TRÁI TIM VIỆT\"", "subtitle": "Mỗi chiếc vòng tay được đeo lên là một sinh mạng và hạnh phúc của cả một gia đình được bảo vệ trong Giờ Vàng", "layout": "split", "left_header": "4 CON SỐ VÀNG & THÔNG TIN LIÊN HỆ", "left_color": "teal", "bullets": ["<b>1. Nỗi đau thực tế:</b> 200.000 ca đột quỵ/năm • 91,7% gia đình cần thiết bị canh giấc ban đêm dưới 1 triệu VNĐ.", "<b>2. Công nghệ đột phá:</b> Lọc nhiễu LMS 80% • Sàng lọc Rung nhĩ AFib thụ động 24/7 • Té ngã 4 bước (94,9%) + GPS &lt; 1.5s.", "<b>3. Hiệu quả tài chính:</b> Giá bán <b>890.000 VNĐ</b> (Lãi gộp 44,9%) • Hòa vốn chỉ <b>42 máy/tháng</b> • Hoàn vốn đầu tư ở <b>Tháng thứ 10</b>.", "<b>4. Gọi vốn khởi nghiệp:</b> Huy động <b>150.000.000 VNĐ</b> để sản xuất lô 100 máy thương mại IP67 đầu tiên tại Đà Nẵng.", "<b>Liên hệ & Trải nghiệm trực tiếp:</b> Nguyễn Đăng Khang & Nguyễn Ngọc Trí (11/1 – THPT Ngô Quyền, Đà Nẵng) | GVHD: Cô Nguyễn Thị Vũ Thảo | Web 3D: <b>https://chichiaicompanion.com</b>"], "right_img": "/slide_assets/illust_01_wristband_sketch.png"}];
+    let currentIndex = 0;
+    let isEditable = false;
+
+    function renderThumbnails() {
+      const list = document.getElementById('thumbList');
+      list.innerHTML = slides.map((s, idx) => `
+        <div class="thumb-item ${idx === currentIndex ? 'active' : ''}" onclick="goToSlide(${idx})">
+          <div class="thumb-num">SLIDE ${s.num} / 25</div>
+          <div class="thumb-title">${s.title}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderSlide() {
+      const s = slides[currentIndex];
+      const editAttr = isEditable ? 'contenteditable="true"' : '';
+      document.getElementById('slideCounter').textContent = `Trang ${s.num} / 25`;
+
+      let bodyHtml = '';
+      if (s.layout === 'split') {
+        bodyHtml = `
+          <div class="card ${s.left_color === 'red' ? 'red' : ''}">
+            <div class="card-header" ${editAttr}>${s.left_header}</div>
+            <ul class="bullet-list" ${editAttr}>
+              ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="img-box">
+            <img src="${s.right_img}" alt="Slide Illustration" />
+          </div>
+        `;
+      } else if (s.layout === 'split_left_img') {
+        bodyHtml = `
+          <div class="img-box">
+            <img src="${s.left_img}" alt="Slide Illustration" />
+          </div>
+          <div class="card ${s.right_color === 'red' ? 'red' : ''}">
+            <div class="card-header" ${editAttr}>${s.right_header}</div>
+            <ul class="bullet-list" ${editAttr}>
+              ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else if (s.layout === 'two_cards') {
+        bodyHtml = `
+          <div class="card ${s.left_color === 'red' ? 'red' : ''}">
+            <div class="card-header" ${editAttr}>${s.left_header}</div>
+            <ul class="bullet-list" ${editAttr}>
+              ${s.left_bullets.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="card ${s.right_color === 'red' ? 'red' : ''}">
+            <div class="card-header" ${editAttr}>${s.right_header}</div>
+            <ul class="bullet-list" ${editAttr}>
+              ${s.right_bullets.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else if (s.layout === 'two_imgs') {
+        bodyHtml = `
+          <div style="display:flex; flex-direction:column; gap:10px; grid-column: 1 / -1;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; flex:1; min-height:0;">
+              <div class="img-box"><img src="${s.left_img}" alt="Diagram 1" /></div>
+              <div class="img-box"><img src="${s.right_img}" alt="Diagram 2" /></div>
+            </div>
+            <div class="bottom-note" ${editAttr}>${s.bottom_note}</div>
+          </div>
+        `;
+      } else if (s.layout === 'video') {
+        bodyHtml = `
+          <div class="video-box">
+            <video controls autoplay muted playsinline poster="${s.poster_src}">
+              <source src="${s.video_src}" type="video/mp4" />
+            </video>
+          </div>
+          <div class="card red">
+            <div class="card-header" ${editAttr}>${s.right_header}</div>
+            <ul class="bullet-list" ${editAttr}>
+              ${s.bullets.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      } else if (s.layout === 'table') {
+        bodyHtml = `
+          <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+            <table class="ppt-table" ${editAttr}>
+              <thead>
+                <tr>${s.headers.map(h => `<th>${h}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${s.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+            <div class="bottom-note" ${editAttr}>${s.bottom_note}</div>
+          </div>
+        `;
+      }
+
+      const canvas = document.getElementById('slideCanvas');
+      canvas.innerHTML = `
+        <img class="doodle-tr" src="/slide_assets/doodle_top_right.png" alt="" />
+        <img class="doodle-bl" src="/slide_assets/doodle_bottom_left.png" alt="" />
+        <img class="doodle-br" src="/slide_assets/doodle_bottom_right.png" alt="" />
+
+        <div class="slide-top">
+          <div class="slide-logo-row">
+            <img class="bq-logo" src="/slide_assets/bq_logo.png" alt="BQCompass" />
+            <span class="slide-tag" ${editAttr}>STROKEGUARD • ${s.tag}</span>
+          </div>
+          <h1 class="slide-h1" ${editAttr}>${s.title}</h1>
+          <div class="slide-sub" ${editAttr}>${s.subtitle}</div>
+        </div>
+
+        <div class="slide-body layout-${s.layout}">
+          ${bodyHtml}
+        </div>
+
+        <div class="slide-footer">
+          <span>STROKEGUARD – SMART HEALTH BAND | THPT Ngô Quyền, Đà Nẵng (Khang & Trí 11/1) | Cấu trúc khởi nghiệp BQCompass © 2026</span>
+          <span class="page-pill">Trang ${s.num} / 25</span>
+        </div>
+      `;
+      renderThumbnails();
+    }
+
+    function goToSlide(idx) {
+      currentIndex = idx;
+      renderSlide();
+    }
+    function prevSlide() {
+      currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+      renderSlide();
+    }
+    function nextSlide() {
+      currentIndex = (currentIndex + 1) % slides.length;
+      renderSlide();
+    }
+    function toggleEditMode() {
+      isEditable = !isEditable;
+      const btn = document.getElementById('editBtn');
+      btn.classList.toggle('active', isEditable);
+      btn.textContent = isEditable ? '✅ Đang Bật Chỉnh Sửa (Bấm vào chữ để sửa)' : '✏️ Bật Chỉnh Sửa Trực Tiếp';
+      renderSlide();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (isEditable) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') nextSlide();
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+    });
+
+    renderSlide();
+  </script>
+</body>
+</html>
