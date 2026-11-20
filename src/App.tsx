@@ -460,7 +460,7 @@ export const App: React.FC = () => {
                           STROKEGUARD – SMART HEALTH BAND
                         </h1>
                         <p className="text-[11px] text-slate-300">
-                          Hệ thống vòng tay thông minh giám sát sinh hiệu &amp; cảnh báo sớm nguy cơ đột quỵ tại gia đình • Nhóm tác giả: Nguyễn Đăng Khang &amp; Nguyễn Ngọc Trí (Lớp 11/1)
+                          Hệ thống vòng tay thông minh giám sát sinh hiệu &amp; cảnh báo sớm nguy cơ đột quỵ tại gia đình • Nhóm tác giả: Nguyễn Đăng Khang, Lê Tấn Phúc, Nguyễn Ngọc Trí, Phạm Quỳnh Châu
                         </p>
                       </div>
                     </div>
