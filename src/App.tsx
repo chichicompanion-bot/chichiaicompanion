@@ -44,8 +44,9 @@ import { MetricDetailModal } from './components/MetricDetailModal';
 import { BiomedicalHeartCommandCenter } from './components/BiomedicalHeartCommandCenter';
 import { DeviceGpsTelemetryCard } from './components/DeviceGpsTelemetryCard';
 import { StrokeEmergencyAlertModal } from './components/StrokeEmergencyAlertModal';
-
+import useStrokeguardBLE from './hooks/useStrokeguardBLE';
 export const App: React.FC = () => {
+  const { connect, disconnect, isConnected, sensorData } = useStrokeguardBLE();
   const demoProviderRef = useRef(new DemoDataProvider());
   const liveServiceRef = useRef(new LiveHealthDataService());
 
@@ -113,17 +114,17 @@ export const App: React.FC = () => {
   const [isStrokeEmergency, setIsStrokeEmergency] = useState<boolean>(false);
   const [strokeModalOpen, setStrokeModalOpen] = useState<boolean>(false);
 
-  const handleToggleBluetooth = useCallback(() => {
-    setIsBluetoothConnected((prev) => {
-      const next = !prev;
-      if (!next) {
-        setIsStrokeEmergency(false);
-        setStrokeModalOpen(false);
-      }
-      return next;
-    });
-  }, []);
+    const handleToggleBluetooth = useCallback(() => {
+    if (isConnected) {
+      disconnect();
+    } else {
+      connect();
+    }
+  }, [isConnected, connect, disconnect]);
 
+  useEffect(() => {
+    setIsBluetoothConnected(isConnected);
+  }, [isConnected]);
   const handleToggleStrokeEmergency = useCallback(() => {
     setIsStrokeEmergency((prev) => {
       const next = !prev;
@@ -143,7 +144,7 @@ export const App: React.FC = () => {
   }, []);
 
   // Compute effective metrics (disconnected '--', normal live, or emergency stroke spike)
-  const effectiveMetrics = useMemo(() => {
+    const effectiveMetrics = useMemo(() => {
     if (!isBluetoothConnected) {
       return metrics.map((m) => ({
         ...m,
@@ -154,91 +155,40 @@ export const App: React.FC = () => {
         freshness: 'STALE' as const,
       }));
     }
-    if (isStrokeEmergency) {
-      return metrics.map((m) => {
-        if (m.key === 'heartRate') {
-          return {
-            ...m,
-            value: 168,
-            formattedValue: '168',
-            unit: 'BPM',
-            deltaPercent: 127.0,
-            deltaLabel: 'BÁO ĐỘNG ĐỎ: Rung nhĩ ác tính / Loạn nhịp nhanh',
-            accentColor: '#EF4444',
-            glowColor: 'rgba(239, 68, 68, 0.45)',
-          };
-        }
-        if (m.key === 'bloodPressure' || m.key === 'hrv') {
-          return {
-            ...m,
-            title: 'BLOOD PRESSURE',
-            vietnameseTitle: 'Huyết áp động mạch',
-            value: 195,
-            formattedValue: '195/125',
-            unit: 'mmHg',
-            deltaPercent: 62.5,
-            deltaLabel: 'KHẨN CẤP: Cơn tăng huyết áp kịch phát ác tính',
-            accentColor: '#DC2626',
-            glowColor: 'rgba(220, 38, 38, 0.5)',
-          };
-        }
-        if (m.key === 'spo2') {
-          return {
-            ...m,
-            value: 88.0,
-            formattedValue: '88.0',
-            unit: '%',
-            deltaPercent: -11.5,
-            deltaLabel: 'NGUY HIỂM: Thiếu oxy máu mô não cấp',
-            accentColor: '#F97316',
-            glowColor: 'rgba(249, 115, 22, 0.45)',
-          };
-        }
-        if (m.key === 'respiratoryRate' || m.key === 'steps') {
-          return {
-            ...m,
-            title: 'RESPIRATION',
-            vietnameseTitle: 'Nhịp thở lồng ngực',
-            value: 32,
-            formattedValue: '32',
-            unit: 'lần/phút',
-            deltaPercent: 100.0,
-            deltaLabel: 'NGUY HIỂM: Thở dồn dập, suy hô hấp cấp',
-            accentColor: '#EA580C',
-            glowColor: 'rgba(234, 88, 12, 0.45)',
-          };
-        }
-        if (m.key === 'skinTemp') {
-          return {
-            ...m,
-            value: 38.8,
-            formattedValue: '38.8',
-            unit: '°C',
-            deltaPercent: 5.5,
-            deltaLabel: 'SỐT CAO: Phản ứng viêm cấp tính',
-            accentColor: '#F59E0B',
-            glowColor: 'rgba(245, 158, 11, 0.45)',
-          };
-        }
-        if (m.key === 'stress' || m.key === 'sleep') {
-          return {
-            ...m,
-            title: 'CARDIAC STRESS',
-            vietnameseTitle: 'Áp lực tim mạch',
-            value: 96,
-            formattedValue: '96',
-            unit: '%',
-            deltaPercent: 300.0,
-            deltaLabel: 'BÁO ĐỘNG: Quá tải tim mạch cực hạn',
-            accentColor: '#E11D48',
-            glowColor: 'rgba(225, 29, 72, 0.5)',
-          };
-        }
-        return m;
-      });
-    }
-    return metrics;
-  }, [isBluetoothConnected, isStrokeEmergency, metrics]);
+
+    return metrics.map((m) => {
+      if (m.key === 'heartRate') {
+        return {
+          ...m,
+          value: sensorData.hr > 0 ? sensorData.hr : 0,
+          formattedValue: sensorData.hr > 0 ? String(sensorData.hr) : '--',
+          deltaLabel: 'Đo trực tiếp qua cảm biến PPG',
+          freshness: sensorData.hr > 0 ? ('FRESH' as const) : ('STALE' as const),
+        };
+      }
+      
+      if (m.key === 'spo2') {
+        return {
+          ...m,
+          value: sensorData.spo2 > 0 ? sensorData.spo2 : 0,
+          formattedValue: sensorData.spo2 > 0 ? String(sensorData.spo2) : '--',
+          deltaLabel: 'Đo trực tiếp qua cảm biến MAX30102',
+          freshness: sensorData.spo2 > 0 ? ('FRESH' as const) : ('STALE' as const),
+        };
+      }
+
+      // Các chỉ số khác chưa có cảm biến phần cứng
+      return {
+        ...m,
+        value: null,
+        formattedValue: '--',
+        deltaPercent: null,
+        deltaLabel: 'Chưa hỗ trợ đo bằng cảm biến',
+        freshness: 'STALE' as const,
+      };
+    });
+  }, [isBluetoothConnected, metrics, sensorData]); 
+  // Lưu ý: Thêm sensorData vào mảng dependency ở cuối
 
   const effectiveDeviceStatus = useMemo(() => {
     if (!isBluetoothConnected) {
