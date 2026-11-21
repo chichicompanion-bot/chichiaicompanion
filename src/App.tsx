@@ -235,6 +235,9 @@ export const App: React.FC = () => {
 
   // Update Demo data or Live data based on mode
   useEffect(() => {
+    if (isBluetoothConnected) {
+  return; 
+}
     if (dataMode === 'demo') {
       const initialSeries = demoProviderRef.current.getTimeSeries(timeRange);
       setSeries(initialSeries);
@@ -260,7 +263,7 @@ export const App: React.FC = () => {
       }, 4000);
       return () => clearInterval(liveInterval);
     }
-  }, [dataMode, timeRange, refreshLiveTelemetry]);
+    }, [dataMode, timeRange, refreshLiveTelemetry, isBluetoothConnected]);
 
   const handleSendTestPacket = useCallback(async () => {
     const ok = await liveServiceRef.current.sendTestHardwarePacket();
