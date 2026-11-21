@@ -40,7 +40,7 @@ const DEFAULT_FALLBACK_LOCATION: GpsLocationData = {
   city: 'Sơn Trà, Đà Nẵng',
   region: 'Đà Nẵng',
   country: 'Việt Nam',
-  formattedAddress: 'Trường THPT Ngô Quyền, Quận Sơn Trà, TP. Đà Nẵng',
+  formattedAddress: 'Quận Sơn Trà, TP. Đà Nẵng',
   source: 'network',
   timestamp: Date.now(),
   deviceType: 'desktop',

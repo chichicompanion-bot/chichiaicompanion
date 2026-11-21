@@ -72,7 +72,7 @@ export const CinematicIntro: React.FC<CinematicIntroProps> = ({
               className="flex items-center gap-3 mb-4 px-4 py-1.5 rounded-full border border-rose-500/30 bg-rose-950/30 text-rose-300 text-xs font-mono-tech uppercase tracking-[0.25em]"
             >
               <Cpu className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-              <span>THPT NGÔ QUYỀN • CUỘC THI KHKT 2026 - 2027</span>
+              <span>HỆ THỐNG GIÁM SÁT Y SINH THÔNG MINH</span>
             </motion.div>
 
             <motion.h1

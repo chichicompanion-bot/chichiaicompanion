@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   STROKEGUARD - BAND
                 </div>
                 <div className="text-[10px] font-mono-tech text-slate-400 tracking-wider">
-                  THPT NGÔ QUYỀN • KHKT 2026-2027
+                  SMART HEALTH MONITORING
                 </div>
               </div>
             )}

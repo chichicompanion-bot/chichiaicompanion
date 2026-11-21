@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.6.0",
   "type": "module",
-  "description": "STROKEGUARD – SMART HEALTH BAND • Hệ Thống Vòng Tay Thông Minh Giám Sát Sinh Hiệu & Cảnh Báo Sớm Nguy Cơ Đột Quỵ Tại Gia Đình • THPT Ngô Quyền",
+  "description": "STROKEGUARD – SMART HEALTH BAND • Hệ Thống Vòng Tay Thông Minh Giám Sát Sinh Hiệu & Cảnh Báo Sớm Nguy Cơ Đột Quỵ Tại Gia Đình",
   "scripts": {
     "dev": "vite --port 5173 --host",
     "build": "vite build",

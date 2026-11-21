@@ -461,7 +461,7 @@ export class DemoDataProvider {
         id: 'notif-1',
         title: 'Hệ thống STROKEGUARD - BAND sẵn sàng',
         message:
-          'Hệ thống vòng tay thông minh hỗ trợ giám sát sinh hiệu và cảnh báo sớm nguy cơ đột quỵ tại gia đình. Trường THPT Ngô Quyền.',
+          'Hệ thống vòng tay thông minh hỗ trợ giám sát sinh hiệu và cảnh báo sớm nguy cơ đột quỵ tại gia đình.',
         timestamp: 'Vừa xong',
         type: 'info',
         read: false,

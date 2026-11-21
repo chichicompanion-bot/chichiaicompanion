@@ -453,13 +453,6 @@ export const TopNav: React.FC<TopNavProps> = ({
                     <span className="text-slate-400">Trạng thái:</span>
                     <span className="text-emerald-400 font-bold">Sinh hiệu bình thường</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Tác giả KHKT:</span>
-                    <span className="text-cyan-300">Khang &amp; Trí (11/1 - THPT Ngô Quyền)</span>
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-[11px] text-slate-400 leading-relaxed">
-                  Đề tài: Vòng tay thông minh hỗ trợ giám sát sinh hiệu &amp; cảnh báo sớm đột quỵ tại gia đình.
                 </div>
               </div>
             )}

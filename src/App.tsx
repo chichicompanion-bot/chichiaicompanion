@@ -372,7 +372,7 @@ export const App: React.FC = () => {
                   {dataMode === 'demo' ? 'MÔ PHỎNG LÂM SÀNG' : 'VÒNG TAY KẾT NỐI (BLE 5.0)'}
                 </span>
                 <span className="text-slate-500 dark:text-slate-400 hidden sm:inline text-[11px] font-mono-tech">
-                  STROKEGUARD - BAND • HỆ THỐNG Y SINH KHKT 2026-2027
+                  STROKEGUARD - BAND • HỆ THỐNG GIÁM SÁT SINH HIỆU
                 </span>
               </div>
 
@@ -399,44 +399,6 @@ export const App: React.FC = () => {
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                   className="space-y-6"
                 >
-                  {/* KHKT School Project Badge & Banner */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl md:rounded-3xl bg-gradient-to-r from-rose-950/40 via-slate-900/80 to-slate-900/90 border border-rose-500/30 text-xs shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/30 shrink-0">
-                        <ShieldCheck className="w-5 h-5 animate-pulse" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-mono-tech font-bold uppercase tracking-wider text-rose-400">
-                          TRƯỜNG THPT NGÔ QUYỀN — ĐÀ NẴNG • KHKT 2026 – 2027
-                        </div>
-                        <h1 className="text-sm sm:text-base font-bold font-display text-white">
-                          STROKEGUARD – SMART HEALTH BAND
-                        </h1>
-                        <p className="text-[11px] text-slate-300">
-                          Hệ thống vòng tay thông minh giám sát sinh hiệu &amp; cảnh báo sớm nguy cơ đột quỵ tại gia đình • Nhóm tác giả: Nguyễn Đăng Khang, Lê Tấn Phúc, Nguyễn Ngọc Trí, Phạm Quỳnh Châu
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 font-mono-tech text-[11px]">
-                      <a
-                        href="/slides.html"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold shadow-md shadow-rose-500/30 hover:brightness-110 transition"
-                      >
-                        <span>📊 Mở Slide 25 Trang</span>
-                      </a>
-                      <a
-                        href="/STROKEGUARD_PitchDeck_25Slides.pptx"
-                        download="STROKEGUARD_PitchDeck_25Slides.pptx"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-bold hover:bg-emerald-500/30 transition"
-                      >
-                        <span>⬇️ Tải File .PPTX</span>
-                      </a>
-                      <span className="hidden xl:inline px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400">GVHD: Nguyễn Thị Vũ Thảo</span>
-                    </div>
-                  </div>
-
                   {/* Hero Shortcut Card to 3D Body */}
                   <div
                     onClick={() => {
@@ -778,10 +740,10 @@ export const App: React.FC = () => {
           {/* Clean Footer */}
           <footer className="px-6 py-4 border-t border-slate-200/80 dark:border-slate-800/60 text-[11px] font-mono-tech text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
             <span>
-              STROKEGUARD – SMART HEALTH BAND • TRƯỜNG THPT NGÔ QUYỀN • KHKT 2026 – 2027
+              STROKEGUARD – SMART HEALTH BAND
             </span>
             <span>
-              Khang &amp; Trí (11/1) • GVHD: Thảo • {dataMode === 'demo' ? 'MÔ PHỎNG LÂM SÀNG' : 'VÒNG TAY KẾT NỐI'}
+              {dataMode === 'demo' ? 'MÔ PHỎNG LÂM SÀNG' : 'VÒNG TAY KẾT NỐI'}
             </span>
           </footer>
         </div>
