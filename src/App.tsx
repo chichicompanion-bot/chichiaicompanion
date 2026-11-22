@@ -144,7 +144,9 @@ export const App: React.FC = () => {
   }, []);
 
   // Compute effective metrics (disconnected '--', normal live, or emergency stroke spike)
-    const effectiveMetrics = useMemo(() => {
+      // Compute effective metrics (disconnected '--', normal live, or emergency stroke spike)
+  const effectiveMetrics = useMemo(() => {
+    // 1. Chưa kết nối -> Trả về rỗng
     if (!isBluetoothConnected) {
       return metrics.map((m) => ({
         ...m,
@@ -156,28 +158,90 @@ export const App: React.FC = () => {
       }));
     }
 
+    // 2. Đã kết nối -> Map từng metric với dữ liệu thật
     return metrics.map((m) => {
+      // === NHỊP TIM ===
       if (m.key === 'heartRate') {
         return {
           ...m,
-          value: sensorData.hr > 0 ? sensorData.hr : 0,
+          value: sensorData.hr > 0 ? sensorData.hr : null,
           formattedValue: sensorData.hr > 0 ? String(sensorData.hr) : '--',
-          deltaLabel: 'Đo trực tiếp qua cảm biến PPG',
+          deltaLabel: sensorData.motion === 1
+            ? 'Đang cử động - tín hiệu bị nhiễu'
+            : 'Đo trực tiếp qua cảm biến PPG',
           freshness: sensorData.hr > 0 ? ('FRESH' as const) : ('STALE' as const),
         };
       }
-      
+
+      // === NỒNG ĐỘ OXY ===
       if (m.key === 'spo2') {
         return {
           ...m,
-          value: sensorData.spo2 > 0 ? sensorData.spo2 : 0,
+          value: sensorData.spo2 > 0 ? sensorData.spo2 : null,
           formattedValue: sensorData.spo2 > 0 ? String(sensorData.spo2) : '--',
           deltaLabel: 'Đo trực tiếp qua cảm biến MAX30102',
           freshness: sensorData.spo2 > 0 ? ('FRESH' as const) : ('STALE' as const),
         };
       }
 
-      // Các chỉ số khác chưa có cảm biến phần cứng
+      // === TẦN SỐ HÔ HẤP (RPM) ===
+      if (m.key === 'respiratoryRate' || m.key === 'steps') {
+        return {
+          ...m,
+          title: 'RESPIRATORY RATE',
+          vietnameseTitle: 'Tần số hô hấp (RPM)',
+          value: sensorData.rpm > 0 ? sensorData.rpm : null,
+          formattedValue: sensorData.rpm > 0 ? sensorData.rpm.toFixed(1) : '--',
+          unit: 'lần/phút',
+          deltaPercent: null,
+          deltaLabel: sensorData.rpm > 0
+            ? 'Trích xuất từ biến thiên biên độ PPG'
+            : 'Đang tích lũy dữ liệu (cần ~30s)',
+          freshness: sensorData.rpm > 0 ? ('FRESH' as const) : ('STALE' as const),
+        };
+      }
+
+      // === MỨC ĐỘ CĂNG THẲNG ===
+      if (m.key === 'stress' || m.key === 'sleep') {
+        return {
+          ...m,
+          title: 'CARDIAC STRESS',
+          vietnameseTitle: 'Căng thẳng tim mạch',
+          value: sensorData.stress > 0 ? sensorData.stress : null,
+          formattedValue: sensorData.stress > 0 ? String(Math.round(sensorData.stress)) : '--',
+          unit: '%',
+          deltaPercent: null,
+          deltaLabel: sensorData.stress > 0
+            ? (sensorData.stress < 30 ? 'Thư giãn tốt' :
+               sensorData.stress < 60 ? 'Căng thẳng nhẹ' :
+               sensorData.stress < 80 ? 'Căng thẳng cao' : 'Cực kỳ căng thẳng')
+            : 'Đang phân tích HRV...',
+          freshness: sensorData.stress > 0 ? ('FRESH' as const) : ('STALE' as const),
+        };
+      }
+
+      // === HUYẾT ÁP ===
+      if (m.key === 'bloodPressure' || m.key === 'hrv') {
+        return {
+          ...m,
+          title: 'BLOOD PRESSURE',
+          vietnameseTitle: 'Huyết áp ước lượng',
+          value: sensorData.sys > 0 ? sensorData.sys : null,
+          formattedValue: sensorData.sys > 0
+            ? `${sensorData.sys}/${sensorData.dia}`
+            : '--',
+          unit: 'mmHg',
+          deltaPercent: null,
+          deltaLabel: sensorData.sys > 0
+            ? (sensorData.sys > 140 ? '⚠️ Cao - Cần theo dõi' :
+               sensorData.sys < 90  ? '⚠️ Thấp - Cần theo dõi' :
+               'Ước lượng từ Pulse Wave Analysis')
+            : 'Cần thêm dữ liệu',
+          freshness: sensorData.sys > 0 ? ('FRESH' as const) : ('STALE' as const),
+        };
+      }
+
+      // === CÁC CHỈ SỐ KHÁC CHƯA HỖ TRỢ ===
       return {
         ...m,
         value: null,
@@ -187,7 +251,7 @@ export const App: React.FC = () => {
         freshness: 'STALE' as const,
       };
     });
-  }, [isBluetoothConnected, metrics, sensorData]); 
+  }, [isBluetoothConnected, metrics, sensorData]);
   // Lưu ý: Thêm sensorData vào mảng dependency ở cuối
 
   const effectiveDeviceStatus = useMemo(() => {
